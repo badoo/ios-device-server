@@ -1,0 +1,225 @@
+package com.badoo.automation.deviceserver
+
+import com.badoo.automation.deviceserver.controllers.DevicesController
+import com.badoo.automation.deviceserver.controllers.StatusController
+import com.badoo.automation.deviceserver.data.DesiredCapabilities
+import com.badoo.automation.deviceserver.data.ErrorDto
+import com.badoo.automation.deviceserver.data.toDto
+import com.badoo.automation.deviceserver.host.management.DeviceManager
+import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
+import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
+import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import io.ktor.application.Application
+import io.ktor.application.ApplicationCall
+import io.ktor.application.call
+import io.ktor.application.install
+import io.ktor.auth.UnauthorizedResponse
+import io.ktor.auth.UserIdPrincipal
+import io.ktor.auth.authentication
+import io.ktor.auth.principal
+import io.ktor.features.CallLogging
+import io.ktor.features.ContentNegotiation
+import io.ktor.features.DefaultHeaders
+import io.ktor.features.StatusPages
+import io.ktor.http.HttpStatusCode
+import io.ktor.jackson.jackson
+import io.ktor.request.uri
+import io.ktor.response.respond
+import io.ktor.routing.*
+import io.ktor.server.engine.ApplicationEngineEnvironmentReloading
+import io.ktor.server.engine.ShutDownUrl
+import org.slf4j.LoggerFactory
+import java.io.File
+import java.net.NetworkInterface
+import java.util.*
+
+typealias EmptyMap = Map<Unit, Unit>
+
+private fun jsonContent(call: ApplicationCall): JsonNode {
+    val json = call.request.receiveContent().inputStream()
+    return JsonMapper().readTree(json)
+}
+
+private inline fun <reified T> jsonContent(call: ApplicationCall): T {
+    return JsonMapper().fromJson(call.request.receiveContent().inputStream())
+}
+
+private fun param(call: ApplicationCall, s: String): String {
+    return call.parameters[s] ?: throw Exception("Parameter $s missing from ${call.request.uri}")
+}
+
+private fun paramInt(call: ApplicationCall, s: String): Int {
+    try {
+        return param(call, s).toInt()
+    } catch (e: NumberFormatException) {
+        throw Exception("Parameter $s was not an integer in ${call.request.uri}")
+    }
+}
+
+fun getAddresses(): List<String> {
+    return NetworkInterface.getNetworkInterfaces().toList().flatMap {
+        it.inetAddresses.toList()
+                .filter { it.address.size == 4 }
+                .filter { !it.isLoopbackAddress }
+                .map { it.hostAddress + "/" + it.hostName }
+    }
+}
+
+private fun serverConfig(): DeviceServerConfig {
+    if (Configuration.DEVICE_SERVER_CONFIG_PATH.isEmpty()) {
+        logger.info("Using default config")
+        return DeviceServerConfig(nodes = listOf(NodeConfig()), timeouts = emptyMap())
+    }
+
+    val configFile = File(Configuration.DEVICE_SERVER_CONFIG_PATH)
+
+    if (!configFile.exists()) {
+        val msg = "Config file ${configFile.path} not found"
+        logger.error(msg)
+        throw RuntimeException(msg)
+    }
+
+    logger.info("Using config file: ${configFile.path}")
+    return JsonMapper().fromJson(configFile.readText())
+}
+
+var routes: Route? = null
+
+private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpleName)
+
+@Suppress("unused")
+fun Application.module() {
+    val config = serverConfig()
+
+    val deviceManager = DeviceManager(config)
+    deviceManager.startAutoRegisteringDevices()
+    deviceManager.launchAutoReleaseLoop()
+
+    val devicesController = DevicesController(deviceManager)
+    val statusController = StatusController(deviceManager)
+
+    install(DefaultHeaders)
+    install(CallLogging)
+    install(ContentNegotiation) {
+        jackson {
+            configure(SerializationFeature.INDENT_OUTPUT, true)
+            registerModule(JavaTimeModule())
+        }
+    }
+
+    install(ShutDownUrl.ApplicationCallFeature) {
+        shutDownUrl = "/quitquitquit"
+        exitCodeSupplier = { 1 }
+    }
+
+    authentication {
+        bearerAuthentication("default") { token ->
+            val name = Base64.getDecoder().decode(token).toString(Charsets.ISO_8859_1)
+            when {
+                name.isEmpty() -> null
+                else -> UserIdPrincipal(name)
+            }
+        }
+        anonymousAuthentication()
+    }
+
+    logger.info("Server: Installing routing...")
+    routes = install(Routing) {
+        get {
+            call.respond(statusController.welcomeMessage(routes))
+        }
+        get("status") {
+            call.respond(statusController.getServerStatus())
+        }
+        route("devices") {
+            get {
+                call.respond(devicesController.getDeviceRefs())
+            }
+            post {
+                val user = call.principal<UserIdPrincipal>()
+                call.respond(devicesController.createDevice(jsonContent<DesiredCapabilities>(call), user))
+            }
+            delete {
+                val user = call.principal<UserIdPrincipal>()
+                if (user == null) {
+                    call.respond(UnauthorizedResponse())
+                } else {
+                    call.respond(devicesController.releaseDevices(user))
+                }
+            }
+            post("-/capacity") {
+                call.respond(devicesController.getTotalCapacity(jsonContent<DesiredCapabilities>(call)))
+            }
+            route("{ref}") {
+                get {
+                    call.respond(devicesController.getDeviceContactDetails(param(call, "ref")))
+                }
+                post {
+                    call.respond(devicesController.controlDevice(param(call, "ref"), jsonContent(call)))
+                }
+                delete {
+                    call.respond(devicesController.deleteReleaseDevice(param(call, "ref")))
+                }
+                post("permissions") {
+                    call.respond(devicesController.setAccessToCameraAndThings(param(call, "ref"), jsonContent(call)))
+                }
+                get("endpoint/{port}") {
+                    call.respond(devicesController.getEndpointFor(param(call, "ref"), paramInt(call, "port")))
+                }
+                get("crashes/last") {
+                    call.respond(devicesController.getLastCrashLog(param(call, "ref")))
+                }
+                route("video") {
+                    get {
+                        //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
+                        //FIXME: see [call.respondFile] basically - read from ssh proc listener's ByteBuffer
+                        call.respond(devicesController.getVideo(param(call, "ref")))
+                    }
+                    post {
+                        call.respond(devicesController.startStopVideo(param(call, "ref"), jsonContent(call)))
+                    }
+                    delete {
+                        call.respond(devicesController.deleteVideo(param(call, "ref")))
+                    }
+                }
+                get("state") {
+                    call.respond(devicesController.getDeviceState(param(call, "ref")))
+                }
+            }
+        }
+    }
+
+    logger.info("Server: Installing status pages...")
+    install(StatusPages) {
+        status(HttpStatusCode.NotFound) {
+            val msg =  "${it.value} ${it.description} : ${call.request.uri}"
+            val error = ErrorDto("RouteNotFound",msg, emptyList())
+            call.respond(HttpStatusCode.NotFound,
+                    hashMapOf("error" to error)
+            )
+        }
+        exception { exception: Throwable ->
+            val statusCode = when (exception) {
+                is IllegalArgumentException -> HttpStatusCode(422, "Unprocessable Entity")
+                is DeviceNotFoundException -> HttpStatusCode.NotFound
+                is NoAliveNodesException -> HttpStatusCode.TooManyRequests
+                is OverCapacityException -> HttpStatusCode.TooManyRequests
+                else -> HttpStatusCode.InternalServerError
+            }
+            call.respond(statusCode,
+                    hashMapOf(
+                            "error" to exception.toDto()
+                    )
+            )
+        }
+    }
+
+    logger.info("Server: Installation complete. Should be available at ${connectors()} ${getAddresses()}")
+}
+
+private fun Application.connectors(): String {
+    return (this.environment as ApplicationEngineEnvironmentReloading).connectors.toString()
+}
