@@ -1,0 +1,17 @@
+{
+  "timeouts": {
+    "device": 600
+  },
+  "nodes": [
+    {
+      "user": "qa",
+      "host": "host1",
+      "simulator_limit": 6
+    },
+    {
+      "user": "qa",
+      "host": "host2",
+      "simulator_limit": 6
+    }
+  ]
+}

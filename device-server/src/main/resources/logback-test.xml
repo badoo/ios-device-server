@@ -1,0 +1,19 @@
+<configuration debug="false" packagingData="true">
+    <conversionRule conversionWord="highlight" converterClass="deviceserver.LogHighlighter" />
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="trace">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="org.eclipse.jetty" level="WARN" />
+    <logger name="org.springframework" level="WARN" />
+    <logger name="javax.management.mbeanserver" level="WARN" />
+    <logger name="javax.management.misc" level="WARN" />
+    <logger name="org.hibernate" level="WARN" />
+    <logger name="org.xnio.nio" level="WARN" />
+</configuration>

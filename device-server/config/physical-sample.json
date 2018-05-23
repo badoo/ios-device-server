@@ -1,0 +1,22 @@
+{
+    "timeouts": {
+        "device": null
+    },
+    "nodes": [
+        {
+            "type": "devices",
+            "user": "",
+            "host": "localhost",
+            "whitelist_apps": [
+                "com.apple.test.WebDriverAgentRunner-Runner"
+            ],
+            "devices": [
+                {
+                    "udid": "a000aaaa000a00aaa0a00000aa000a00aaa00a00",
+                    "ip": "192.168.18.219",
+                    "wifi_address": "00:00:00:00:00:00"
+                }
+            ]
+        }
+    ]
+}
