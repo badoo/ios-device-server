@@ -36,7 +36,8 @@ class Simulator (
         wdaPath: String,
         private val concurrentBootsPool: ThreadPoolDispatcher,
         headless: Boolean,
-        override val fbsimctlSubject: String
+        override val fbsimctlSubject: String,
+        wdaHostApp: String
 ) : ISimulator
 {
     private companion object {
@@ -63,7 +64,7 @@ class Simulator (
 
     private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
-    private val wdaProc = SimulatorWebDriverAgent(remote, wdaPath, deviceInfo.udid, wdaEndpoint)
+    private val wdaProc = SimulatorWebDriverAgent(remote, wdaPath, deviceInfo.udid, wdaEndpoint, wdaHostApp)
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
     private val simulatorStatus = SimulatorStatus()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)

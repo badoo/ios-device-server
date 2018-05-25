@@ -40,6 +40,7 @@ open class WebDriverAgent(
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
 
     override fun start() {
+        ensure(hostApp.isNotBlank()) { WebDriverAgentError("WebDriverAgent host application cannot be empty") }
         ensure(childProcess == null) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
         ensure(remote.isDirectory(wdaPath)) { WebDriverAgentError("WebDriverAgent $wdaPath does not exist or is not a directory") }
         logger.debug(logMarker, "$this — Starting child process")

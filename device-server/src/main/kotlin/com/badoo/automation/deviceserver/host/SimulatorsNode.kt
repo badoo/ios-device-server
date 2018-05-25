@@ -88,7 +88,18 @@ class SimulatorsNode(
 
             logger.debug(simLogMarker, "Will create simulator $ref")
 
-            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath, wdaPath.path, concurrentBoot, desiredCaps.headless, fbSimctlDevice.toString())
+            val simulator = simulatorFactory.newSimulator(
+                ref,
+                remote,
+                fbSimctlDevice,
+                ports,
+                deviceSetPath,
+                wdaPath.path,
+                concurrentBoot,
+                desiredCaps.headless,
+                fbSimctlDevice.toString(),
+                desiredCaps.wdaHostApp
+            )
             simulator.prepareAsync()
             devicePool[ref] = simulator
 
