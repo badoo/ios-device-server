@@ -1,4 +1,4 @@
-# iOS Remote Device Server
+# iOS Remote Device Server [![Build Status](https://travis-ci.org/badoo/ios-device-server.svg?branch=master)](https://travis-ci.org/badoo/ios-device-server)
 
 A server for managing, booting, and controlling simulators and devices on remote host machines.
 
