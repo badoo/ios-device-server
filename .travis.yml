@@ -1,0 +1,18 @@
+language: java
+jdk:
+  - oraclejdk9
+
+# http://docs.travis-ci.com/user/migrating-from-legacy
+sudo: false
+
+before_install:
+ - cd device-server
+
+# configure caching (https://docs.travis-ci.com/user/languages/java/#Caching)
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
