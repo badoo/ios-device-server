@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "definitions": {
+    "node": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        }
+      }
+    },
+    "devices_node": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "devices"
+          ]
+        },
+        "whitelist_apps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "devices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/devices"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "simulators_node": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "simulators"
+          ]
+        },
+        "concurrent_boots": {
+          "type": "integer"
+        },
+        "simulator_limit": {
+          "type": "integer"
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "properties": {
+        "udid": {
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "udid",
+        "ip"
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "timeouts": {
+      "description": "",
+      "type": "object",
+      "properties": {
+        "device": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/node"
+          },
+          {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "$ref": "#/definitions/simulators_node"
+              },
+              {
+                "additionalProperties": false,
+                "$ref": "#/definitions/devices_node"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
