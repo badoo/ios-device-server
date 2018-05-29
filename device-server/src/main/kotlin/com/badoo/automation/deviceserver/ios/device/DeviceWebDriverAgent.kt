@@ -10,12 +10,11 @@ class DeviceWebDriverAgent(
     remote: IRemote,
     wdaPath: String,
     udid: UDID,
-    wdaEndpoint: URI,
-    hostApp: String = Paths.get(wdaPath).parent.parent.toString()
+    wdaEndpoint: URI
 ) : WebDriverAgent(
     remote = remote,
     wdaPath = wdaPath,
-    hostApp = hostApp,
+    hostApp = Paths.get(wdaPath).parent.parent.toString(),
     udid = udid,
     wdaEndpoint = wdaEndpoint
 ) {

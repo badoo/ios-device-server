@@ -18,8 +18,20 @@ interface ISimulatorFactory {
             wdaPath: String,
             concurrentBoot: ThreadPoolDispatcher,
             headless: Boolean,
-            fbsimctlSubject: String
+            fbsimctlSubject: String,
+            wdaHostApp: String
     ): ISimulator {
-        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaPath, concurrentBoot, headless, fbsimctlSubject)
+        return Simulator(
+            ref,
+            remote,
+            DeviceInfo(fbdev),
+            ports,
+            deviceSetPath,
+            wdaPath,
+            concurrentBoot,
+            headless,
+            fbsimctlSubject,
+            wdaHostApp
+        )
     }
 }

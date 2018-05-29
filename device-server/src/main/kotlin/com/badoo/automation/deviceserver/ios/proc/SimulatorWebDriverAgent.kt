@@ -9,7 +9,7 @@ class SimulatorWebDriverAgent(
         wdaPath: String,
         udid: UDID,
         wdaEndpoint: URI,
-        hostApp: String = "com.apple.Preferences"
+        hostApp: String
 ) : WebDriverAgent(
         remote = remote,
         wdaPath = wdaPath,

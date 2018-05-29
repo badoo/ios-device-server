@@ -15,10 +15,10 @@ import com.nhaarman.mockito_kotlin.*
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
-import org.junit.Assert.*
-import org.junit.Ignore
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
-import org.slf4j.Logger
 import java.io.File
 import java.net.URI
 import java.time.Duration
@@ -90,6 +90,11 @@ class SimulatorsNodeTest {
     )
     private val expectedDeviceDTOJson = JsonMapper().toJson(expectedDeviceDTO)
 
+    @Before
+    fun setUp() {
+        whenever(desiredCapabilities.wdaHostApp).thenReturn("com.apple.Preferences")
+    }
+
     @Test
     fun shouldPrepareNodeOnlyOnce() {
         simulatorsNode1.prepareNode()
@@ -126,7 +131,8 @@ class SimulatorsNodeTest {
                 eq("some/file/from/wdaPathProc"),
                 any(),
                 eq(false),
-                eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)")
+                eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)"),
+                eq("com.apple.Preferences")
         )
         verify(simulatorMock).prepareAsync()
 
@@ -155,7 +161,7 @@ class SimulatorsNodeTest {
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
 
-        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         simulatorMocks.forEach { pair ->
             simfac = simfac.thenReturn(pair.first)
         }
