@@ -131,4 +131,8 @@ class DeviceManager(
         val devices = nodeRegistry.activeDevices.getUserDeviceRefs(userId)
         nodeRegistry.activeDevices.releaseDevices(devices, reason)
     }
+
+    override fun isReady(): Boolean {
+        return nodeRegistry.getInitialRegistrationComplete()
+    }
 }

@@ -23,4 +23,5 @@ interface IDeviceManager {
     fun readyForRelease(): List<DeviceRef>
     fun getStatus(): Map<String, Any>
     fun releaseUserDevices(userId: String, reason: String)
+    fun isReady(): Boolean
 }
