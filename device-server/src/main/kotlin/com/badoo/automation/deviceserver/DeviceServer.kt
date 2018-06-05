@@ -132,7 +132,8 @@ fun Application.module() {
             call.respond(statusController.welcomeMessage(routes))
         }
         get("status") {
-            call.respond(statusController.getServerStatus())
+            val code = if (deviceManager.isReady()) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+            call.respond(code, statusController.getServerStatus())
         }
         route("devices") {
             get {
