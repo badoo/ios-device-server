@@ -33,9 +33,20 @@ class ActiveDevices(
     }
 
     override fun deviceList(): List<DeviceDTO> {
-        return devices.map {
-            it.value.node.getDeviceDTO(it.value.ref)
-        }
+        val disconnected = mutableListOf<DeviceRef>()
+
+        val list = devices.map {
+            try {
+                it.value.node.getDeviceDTO(it.value.ref)
+            } catch (ex: DeviceNotFoundException) {
+                disconnected.add(it.key)
+                null
+            }
+        }.filterNotNull()
+
+        disconnected.forEach { unregisterDeleteDevice(it) }
+
+        return list
     }
 
     override fun registerDevice(ref: DeviceRef, node: ISimulatorsNode, releaseTimeout: Duration, userId: String?) {
