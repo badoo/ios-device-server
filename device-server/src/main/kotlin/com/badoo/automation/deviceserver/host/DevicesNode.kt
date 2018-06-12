@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.host
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.PortAllocator
+import com.badoo.automation.deviceserver.host.management.XcodeVersion
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
@@ -254,12 +255,11 @@ class DevicesNode(
     }
 
     private fun checkPrerequisites() {
-        val expectedXcodeVersions = setOf("Xcode 9.2", "Xcode 9.3")
+        val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
+        val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
 
-        val xcodeVersion = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
-
-        if (!expectedXcodeVersions.any { xcodeVersion.stdOut.contains(it) }) {
-            throw RuntimeException("Expecting ${expectedXcodeVersions.joinToString(", ")}, but it is $xcodeVersion")
+        if (!(xcodeVersion.major == 9 && xcodeVersion.minor >= 2)) {
+            throw RuntimeException("Expecting Xcode 9.2 or higher up to 10, but it is $xcodeVersion")
         }
 
         val expectedFbsimctlVersion = "HEAD-292a1bd"
