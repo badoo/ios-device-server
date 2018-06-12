@@ -48,10 +48,11 @@ class SimulatorHostChecker(
     }
 
     override fun checkPrerequisites() {
-        val xcodeVersion = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
+        val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
+        val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
 
-        if (!xcodeVersion.stdOut.contains(EXPECTED_XCODE_VERSION)) {
-            throw RuntimeException("Expecting $EXPECTED_XCODE_VERSION, but received $xcodeVersion")
+        if (xcodeVersion.major != 9) {
+            throw RuntimeException("Expecting Xcode 9, but received $xcodeOutput")
         }
 
         // temp solution, prereq should be satisfied without having to switch anything

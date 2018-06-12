@@ -393,19 +393,3 @@ class SimulatorsNodeTest {
     }
 
 }
-
-class SimulatorHostCheckerTest {
-    private val iRemote: IRemote = mockThis()
-
-    private val hostChecker = SimulatorHostChecker(iRemote, Duration.ofMillis(1))
-
-    @Test(expected = RuntimeException::class)
-    fun checkPrerequisitesDislikesBadXcode() {
-        whenever(iRemote.execIgnoringErrors("xcodebuild -version".split(" ")))
-                .thenReturn(CommandResult(
-                        "Xcode x.", "", ByteArray(0),
-                        0, true))
-
-        hostChecker.checkPrerequisites()
-    }
-}
