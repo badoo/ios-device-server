@@ -13,4 +13,14 @@ class XcodeVersionTest {
         assertEquals(9, version.major)
         assertEquals(2, version.minor)
     }
+
+    @Test
+    fun shouldParseXcodeBuildOutputWithPatchVersion() {
+        val out = "Xcode 9.2.1\nBuild version 9C40b"
+
+        val version = XcodeVersion.fromXcodeBuildOutput(out)
+
+        assertEquals(9, version.major)
+        assertEquals(2, version.minor)
+    }
 }
