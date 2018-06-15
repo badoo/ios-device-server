@@ -11,6 +11,6 @@ class LogMarkers {
         const val DEVICE_REF = "deviceRef"
         const val UDID = "udid"
         const val HOSTNAME = "hostname"
-        const val SSH_PROFILING = "sshProfiling"
+        const val SSH_PROFILING_MS = "sshTimeMs"
     }
 }
