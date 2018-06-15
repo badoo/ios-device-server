@@ -19,7 +19,7 @@ data class SessionEntry(
 class ActiveDevices(
         private val sessionId: String = "defaultSessionId",
         private val currentTimeSeconds: ()->Long = ::currentTimeSecondsProvider
-) : IActiveDevices {
+) {
     private val devices: MutableMap<DeviceRef, SessionEntry> = ConcurrentHashMap()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
@@ -28,11 +28,11 @@ class ActiveDevices(
         fun currentTimeSecondsProvider(): Long = System.currentTimeMillis() / 1000
     }
 
-    override fun deviceRefs(): Set<DeviceRef> {
+    fun deviceRefs(): Set<DeviceRef> {
         return devices.keys
     }
 
-    override fun deviceList(): List<DeviceDTO> {
+    fun deviceList(): List<DeviceDTO> {
         val disconnected = mutableListOf<DeviceRef>()
 
         val list = devices.map {
@@ -49,11 +49,11 @@ class ActiveDevices(
         return list
     }
 
-    override fun registerDevice(ref: DeviceRef, node: ISimulatorsNode, releaseTimeout: Duration, userId: String?) {
+    fun registerDevice(ref: DeviceRef, node: ISimulatorsNode, releaseTimeout: Duration, userId: String?) {
         devices[ref] = SessionEntry(ref, node, currentTimeSeconds(), releaseTimeout, userId)
     }
 
-    override fun unregisterNodeDevices(node: ISimulatorsNode) {
+    fun unregisterNodeDevices(node: ISimulatorsNode) {
         devices.entries
                 .filter { it.value.node == node }
                 .forEach { unregisterDeleteDevice(it.key) }
@@ -73,7 +73,7 @@ class ActiveDevices(
         }
     }
 
-    override fun getNodeFor(ref: DeviceRef): ISimulatorsNode {
+    fun getNodeFor(ref: DeviceRef): ISimulatorsNode {
         val node = tryGetNodeFor(ref)
         if (node == null) {
             throw DeviceNotFoundException("Device [$ref] not found in [$sessionId] activeDevices")
@@ -82,24 +82,24 @@ class ActiveDevices(
         }
     }
 
-    override fun getStatus(): String {
+    fun getStatus(): String {
         return devices
                 .map { "\n" + it.key to it.value }
                 .toString()
     }
 
-    override fun unregisterDeleteDevice(ref: DeviceRef) {
+    fun unregisterDeleteDevice(ref: DeviceRef) {
         devices.remove(ref)
     }
 
-    override fun readyForRelease(): List<DeviceRef> {
+    fun readyForRelease(): List<DeviceRef> {
         val secondsNow = currentTimeSeconds()
         return devices.filter { with(it.value) { releaseTimeout.seconds + updatedAtSeconds <= secondsNow } }
                 .map { it.key }
                 .also { logger.info("Ready to release $it"); }
     }
 
-    override fun nextReleaseAtSeconds(): Long {
+    fun nextReleaseAtSeconds(): Long {
         val sessionEntry = devices.minBy {
             it.value.updatedAtSeconds + it.value.releaseTimeout.seconds
         }
@@ -115,13 +115,13 @@ class ActiveDevices(
         return nextReleaseAtSeconds
     }
 
-    override fun releaseDevice(ref: DeviceRef, reason: String) {
+    fun releaseDevice(ref: DeviceRef, reason: String) {
         val session = sessionByRef(ref)
         session.node.deleteRelease(session.ref, reason)
         unregisterDeleteDevice(session.ref)
     }
 
-    override fun releaseDevices(entries: List<DeviceRef>, reason: String) {
+    fun releaseDevices(entries: List<DeviceRef>, reason: String) {
         entries.parallelStream().forEach {
             try {
                 releaseDevice(it, reason)
@@ -131,7 +131,7 @@ class ActiveDevices(
         }
     }
 
-    override fun getUserDeviceRefs(userId: String): List<DeviceRef> {
+    fun getUserDeviceRefs(userId: String): List<DeviceRef> {
         return devices.filter { it.value.userId == userId }.map { it.key }
     }
 

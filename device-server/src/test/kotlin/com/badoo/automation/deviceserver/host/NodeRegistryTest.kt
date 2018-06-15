@@ -4,7 +4,7 @@ import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.deviceDTOStub
 import com.badoo.automation.deviceserver.host.management.NodeRegistry
 import com.badoo.automation.deviceserver.host.management.NodeWrapper
-import com.badoo.automation.deviceserver.ios.IActiveDevices
+import com.badoo.automation.deviceserver.ios.ActiveDevices
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.atLeast
@@ -17,7 +17,7 @@ import org.junit.Test
 import java.time.Duration
 
 class NodeRegistryTest {
-    private val activeDevices: IActiveDevices = mockThis()
+    private val activeDevices: ActiveDevices = mockThis()
     private val nodeRegistry: NodeRegistry = NodeRegistry(activeDevices)
     private val headless = true
     private val desiredCapabilities = DesiredCapabilities("udid", "model", "os", headless)
