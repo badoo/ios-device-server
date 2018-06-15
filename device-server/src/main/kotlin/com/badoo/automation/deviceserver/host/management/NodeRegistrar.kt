@@ -41,6 +41,11 @@ class NodeRegistrar(
 
     private fun autoRegister() {
         val unregistered = nodeWrappers - nodeRegistry.getAll()
+
+        if (unregistered.isEmpty()) {
+            return
+        }
+
         logger.debug("Going to auto register ${unregistered.map(NodeWrapper::toString)}")
         val executor = Executors.newFixedThreadPool(unregistered.size)
         val results: List<Future<*>> = unregistered.map { nodeWrapper ->
