@@ -62,7 +62,7 @@ class NodeRegistrar(
             try {
                 result.get()
             } catch (e: Throwable) {
-                logger.debug("Error while starting node ")
+                logger.debug("Error while starting node", e)
             }
         }
         nodeRegistry.setInitialRegistrationComplete()
