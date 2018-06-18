@@ -189,7 +189,7 @@ class Device(
         }
     }
 
-    fun renewAsync(whitelistedApps: Set<String>) {
+    fun renewAsync(whitelistedApps: Set<String>, uninstallApps: Boolean) {
         val currentStatus = status()
         var prepareRequired = false
 
@@ -209,7 +209,9 @@ class Device(
                     }
                 }
 
-                uninstallUserApps(whitelistedApps = whitelistedApps)
+                if (uninstallApps) {
+                    uninstallUserApps(whitelistedApps = whitelistedApps)
+                }
 
                 if (prepareRequired) {
                     preparePromise?.cancel(true)

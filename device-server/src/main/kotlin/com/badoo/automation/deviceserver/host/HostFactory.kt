@@ -43,7 +43,8 @@ class HostFactory(
                 remote,
                 whitelistedApps = config.whitelistApps,
                 wdaPath = getWdaDevicesPath(remote.isLocalhost()),
-                knownDevices = config.knownDevices
+                knownDevices = config.knownDevices,
+                uninstallApps = config.uninstallApps
             )
         }
     }
