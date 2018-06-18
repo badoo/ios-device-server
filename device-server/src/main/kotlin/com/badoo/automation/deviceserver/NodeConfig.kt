@@ -24,6 +24,9 @@ data class NodeConfig(
     @JsonProperty("whitelist_apps")
     val whitelistApps: Set<String> = emptySet(),
 
+    @JsonProperty("uninstall_apps")
+    val uninstallApps: Boolean = false,
+
     @JsonProperty("devices")
     val knownDevices: List<KnownDevice> = emptyList()
 ) {

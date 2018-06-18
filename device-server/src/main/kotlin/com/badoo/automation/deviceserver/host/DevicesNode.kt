@@ -22,7 +22,8 @@ class DevicesNode(
     portAllocator: PortAllocator = PortAllocator(),
     wdaPath: File,
     knownDevices: List<KnownDevice>,
-    private val whitelistedApps: Set<String>
+    private val whitelistedApps: Set<String>,
+    private val uninstallApps: Boolean
 ) : ISimulatorsNode {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(
@@ -144,7 +145,7 @@ class DevicesNode(
             activeRefs[ref!!] = slot!!.udid
         }
 
-        slot!!.device.renewAsync(whitelistedApps = whitelistedApps)
+        slot!!.device.renewAsync(whitelistedApps = whitelistedApps, uninstallApps = uninstallApps)
 
         return deviceToDto(ref!!, device = slot!!.device)
     }
