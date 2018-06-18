@@ -20,7 +20,7 @@ class DeviceWebDriverAgent(
     wdaEndpoint = wdaEndpoint
 ) {
     override fun terminateHostApp() {
-        remote.fbsimctl.uninstallApp(udid, "com.apple.test.WebDriverAgentRunner-Runner")
+        remote.fbsimctl.uninstallApp(udid, hostApp)
         Thread.sleep(1000)
     }
 }
