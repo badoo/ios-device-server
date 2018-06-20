@@ -246,7 +246,7 @@ class DevicesNode(
 
     private fun newRef(udid: UDID): DeviceRef {
         val unsafe = Regex("[^\\-_a-zA-Z\\d]") // TODO: Replace with UUID 4
-        return "$udid-${remote.hostName}".replace(unsafe, "-")
+        return "$udid-${remote.publicHostName}".replace(unsafe, "-")
     }
 
     private fun slotByExternalRef(deviceRef: DeviceRef): DeviceSlot {
@@ -284,9 +284,14 @@ class DevicesNode(
             throw RuntimeException("Expecting fbsimctl $expectedFbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
         }
 
-        val iproxy = remote.execIgnoringErrors((listOf("iproxy")))
+        val iproxy = remote.execIgnoringErrors((listOf(UsbProxy.IPROXY_BIN)))
         if (iproxy.exitCode != 0) {
            throw RuntimeException("Expecting iproxy to be installed")
+        }
+
+        val socat = remote.execIgnoringErrors((listOf(UsbProxy.SOCAT_BIN, "-V")))
+        if (socat.exitCode != 0) {
+            throw RuntimeException("Expecting socat to be installed")
         }
     }
 

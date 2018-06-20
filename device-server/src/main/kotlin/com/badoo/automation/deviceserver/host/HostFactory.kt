@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 
 class HostFactory(
-        private val remoteProvider: (hostName: String, userName: String) -> IRemote = { hostName, userName -> Remote(hostName, userName) },
+        private val remoteProvider: (hostName: String, userName: String, publicHost: String) -> IRemote = { hostName, userName, publicHostName -> Remote(hostName, userName, publicHostName) },
         private val simulatorHostProvider: ISimulatorHostProvider = DefaultSimulatorHostProvider
 ) : IHostFactory {
     companion object {
@@ -25,7 +25,8 @@ class HostFactory(
 
         val hostName = config.host
         val userName = config.user
-        val remote: IRemote = remoteProvider(hostName, userName)
+        val publicHostName = config.publicHost
+        val remote: IRemote = remoteProvider(hostName, userName, publicHostName)
 
         if (userName.isBlank() && !remote.isLocalhost()) {
             throw RuntimeException("Config for non-localhost nodes must have non-empty 'user'. Current config: $config")

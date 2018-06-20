@@ -48,8 +48,8 @@ class Simulator (
     //region public properties copied from Ruby
     override val ref = deviceRef
     override val udid = deviceInfo.udid
-    override val fbsimctlEndpoint = URI("http://${remote.hostName}:${allocatedPorts.fbsimctlPort}/$udid/")
-    override val wdaEndpoint= URI("http://${remote.hostName}:${allocatedPorts.wdaPort}/")
+    override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
+    override val wdaEndpoint= URI("http://${remote.publicHostName}:${allocatedPorts.wdaPort}/")
     override val userPorts = allocatedPorts
     override val info = deviceInfo
     override val calabashPort: Int = allocatedPorts.calabashPort
@@ -449,7 +449,7 @@ class Simulator (
         val ports = allocatedPorts.toSet()
         require(ports.contains(port)) { "Port $port is not in user ports range $ports" }
 
-        return URL("http://${remote.hostName}:$port/")
+        return URL("http://${remote.publicHostName}:$port/")
     }
 
     //region approveAccess

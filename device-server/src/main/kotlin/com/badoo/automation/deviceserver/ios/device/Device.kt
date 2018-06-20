@@ -41,8 +41,8 @@ class Device(
         devicePort = WDA_PORT
     )
 
-    val fbsimctlEndpoint = URI("http://${remote.hostName}:${allocatedPorts.fbsimctlPort}/$udid/")
-    val wdaEndpoint = URI("http://${remote.hostName}:${wdaProxy.localPort}")
+    val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
+    val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     val calabashPort = calabashProxy.localPort
 
     @Volatile
@@ -147,7 +147,7 @@ class Device(
         val ports = allocatedPorts.toSet()
         require(ports.contains(port)) { "Port $port is not in user ports range $ports" }
 
-        return URL("http://${remote.hostName}:$port/")
+        return URL("http://${remote.publicHostName}:$port/")
     }
 
     fun dispose() {
