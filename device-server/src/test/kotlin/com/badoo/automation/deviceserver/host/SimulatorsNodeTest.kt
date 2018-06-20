@@ -148,6 +148,7 @@ class SimulatorsNodeTest {
 
     private fun mockForSimulatorMocks(vararg simulatorMocks: Pair<ISimulator, FBSimctlDevice>) {
         whenever(iRemote.hostName).thenReturn("rem.ote.node")
+        whenever(iRemote.publicHostName).thenReturn("rem.ote.node")
         whenever(iRemote.fbsimctl).thenReturn(fbSimctl)
         whenever(fbSimctl.listDeviceSets()).thenReturn("/node/specific/device/set")
         var fbsimmock = whenever(iSimulatorProvider.match(eq(desiredCapabilities), any()))

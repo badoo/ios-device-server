@@ -18,7 +18,7 @@ class RemoteTest {
     private lateinit var remote: Remote
 
     @Before fun setUp() {
-        remote = Remote("host", "user", localExecutor, remoteExecutor)
+        remote = Remote("host", "user", "", localExecutor, remoteExecutor)
     }
 
     @Test
