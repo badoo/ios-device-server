@@ -61,14 +61,10 @@
       "properties": {
         "udid": {
           "type": "string"
-        },
-        "ip": {
-          "type": "string"
         }
       },
       "required": [
-        "udid",
-        "ip"
+        "udid"
       ]
     }
   },

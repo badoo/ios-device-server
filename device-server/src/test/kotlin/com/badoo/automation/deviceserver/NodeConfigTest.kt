@@ -16,9 +16,7 @@ class NodeConfigTest {
             "uninstall_apps": true,
             "devices": [
                 {
-                    "udid": "c865bdbe652d17cbe2c79566fb046b73fed66a38",
-                    "ip": "127.0.0.1",
-                    "wifi_address": "00:00:00:00:00:00"
+                    "udid": "c865bdbe652d17cbe2c79566fb046b73fed66a38"
                 }
             ]
         }
@@ -38,8 +36,7 @@ class NodeConfigTest {
             uninstallApps = true,
             knownDevices = listOf(
                 KnownDevice(
-                    "c865bdbe652d17cbe2c79566fb046b73fed66a38",
-                    ipAddress = "127.0.0.1"
+                    "c865bdbe652d17cbe2c79566fb046b73fed66a38"
                 )
             )
         )

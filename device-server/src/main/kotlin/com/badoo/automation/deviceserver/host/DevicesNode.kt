@@ -283,6 +283,11 @@ class DevicesNode(
         if (actualFbsimctlVersion != expectedFbsimctlVersion) {
             throw RuntimeException("Expecting fbsimctl $expectedFbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
         }
+
+        val iproxy = remote.execIgnoringErrors((listOf("iproxy")))
+        if (iproxy.exitCode != 0) {
+           throw RuntimeException("Expecting iproxy to be installed")
+        }
     }
 
     private fun copyWdaBundleToHost() {
