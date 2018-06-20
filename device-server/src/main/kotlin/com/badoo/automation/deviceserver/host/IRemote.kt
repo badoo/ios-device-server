@@ -19,6 +19,7 @@ interface IRemote {
 
     val hostName: String
     val userName: String
+    val publicHostName: String
     fun isReachable(): Boolean
     fun isLocalhost(): Boolean = isLocalhost(hostName, userName)
 

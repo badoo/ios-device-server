@@ -34,7 +34,7 @@ class HostFactoryTest {
     )
 
     private var remoteMock: IRemote = mockThis()
-    private var remoteMockProvider: (String, String) -> IRemote = { host, _ ->
+    private var remoteMockProvider: (String, String, String) -> IRemote = { host, _, _ ->
         assertThat(host, equalTo(hostName))
         remoteMock
     }

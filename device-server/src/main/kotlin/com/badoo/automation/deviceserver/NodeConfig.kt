@@ -12,6 +12,9 @@ data class NodeConfig(
     @JsonProperty("host")
     val host: String = "localhost",
 
+    @JsonProperty("public_host")
+    val publicHost: String = host,
+
     @JsonProperty("simulator_limit")
     val simulatorLimit: Int = 6,
 

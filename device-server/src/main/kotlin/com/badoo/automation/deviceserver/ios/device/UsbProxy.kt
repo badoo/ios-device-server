@@ -32,30 +32,49 @@ class UsbProxy(
 
     override fun toString(): String = "<iproxy $localPort $devicePort $udid>"
 
-    private var childProcess: ChildProcess? = null
+    private var iproxy: ChildProcess? = null
+    private var socat: ChildProcess? = null
 
     fun start() {
-        childProcess = childFactory(
+        iproxy = childFactory(
             remote.hostName,
             remote.userName,
-            listOf("iproxy", localPort.toString(), devicePort.toString(), udid),
+            listOf(IPROXY_BIN, localPort.toString(), devicePort.toString(), udid),
             false,
-            { message -> logger.info(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
-            { message -> logger.warn(logMarker, "${this}: iproxy <e>: ${message.trim()}") }
+            { message -> logger.debug(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
+            { message -> logger.debug(logMarker, "${this}: iproxy <e>: ${message.trim()}") }
+        )
+
+        socat = childFactory(
+            remote.hostName,
+            remote.userName,
+            listOf(SOCAT_BIN, "tcp-listen:$localPort,reuseaddr,fork", "tcp:0.0.0.0:$localPort"),
+            false,
+            { message -> logger.debug(logMarker, "${this}: socat <o>: ${message.trim()}") },
+            { message -> logger.debug(logMarker, "${this}: socat <e>: ${message.trim()}") }
         )
     }
 
     fun isHealthy(): Boolean {
-        return childProcess?.isAlive() ?: false
+        return (iproxy?.isAlive() ?: false) && (socat?.isAlive() ?: false)
     }
 
     fun stop() {
-        if (childProcess == null) {
-            return
+        if (iproxy != null) {
+            logger.debug(logMarker, "$this — Killing child process $iproxy")
+            iproxy!!.kill()
+            iproxy = null
         }
 
-        logger.debug(logMarker, "$this — Killing child process $childProcess")
-        childProcess!!.kill()
-        childProcess = null
+        if (socat !=null) {
+            logger.debug(logMarker, "$this — Killing child process $socat")
+            socat!!.kill()
+            socat = null
+        }
+    }
+
+    companion object {
+        const val IPROXY_BIN = "/usr/local/bin/iproxy"
+        const val SOCAT_BIN = "/usr/local/bin/socat"
     }
 }
