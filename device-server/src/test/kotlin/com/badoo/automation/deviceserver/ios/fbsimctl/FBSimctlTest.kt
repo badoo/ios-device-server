@@ -23,14 +23,14 @@ class FBSimctlTest {
     @Test fun mustTrimLastNewLine() {
         whenever(executor.exec(anyList(), anyMap(), anyType(), anyBoolean(), any<Marker>(), anyType())).thenReturn(CommandResult("/a\n", "", ByteArray(0), 0))
         val fbSimctl = FBSimctl(executor, parser)
-        val deviceSets = fbSimctl.listDeviceSets()
+        val deviceSets = fbSimctl.defaultDeviceSet()
         Assert.assertEquals("/a", deviceSets)
     }
 
     @Test(expected = FBSimctlError::class)
     fun shouldThrowWhenNoDeviceSets() {
-        whenever(executor.exec(anyList(), anyMap(), anyType(), anyBoolean(), any(), anyType())).thenReturn(CommandResult("asdfa\n", "", ByteArray(0), 0))
+        whenever(executor.exec(anyList(), anyMap(), anyType(), anyBoolean(), any(), anyType())).thenReturn(CommandResult("\n", "", ByteArray(0), 0))
         val fbSimctl = FBSimctl(executor, parser)
-        fbSimctl.listDeviceSets()
+        fbSimctl.defaultDeviceSet()
     }
 }
