@@ -48,13 +48,11 @@ class FBSimctl(
      * returns path to device sets
      * E.g. "/Users/qa/Library/Developer/CoreSimulator/Devices"
      */
-    override fun listDeviceSets(): String {
+    override fun defaultDeviceSet(): String {
         val result = fbsimctl("list_device_sets", jsonFormat = false)
-        val deviceSets = result
-                .split(NEW_LINE)
-                .findLast { it.startsWith("/") }
+        val deviceSets = result.lines().first()
 
-        if (deviceSets == null || deviceSets.isBlank()) {
+        if (deviceSets.isBlank()) {
             throw FBSimctlError("No device_sets returned by fbsimctl")
         }
 

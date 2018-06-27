@@ -22,7 +22,7 @@ interface IFBSimctl {
      * returns path to device sets
      * E.g. "/Users/qa/Library/Developer/CoreSimulator/Devices"
      */
-    fun listDeviceSets(): String
+    fun defaultDeviceSet(): String
 
     fun eraseSimulator(udid: UDID): String
     fun create(model: String?, os: String?, transitional: Boolean): FBSimctlDevice

@@ -81,8 +81,8 @@ class SimulatorHostChecker(
             logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")
         }
 
-        val deviceSetsPath = remote.fbsimctl.listDeviceSets()
-        check(!deviceSetsPath.isBlank()) { "Device sets must not be blank" } // fbsimctl.listDeviceSets will throw if empty. but paranoid mode on.
+        val deviceSetsPath = remote.fbsimctl.defaultDeviceSet()
+        check(!deviceSetsPath.isBlank()) { "Device sets must not be blank" } // fbsimctl.defaultDeviceSet will throw if empty. but paranoid mode on.
 
         val caches = listOf(
                 "/private/var/folders/*/*/*/*-*-*/*.app",

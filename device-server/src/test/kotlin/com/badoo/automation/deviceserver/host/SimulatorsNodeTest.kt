@@ -1,11 +1,9 @@
 package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.JsonMapper
-import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
-import com.badoo.automation.deviceserver.host.management.SimulatorHostChecker
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
@@ -16,12 +14,9 @@ import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert.*
-import org.junit.Ignore
 import org.junit.Test
-import org.slf4j.Logger
 import java.io.File
 import java.net.URI
-import java.time.Duration
 
 class SimulatorsNodeTest {
     private val iRemote: IRemote = mockThis()
@@ -150,7 +145,7 @@ class SimulatorsNodeTest {
         whenever(iRemote.hostName).thenReturn("rem.ote.node")
         whenever(iRemote.publicHostName).thenReturn("rem.ote.node")
         whenever(iRemote.fbsimctl).thenReturn(fbSimctl)
-        whenever(fbSimctl.listDeviceSets()).thenReturn("/node/specific/device/set")
+        whenever(fbSimctl.defaultDeviceSet()).thenReturn("/node/specific/device/set")
         var fbsimmock = whenever(iSimulatorProvider.match(eq(desiredCapabilities), any()))
         simulatorMocks.forEach { pair ->
             fbsimmock = fbsimmock.thenReturn(pair.second)

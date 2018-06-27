@@ -50,7 +50,7 @@ class SimulatorsNode(
     }
 
     private val supportedArchitectures = listOf("x86_64")
-    private val deviceSetPath: String by lazy { remote.fbsimctl.listDeviceSets() }
+    private val deviceSetPath: String by lazy { remote.fbsimctl.defaultDeviceSet() }
     private val concurrentBoot = newFixedThreadPoolContext(concurrentBoots, "sim_boot_${remote.hostName}")
 
     private fun getDeviceFor(ref: DeviceRef): ISimulator {
