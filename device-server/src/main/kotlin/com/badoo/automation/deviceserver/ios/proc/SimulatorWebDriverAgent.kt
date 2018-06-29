@@ -9,7 +9,7 @@ class SimulatorWebDriverAgent(
         wdaPath: String,
         udid: UDID,
         wdaEndpoint: URI,
-        hostApp: String = "com.apple.Preferences"
+        hostApp: String = "com.apple.MobileAddressBook" // seems like AddressBook has the least memory usage and no alerts
 ) : WebDriverAgent(
         remote = remote,
         wdaPath = wdaPath,
