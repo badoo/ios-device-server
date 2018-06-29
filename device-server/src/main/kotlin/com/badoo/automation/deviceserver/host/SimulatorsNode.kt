@@ -117,7 +117,7 @@ class SimulatorsNode(
         }
     }
 
-    private fun newRef(udid: String): DeviceRef = "$udid-${remote.hostName}".replace(Regex("[^-\\w]"), "-")
+    private fun newRef(udid: String): DeviceRef = "$udid-${remote.publicHostName}".replace(Regex("[^-\\w]"), "-")
 
     override fun approveAccess(deviceRef: DeviceRef, bundleId: String) {
         getDeviceFor(deviceRef).approveAccess(bundleId)

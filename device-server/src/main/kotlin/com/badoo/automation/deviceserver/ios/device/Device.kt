@@ -19,17 +19,31 @@ import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
+
 class Device(
     private val remote: IRemote,
     val deviceInfo: DeviceInfo,
     val allocatedPorts: DeviceAllocatedPorts,
     wdaPath: String,
-    private val ipAddress: String
+    usbProxy: UsbProxyFactory = UsbProxyFactory(remote)
 ) {
     val udid: String = deviceInfo.udid
-    val fbsimctlEndpoint = URI("http://${remote.hostName}:${allocatedPorts.fbsimctlPort}/$udid/")
-    val wdaEndpoint = URI("http://$ipAddress:$WDA_PORT")
-    val calabashPort = CALABASH_PORT
+
+    private val calabashProxy = usbProxy.create(
+        udid = deviceInfo.udid,
+        localPort = allocatedPorts.calabashPort,
+        devicePort = CALABASH_PORT
+    )
+
+    private val wdaProxy = usbProxy.create(
+        udid = deviceInfo.udid,
+        localPort = allocatedPorts.wdaPort,
+        devicePort = WDA_PORT
+    )
+
+    val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
+    val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
+    val calabashPort = calabashProxy.localPort
 
     @Volatile
     var lastException: Exception? = null
@@ -44,7 +58,7 @@ class Device(
         }
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
-    private val wdaProc = DeviceWebDriverAgent(remote, wdaPath, deviceInfo.udid, wdaEndpoint)
+    private val wdaProc = DeviceWebDriverAgent(remote, wdaPath, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort)
 
     private val status = SimulatorStatus()
 
@@ -130,11 +144,10 @@ class Device(
     }
 
     fun endpointFor(port: Int): URL {
-        val ports = setOf(WDA_PORT, CALABASH_PORT)
-
+        val ports = allocatedPorts.toSet()
         require(ports.contains(port)) { "Port $port is not in user ports range $ports" }
 
-        return URL("http://$ipAddress:$port/")
+        return URL("http://${remote.publicHostName}:$port/")
     }
 
     fun dispose() {
@@ -148,6 +161,8 @@ class Device(
     private fun disposeResources() {
         ignoringDisposeErrors { fbsimctlProc.kill() }
         ignoringDisposeErrors { wdaProc.kill() }
+        ignoringDisposeErrors { calabashProxy.stop() }
+        ignoringDisposeErrors { wdaProxy.stop() }
     }
 
     private fun ignoringDisposeErrors(action: () -> Unit?) {
@@ -189,7 +204,7 @@ class Device(
         }
     }
 
-    fun renewAsync(whitelistedApps: Set<String>) {
+    fun renewAsync(whitelistedApps: Set<String>, uninstallApps: Boolean) {
         val currentStatus = status()
         var prepareRequired = false
 
@@ -209,7 +224,9 @@ class Device(
                     }
                 }
 
-                uninstallUserApps(whitelistedApps = whitelistedApps)
+                if (uninstallApps) {
+                    uninstallUserApps(whitelistedApps = whitelistedApps)
+                }
 
                 if (prepareRequired) {
                     preparePromise?.cancel(true)
@@ -262,7 +279,22 @@ class Device(
         fbsimctlProc.kill()
         wdaProc.kill()
 
+        wdaProxy.stop()
+        calabashProxy.stop()
+
         executeWithTimeout(timeout, name = "Preparing devices") {
+            wdaProxy.start()
+
+            if (!wdaProxy.isHealthy()) {
+                throw DeviceException("Failed to start $wdaProxy")
+            }
+
+            calabashProxy.start()
+
+            if (!calabashProxy.isHealthy()) {
+                throw DeviceException("Failed to start $calabashProxy")
+            }
+
             startFbsimctl()
             startWdaWithRetry()
 

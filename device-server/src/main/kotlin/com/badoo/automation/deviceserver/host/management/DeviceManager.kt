@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.util.AutoreleaseLooper
 import com.badoo.automation.deviceserver.ios.ActiveDevices
-import com.badoo.automation.deviceserver.ios.IActiveDevices
 import org.slf4j.LoggerFactory
 import java.net.URL
 import java.time.Duration
@@ -16,7 +15,7 @@ private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_V
 class DeviceManager(
         config: DeviceServerConfig,
         nodeFactory: IHostFactory = HostFactory(),
-        activeDevices: IActiveDevices = ActiveDevices(),
+        activeDevices: ActiveDevices = ActiveDevices(),
         private val autoreleaseLooper: IAutoreleaseLooper = AutoreleaseLooper()
 ) : IDeviceManager {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)

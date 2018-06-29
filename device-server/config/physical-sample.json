@@ -12,9 +12,7 @@
             ],
             "devices": [
                 {
-                    "udid": "a000aaaa000a00aaa0a00000aa000a00aaa00a00",
-                    "ip": "192.168.18.219",
-                    "wifi_address": "00:00:00:00:00:00"
+                    "udid": "a000aaaa000a00aaa0a00000aa000a00aaa00a00"
                 }
             ]
         }
