@@ -16,9 +16,9 @@ A server for managing, booting, and controlling simulators and devices on remote
 export JAVA_HOME=$(/usr/libexec/java_home -v 10 -F)
 ```
 
-### Phyiscal Devices
+### Physical Devices
 
-To use phyiscal devices extra dependencies are required:
+To use physical devices extra dependencies are required:
 ```
 brew install libimobiledevice --HEAD
 brew install socat
