@@ -24,10 +24,12 @@ import io.ktor.features.CallLogging
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.DefaultHeaders
 import io.ktor.features.StatusPages
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
 import io.ktor.request.uri
 import io.ktor.response.respond
+import io.ktor.response.respondText
 import io.ktor.routing.*
 import io.ktor.server.engine.ApplicationEngineEnvironmentReloading
 import io.ktor.server.engine.ShutDownUrl
@@ -129,11 +131,16 @@ fun Application.module() {
     logger.info("Server: Installing routing...")
     routes = install(Routing) {
         get {
-            call.respond(statusController.welcomeMessage(routes))
+            call.respondText(statusController.welcomeMessage(routes), ContentType.Text.Html)
         }
-        get("status") {
-            val code = if (deviceManager.isReady()) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
-            call.respond(code, statusController.getServerStatus())
+        route("status") {
+            get {
+              val code = if (deviceManager.isReady()) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+              call.respond(code, statusController.getServerStatus())
+            }
+            get("config") {
+                call.respond(config)
+            }
         }
         route("devices") {
             get {
