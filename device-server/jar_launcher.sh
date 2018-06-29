@@ -6,10 +6,10 @@ declare -r DEVICE_SERVER_CONFIG_PATH="${DEVICE_SERVER_CONFIG_PATH}"
 declare -r DEVICE_SERVER_JAR="${DEVICE_SERVER_JAR}"
 
 declare -r WDA_RUNNER='../ios/facebook/simulators/WebDriverAgentRunner-Runner.app'
-declare -r WDA_DEVICE_RUNNER='../ios/facebook/devices/WebDriverAgentRunner-Runner.app'
+declare -r WDA_DEVICE_RUNNER=${DEVICE_SERVER_WDA_DEVICE_RUNNER:-'../ios/facebook/devices/WebDriverAgentRunner-Runner.app'}
 declare -r LOG_CONFIG='logback-test.xml'
 
-export JAVA_HOME=$(/usr/libexec/java_home -v 10)
+export JAVA_HOME=$(/usr/libexec/java_home -v 10 -F || /usr/libexec/java_home -v 9 -F)
 
 pushd "$( dirname "${BASH_SOURCE[0]}" )"
 
