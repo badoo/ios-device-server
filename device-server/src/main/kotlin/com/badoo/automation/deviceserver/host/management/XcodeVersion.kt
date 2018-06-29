@@ -3,7 +3,7 @@ package com.badoo.automation.deviceserver.host.management;
 class XcodeVersion(val major: Int, val minor: Int) {
     companion object {
         fun fromXcodeBuildOutput(output: String): XcodeVersion {
-            val regex = Regex("Xcode (\\d+)\\.(\\d+)")
+            val regex = Regex("Xcode (\\d+)\\.(\\d+)(\\.(\\d+))?")
             val versionLine = output.lines().first()
             val match = regex.matchEntire(versionLine)
 

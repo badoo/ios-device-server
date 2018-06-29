@@ -22,7 +22,8 @@ class DevicesNode(
     portAllocator: PortAllocator = PortAllocator(),
     wdaPath: File,
     knownDevices: List<KnownDevice>,
-    private val whitelistedApps: Set<String>
+    private val whitelistedApps: Set<String>,
+    private val uninstallApps: Boolean
 ) : ISimulatorsNode {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(
@@ -144,7 +145,7 @@ class DevicesNode(
             activeRefs[ref!!] = slot!!.udid
         }
 
-        slot!!.device.renewAsync(whitelistedApps = whitelistedApps)
+        slot!!.device.renewAsync(whitelistedApps = whitelistedApps, uninstallApps = uninstallApps)
 
         return deviceToDto(ref!!, device = slot!!.device)
     }
@@ -245,7 +246,7 @@ class DevicesNode(
 
     private fun newRef(udid: UDID): DeviceRef {
         val unsafe = Regex("[^\\-_a-zA-Z\\d]") // TODO: Replace with UUID 4
-        return "$udid-${remote.hostName}".replace(unsafe, "-")
+        return "$udid-${remote.publicHostName}".replace(unsafe, "-")
     }
 
     private fun slotByExternalRef(deviceRef: DeviceRef): DeviceSlot {
@@ -281,6 +282,16 @@ class DevicesNode(
         val actualFbsimctlVersion = match.groupValues[1]
         if (actualFbsimctlVersion != expectedFbsimctlVersion) {
             throw RuntimeException("Expecting fbsimctl $expectedFbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
+        }
+
+        val iproxy = remote.execIgnoringErrors((listOf(UsbProxy.IPROXY_BIN)))
+        if (iproxy.exitCode != 0) {
+           throw RuntimeException("Expecting iproxy to be installed")
+        }
+
+        val socat = remote.execIgnoringErrors((listOf(UsbProxy.SOCAT_BIN, "-V")))
+        if (socat.exitCode != 0) {
+            throw RuntimeException("Expecting socat to be installed")
         }
     }
 

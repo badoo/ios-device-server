@@ -11,16 +11,18 @@ class DeviceWebDriverAgent(
     wdaPath: String,
     udid: UDID,
     wdaEndpoint: URI,
+    port: Int,
     hostApp: String = Paths.get(wdaPath).parent.parent.toString()
 ) : WebDriverAgent(
     remote = remote,
     wdaPath = wdaPath,
     hostApp = hostApp,
     udid = udid,
-    wdaEndpoint = wdaEndpoint
+    wdaEndpoint = wdaEndpoint,
+    port = port
 ) {
     override fun terminateHostApp() {
-        remote.fbsimctl.uninstallApp(udid, "com.apple.test.WebDriverAgentRunner-Runner")
+        remote.fbsimctl.uninstallApp(udid, hostApp)
         Thread.sleep(1000)
     }
 }

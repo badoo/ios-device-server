@@ -14,6 +14,7 @@ open class WebDriverAgent(
     protected val hostApp: String,
     protected val udid: UDID,
     private val wdaEndpoint: URI,
+    port: Int = wdaEndpoint.port,
     private val childFactory: (
                 remoteHost: String,
                 userName: String,
@@ -31,7 +32,7 @@ open class WebDriverAgent(
             wdaPath,
             hostApp,
             "--port",
-            wdaEndpoint.port.toString(),
+            port.toString(),
             "--",
             "listen"
     )

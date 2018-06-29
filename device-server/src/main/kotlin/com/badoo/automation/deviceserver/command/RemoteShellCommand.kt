@@ -18,10 +18,6 @@ class RemoteShellCommand(
 ) : ShellCommand(builderFactory, commonEnvironment) {
     private val userAtHost: String = if (userName.isBlank()) { remoteHost } else { "$userName@$remoteHost" }
     override val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
-    private val sshProfilingLogMarker = MapEntriesAppendingMarker(mapOf(
-            LogMarkers.HOSTNAME to remoteHost,
-            LogMarkers.SSH_PROFILING to "true"
-    ))
     private val sshEnv: Map<String, String>
     private val sshCommandPrefix: List<String>
     init {
@@ -65,7 +61,14 @@ class RemoteShellCommand(
         val start = System.currentTimeMillis()
         val result = super.exec(cmd, getEnvironmentForSSH(), timeOut, returnFailure, logMarker, processListener)
         val elapsed = System.currentTimeMillis() - start
-        logger.debug(sshProfilingLogMarker, "Execution of SSH command took $elapsed ms. Command: $cmd")
+        val marker = MapEntriesAppendingMarker(
+            mapOf(
+                LogMarkers.HOSTNAME to remoteHost,
+                LogMarkers.SSH_PROFILING_MS to elapsed
+            )
+        )
+        logger.debug(
+            marker, "Execution of SSH command took $elapsed ms. Command: $cmd")
 
         if (result.exitCode == SSH_ERROR) {
             // FIXME: Check stdout and stderr, if they are empty – ssh timeout, otherwise, it is likely to be command error
