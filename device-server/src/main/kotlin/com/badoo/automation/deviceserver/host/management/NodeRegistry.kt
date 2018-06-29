@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.data.DeviceDTO
 import com.badoo.automation.deviceserver.host.ISimulatorsNode
 import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
-import com.badoo.automation.deviceserver.ios.IActiveDevices
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.launch
@@ -17,7 +16,7 @@ import org.slf4j.Marker
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
-class NodeRegistry(val activeDevices: IActiveDevices = ActiveDevices()) {
+class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
     private var initialRegistrationComplete: Boolean = false
     private val nodeWrappers = ConcurrentHashMap.newKeySet<NodeWrapper>()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)

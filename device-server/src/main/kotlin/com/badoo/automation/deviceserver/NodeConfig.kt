@@ -12,6 +12,9 @@ data class NodeConfig(
     @JsonProperty("host")
     val host: String = "localhost",
 
+    @JsonProperty("public_host")
+    val publicHost: String = host,
+
     @JsonProperty("simulator_limit")
     val simulatorLimit: Int = 6,
 
@@ -23,6 +26,9 @@ data class NodeConfig(
 
     @JsonProperty("whitelist_apps")
     val whitelistApps: Set<String> = emptySet(),
+
+    @JsonProperty("uninstall_apps")
+    val uninstallApps: Boolean = false,
 
     @JsonProperty("devices")
     val knownDevices: List<KnownDevice> = emptyList()

@@ -3,10 +3,7 @@ package com.badoo.automation.deviceserver.util
 import com.badoo.automation.deviceserver.util.HttpCodes.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.net.ConnectException
-import java.net.SocketTimeoutException
-import java.net.URL
-import java.net.UnknownHostException
+import java.net.*
 import java.util.concurrent.TimeUnit
 
 class CustomHttpClient {
@@ -31,13 +28,15 @@ class CustomHttpClient {
                     httpCode = result.code()
             )
         } catch (e: SocketTimeoutException) {
-            return HttpResult(522)
+            return HttpResult(ConnectionTimedOut.code)
         } catch (e: UnknownHostException) {
             return HttpResult(OriginIsUnreachable.code)
         } catch (e: ConnectException) {
             return HttpResult(WebServerIsDown.code)
         } catch (e: java.io.EOFException) {
             return HttpResult(NetworkReadTimeoutError.code)
+        } catch (e: java.io.IOException) { // we can get connection reset or stream end from iproxy or socat
+            return HttpResult(WebServerIsDown.code)
         } catch (e: RuntimeException) {
             return HttpResult(UnknownError.code)
         }

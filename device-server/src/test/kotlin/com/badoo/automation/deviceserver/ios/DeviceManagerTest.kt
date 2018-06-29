@@ -51,7 +51,7 @@ class DeviceManagerTest {
         return m
     }
 
-    private val activeDevices: IActiveDevices = mockThis()
+    private val activeDevices: ActiveDevices = mockThis()
 
     private val autoreleaseLooper: IAutoreleaseLooper = mockThis()
 

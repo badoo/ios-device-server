@@ -20,6 +20,9 @@
             "devices"
           ]
         },
+        "uninstall_apps": {
+          "type": "boolean"
+        },
         "whitelist_apps": {
           "type": "array",
           "items": {
@@ -58,14 +61,10 @@
       "properties": {
         "udid": {
           "type": "string"
-        },
-        "ip": {
-          "type": "string"
         }
       },
       "required": [
-        "udid",
-        "ip"
+        "udid"
       ]
     }
   },

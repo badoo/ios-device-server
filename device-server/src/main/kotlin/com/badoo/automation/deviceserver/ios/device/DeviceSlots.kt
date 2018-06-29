@@ -38,7 +38,7 @@ class DeviceSlots(
 
     fun registerDevices() {
         val connectedDevices = deviceInfoProvider.list()
-        val knownConnectedDevices = connectedDevices.filter { knownDevices.containsKey(it.udid) }
+        val knownConnectedDevices = connectedDevices.filter { isWhitelisted(it.udid) }
 
         val diff = diff(knownConnectedDevices)
 
@@ -107,6 +107,10 @@ class DeviceSlots(
         activeSlots.clear()
     }
 
+    private fun isWhitelisted(udid: UDID): Boolean {
+        return knownDevices.isEmpty() || knownDevices.containsKey((udid))
+    }
+
     private fun availableSlots(desiredCapabilities: DesiredCapabilities): List<DeviceSlot> {
         return activeSlots.filter {
             !it.isReserved() && dcMatcher.isMatch(it.device.deviceInfo, desiredCapabilities)
@@ -138,8 +142,7 @@ class DeviceSlots(
             remote =remote,
             deviceInfo = deviceInfo,
             allocatedPorts = allocatedPorts,
-            wdaPath = wdaPath,
-            ipAddress = knownDevices.getValue(udid).ipAddress
+            wdaPath = wdaPath
         )
 
         device.prepareAsync()
