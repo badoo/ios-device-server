@@ -225,6 +225,10 @@ class DevicesNode(
     override fun videoRecordingStart(deviceRef: DeviceRef): Unit = throw(NotImplementedError())
 
     override fun videoRecordingStop(deviceRef: DeviceRef): Unit = throw(NotImplementedError())
+
+    override fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String> = throw(NotImplementedError())
+
+    override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray = throw(NotImplementedError())
     // endregion
 
     private fun deviceToDto(deviceRef: DeviceRef, device: Device): DeviceDTO {

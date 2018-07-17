@@ -1,10 +1,7 @@
 package com.badoo.automation.deviceserver.controllers
 
 import com.badoo.automation.deviceserver.EmptyMap
-import com.badoo.automation.deviceserver.data.DesiredCapabilities
-import com.badoo.automation.deviceserver.data.DeviceDTO
-import com.badoo.automation.deviceserver.data.DeviceRef
-import com.badoo.automation.deviceserver.data.SimulatorStatusDTO
+import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.IDeviceManager
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.auth.UserIdPrincipal
@@ -85,5 +82,13 @@ class DevicesController(private val deviceManager: IDeviceManager) {
 
     fun getTotalCapacity(desiredCapabilities: DesiredCapabilities): Map<String, Int> {
         return deviceManager.getTotalCapacity(desiredCapabilities)
+    }
+
+    fun listFiles(ref: DeviceRef, dataPath: DataPath): List<String> {
+        return deviceManager.listFiles(ref, dataPath)
+    }
+
+    fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
+        return deviceManager.pullFile(ref, dataPath)
     }
 }
