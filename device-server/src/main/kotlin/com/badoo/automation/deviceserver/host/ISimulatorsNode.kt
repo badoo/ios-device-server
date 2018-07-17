@@ -19,6 +19,9 @@ interface ISimulatorsNode {
     fun videoRecordingStart(deviceRef: DeviceRef)
     fun videoRecordingStop(deviceRef: DeviceRef)
 
+    fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String>
+    fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray
+
     val remoteAddress: String
     fun isReachable(): Boolean
     fun prepareNode()

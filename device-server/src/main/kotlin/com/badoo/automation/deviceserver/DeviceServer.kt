@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver
 
 import com.badoo.automation.deviceserver.controllers.DevicesController
 import com.badoo.automation.deviceserver.controllers.StatusController
+import com.badoo.automation.deviceserver.data.DataPath
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.ErrorDto
 import com.badoo.automation.deviceserver.data.toDto
@@ -179,6 +180,18 @@ fun Application.module() {
                 }
                 get("crashes/last") {
                     call.respond(devicesController.getLastCrashLog(param(call, "ref")))
+                }
+                route("data") {
+                    post("pull_file") {
+                        val ref = param(call, "ref")
+                        val dataPath = jsonContent<DataPath>(call)
+                        call.respond(devicesController.pullFile(ref, dataPath))
+                    }
+                    post("list_files") {
+                        val ref = param(call, "ref")
+                        val dataPath = jsonContent<DataPath>(call)
+                        call.respond(devicesController.listFiles(ref, dataPath))
+                    }
                 }
                 route("video") {
                     get {

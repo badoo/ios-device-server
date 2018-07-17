@@ -134,4 +134,12 @@ class DeviceManager(
     override fun isReady(): Boolean {
         return nodeRegistry.getInitialRegistrationComplete()
     }
+
+    override fun listFiles(ref: DeviceRef, dataPath: DataPath): List<String> {
+        return nodeRegistry.activeDevices.getNodeFor(ref).listFiles(ref, dataPath)
+    }
+
+    override fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
+        return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
+    }
 }
