@@ -24,4 +24,6 @@ interface IDeviceManager {
     fun getStatus(): Map<String, Any>
     fun releaseUserDevices(userId: String, reason: String)
     fun isReady(): Boolean
+    fun listFiles(ref: DeviceRef, dataPath: DataPath): List<String>
+    fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray
 }

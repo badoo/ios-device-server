@@ -214,6 +214,14 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).videoRecorder.stop()
     }
 
+    override fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String> {
+        return getDeviceFor(deviceRef).dataContainer(dataPath.bundleId).listFiles(dataPath.path)
+    }
+
+    override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray {
+        return getDeviceFor(deviceRef).dataContainer(dataPath.bundleId).readFile(dataPath.path)
+    }
+
     override fun toString(): String {
         return "${javaClass.simpleName} at $remoteAddress"
     }

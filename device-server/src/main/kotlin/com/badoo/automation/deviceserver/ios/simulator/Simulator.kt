@@ -9,6 +9,8 @@ import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
 import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
+import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
+import com.badoo.automation.deviceserver.ios.simulator.data.FileSystem
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.pollFor
@@ -72,6 +74,7 @@ class Simulator (
             LogMarkers.UDID to udid,
             LogMarkers.HOSTNAME to remote.hostName
     ))
+    private val fileSystem = FileSystem(remote, udid)
     //endregion
 
     //region properties from ruby with backing mutable field
@@ -577,5 +580,10 @@ class Simulator (
                 .map { it.trim() }
                 .filter { it.isNotBlank() }
     }
+
+    override fun dataContainer(bundleId: String): DataContainer {
+        return fileSystem.dataContainer(bundleId)
+    }
+
     //endregion
 }
