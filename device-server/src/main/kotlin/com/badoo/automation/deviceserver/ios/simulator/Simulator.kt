@@ -69,11 +69,12 @@ class Simulator (
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
     private val simulatorStatus = SimulatorStatus()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val logMarker: Marker = MapEntriesAppendingMarker(mapOf(
+    private val commonLogMarkerDetails = mapOf(
             LogMarkers.DEVICE_REF to deviceRef,
             LogMarkers.UDID to udid,
             LogMarkers.HOSTNAME to remote.hostName
-    ))
+    )
+    private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
     //endregion
 
@@ -278,10 +279,16 @@ class Simulator (
         }
     }
 
-    private fun logTiming(actionName: String, function: () -> Unit) {
+    private fun logTiming(actionName: String, action: () -> Unit) {
         logger.info(logMarker, "Device ${Simulator@this} starting action <$actionName>")
-        val elapsed = measureTimeMillis(function)
-        logger.info(logMarker, "Device ${Simulator@this} action <$actionName> took ${elapsed / 1000} seconds")
+        val millis = measureTimeMillis(action)
+        val seconds = millis / 1000
+        val measurement = mutableMapOf(
+                "action_name" to actionName,
+                "duration" to seconds
+        )
+        measurement.putAll(commonLogMarkerDetails)
+        logger.info(MapEntriesAppendingMarker(measurement), "Device ${Simulator@this} action <$actionName> took $seconds seconds")
     }
     //endregion
 
