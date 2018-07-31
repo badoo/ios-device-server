@@ -41,10 +41,6 @@ class FbSimctlResponseParserTest {
         {"event_name":"create","timestamp":1521028581,"subject":{"pid":0,"arch":"x86_64","os":"iOS 11.2","container-pid":0,"model":"iPhone 6","udid":"7CA9DCE7-22A2-434B-A9EE-3E2A497E3881","name":"iPhone 6","state":"Shutdown"},"event_type":"ended"}
         """.trimIndent()
 
-    private val simulatorListDeviceHttp = """
-        {"status":"success","subject":[{"event_name":"list","timestamp":1518060205,"subject":{"arch":"x86_64","state":"Booted","model":"iPhone 6","name":"iPhone 6","os":"iOS 11.0","udid":"5913965A-EF5A-488B-91E0-1FDFF93086FD"},"event_type":"discrete"}],"events":[]}
-        """.trimIndent()
-
     @Test fun parseList() {
         val parsedValue = FBSimctlResponseParser().parse(simulatorsListString)
         assertEquals("Wrong element count", 3, parsedValue.size)
@@ -75,13 +71,6 @@ class FbSimctlResponseParserTest {
         assertEquals("Wrong element count", 1, parsedValue.size)
         assertThat(fbSimctlDevice, instanceOf(FBSimctlDevice::class.java))
         assertThat(fbSimctlDevice.udid, equalTo("1aa0a00a0a00aaa000a000a00a0a000a0000a000"))
-    }
-
-    @Test fun parseDeviceListHttp() {
-        val fbSimctlDevice = FBSimctlResponseParser().parseDeviceListHttp(simulatorListDeviceHttp)
-
-        assertThat(fbSimctlDevice, instanceOf(FBSimctlDevice::class.java))
-        assertThat(fbSimctlDevice.udid, equalTo("5913965A-EF5A-488B-91E0-1FDFF93086FD"))
     }
 
     @Test fun parseAppsList() {

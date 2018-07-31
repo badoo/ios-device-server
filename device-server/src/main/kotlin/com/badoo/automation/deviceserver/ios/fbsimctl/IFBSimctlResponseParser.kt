@@ -6,5 +6,5 @@ interface IFBSimctlResponseParser {
     fun parseDiagnosticInfo(response: String): FBSimctlDeviceDiagnosticInfo
     fun parseDeviceCreation(response: String, isTransitional: Boolean): FBSimctlDevice
     fun parse(response: String): List<Map<String, Any>>
-    fun parseDeviceListHttp(response: String): FBSimctlDevice
+    fun parseDeviceSets(response: String): List<String>
 }
