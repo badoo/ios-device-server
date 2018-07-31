@@ -25,7 +25,6 @@ class SimulatorHostChecker(
         private val diskCleanupInterval: Duration = Duration.ofMinutes(15)
 ) : ISimulatorHostChecker {
     companion object {
-        private const val EXPECTED_XCODE_VERSION = "Xcode 9."
         private const val EXPECTED_FBSIMCTL = "HEAD-292a1bd"
     }
 
