@@ -15,14 +15,18 @@ import org.slf4j.Marker
 class FBSimctlTest {
     @Mock private lateinit var executor: IShellCommand
     @Mock private lateinit var parser: IFBSimctlResponseParser
+    private val fbsimctlResponse = """
+        {"event_name":"log","timestamp":1533056871,"level":"info","subject":"Running \/usr\/bin\/xcode-select --print-path with environment {\n    HOME = \"\/Users\/vfrolov\";\n}","event_type":"discrete"}
+        {"event_name":"list_device_sets","timestamp":1533056871,"subject":"\/a","event_type":"discrete"}
+        """.trimIndent()
 
     @Before fun setUp() {
         MockitoAnnotations.initMocks(this)
     }
 
     @Test fun mustTrimLastNewLine() {
-        whenever(executor.exec(anyList(), anyMap(), anyType(), anyBoolean(), any<Marker>(), anyType())).thenReturn(CommandResult("/a\n", "", ByteArray(0), 0))
-        val fbSimctl = FBSimctl(executor, parser)
+        whenever(executor.exec(anyList(), anyMap(), anyType(), anyBoolean(), any<Marker>(), anyType())).thenReturn(CommandResult(fbsimctlResponse, "", ByteArray(0), 0))
+        val fbSimctl = FBSimctl(executor, FBSimctlResponseParser())
         val deviceSets = fbSimctl.defaultDeviceSet()
         Assert.assertEquals("/a", deviceSets)
     }
@@ -30,6 +34,7 @@ class FBSimctlTest {
     @Test(expected = FBSimctlError::class)
     fun shouldThrowWhenNoDeviceSets() {
         whenever(executor.exec(anyList(), anyMap(), anyType(), anyBoolean(), any(), anyType())).thenReturn(CommandResult("\n", "", ByteArray(0), 0))
+        whenever(parser.parseDeviceSets(anyString())).thenReturn(emptyList())
         val fbSimctl = FBSimctl(executor, parser)
         fbSimctl.defaultDeviceSet()
     }

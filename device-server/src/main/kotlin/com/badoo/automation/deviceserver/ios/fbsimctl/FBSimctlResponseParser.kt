@@ -9,8 +9,7 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
      */
     override fun parse(response: String): List<Map<String, Any>> {
         val mapper = JsonMapper()
-        return response.lines()
-            .filter { isDiscreteEvent(it) }
+        return filteredResponseLines(response)
             .map { mapper.fromJson<Map<String, Any>>(it) }
     }
 
@@ -18,22 +17,21 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
      * Parses device list
      */
     override fun parseDeviceList(response: String): List<FBSimctlDevice>
-            = response.lines()
-            .filter { isDiscreteEvent(it) }
+            = filteredResponseLines(response)
             .filter { isOfEventName(it, "list") }
             .map { fromJson(it, FBSimctlDeviceListResponse::class.java) }
             .map { it.subject }
 
-    override fun parseDeviceListHttp(response: String): FBSimctlDevice
-            = fromJson(response, FBSimctlDeviceListHttpResponse::class.java)
-            .subject.first().subject
+    override fun parseDeviceSets(response: String): List<String> {
+        return parse(response)
+                .map { it["subject"] as String }
+    }
 
     /**
      * Parses applications list
      */
     override fun parseApplicationsList(response: String): List<FBSimctlAppInfo>
-            = response.lines()
-            .filter { isDiscreteEvent(it) }
+            = filteredResponseLines(response)
             .filter { isOfEventName(it, "list_apps") }
             .map { fromJson(it, FBSimctlAppListResponse::class.java) }
             .map { it.subject }.flatten()
@@ -57,6 +55,7 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
 
         try {
             parsedResponse = response.lines()
+                    .filter { !isLogEvent(it) }
                     .filter { isOfEventName(it, "create") }
                     .filter { isEnded(it) }
                     .map { fromJson(it, FBSimctlCreateDeviceResponse::class.java) }
@@ -89,7 +88,21 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
      */
     private fun isDiscreteEvent(it: String) = it.contains(":\"discrete\"")
 
-    //
+    /**
+     * Filter log lines
+     */
+    private fun isLogEvent(it: String) = it.contains(""""event_name":"log"""")
+
+
+    /**
+     * Sanitize fbsimctl response
+     */
+    private fun filteredResponseLines(response: String): List<String> {
+        return response.lines()
+                .filter { isDiscreteEvent(it) }
+                .filter { !isLogEvent(it) }
+    }
+
     /**
      * Filter events by name
      * FIXME: quick workaround added to skip extraneous events and prevent parser from failing,
