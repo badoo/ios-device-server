@@ -263,8 +263,8 @@ class DevicesNode(
         val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
         val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
 
-        if (!(xcodeVersion.major == 9 && xcodeVersion.minor >= 2)) {
-            throw RuntimeException("Expecting Xcode 9.2 or higher up to 10, but it is $xcodeVersion")
+        if (xcodeVersion < XcodeVersion(9, 2)) {
+            throw RuntimeException("Expecting Xcode 9.2 or higher, but it is $xcodeVersion")
         }
 
         val expectedFbsimctlVersion = "HEAD-292a1bd"
