@@ -5,8 +5,8 @@ set -u
 
 # We are using forked version of fbsimctl with some fixes, see link below
 
-readonly REPOSITORY=https://github.com/NickAb/FBSimulatorControl.git
-readonly REVISION=292a1bd # https://github.com/NickAb/FBSimulatorControl/commits/patched
+readonly REPOSITORY=https://github.com/facebook/FBSimulatorControl.git
+readonly REVISION=ec54965 # https://github.com/facebook/FBSimulatorControl/commits/master
 
 readonly VERSION_NAME=HEAD-${REVISION}
 readonly FBSIMCTL_BASE_PATH=/usr/local/Cellar/fbsimctl

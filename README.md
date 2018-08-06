@@ -57,7 +57,7 @@ server_url = 'http://localhost:4567'
 
 provider = IosDeviceServerClient::DeviceProvider.new(server_url)
 
-rv = provider.create(model: 'iPhone 6', os: 'iOS 11.0', headless: false)
+rv = provider.create(model: 'iPhone 6', os: 'iOS 11.4', headless: false)
 remote_device = IosDeviceServerClient::RemoteDevice.new(server_url, rv['ref'])
 
 begin
