@@ -25,7 +25,7 @@ class SimulatorHostChecker(
         private val diskCleanupInterval: Duration = Duration.ofMinutes(15)
 ) : ISimulatorHostChecker {
     companion object {
-        private const val EXPECTED_FBSIMCTL = "HEAD-292a1bd"
+        private const val EXPECTED_FBSIMCTL = "HEAD-ec54965"
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
