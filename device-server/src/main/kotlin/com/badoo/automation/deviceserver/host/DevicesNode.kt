@@ -267,7 +267,7 @@ class DevicesNode(
             throw RuntimeException("Expecting Xcode 9.2 or higher, but it is $xcodeVersion")
         }
 
-        val expectedFbsimctlVersion = "HEAD-292a1bd"
+        val expectedFbsimctlVersion = "HEAD-ec54965"
 
         // temp solution, prerequisites should be satisfied without having to switch anything
         val switchRes = remote.execIgnoringErrors(
