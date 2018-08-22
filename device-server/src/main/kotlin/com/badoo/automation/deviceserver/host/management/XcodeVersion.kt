@@ -1,6 +1,6 @@
-package com.badoo.automation.deviceserver.host.management;
+package com.badoo.automation.deviceserver.host.management
 
-class XcodeVersion(val major: Int, val minor: Int):Comparable<XcodeVersion> {
+data class XcodeVersion(val major: Int, val minor: Int):Comparable<XcodeVersion> {
     companion object {
         fun fromXcodeBuildOutput(output: String): XcodeVersion {
             val regex = Regex("Xcode (\\d+)\\.(\\d+)(\\.(\\d+))?")
@@ -30,5 +30,9 @@ class XcodeVersion(val major: Int, val minor: Int):Comparable<XcodeVersion> {
 
     override operator fun compareTo(other: XcodeVersion): Int {
         return COMPARATOR.compare(this, other)
+    }
+
+    override fun toString(): String {
+        return "$major.$minor"
     }
 }
