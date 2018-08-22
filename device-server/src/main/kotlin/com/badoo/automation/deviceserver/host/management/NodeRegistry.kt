@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.DeviceDTO
 import com.badoo.automation.deviceserver.host.ISimulatorsNode
 import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
+import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import kotlinx.coroutines.experimental.Job
@@ -46,7 +47,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
         return nodeWrappers
     }
 
-    fun getAlive(): Set<NodeWrapper> {
+    private fun getAlive(): Set<NodeWrapper> {
         return nodeWrappers.filter { it.isAlive() }.toSet()
     }
 
@@ -59,6 +60,10 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
     }
 
     fun createDeviceAsync(desiredCapabilities: DesiredCapabilities, deviceTimeout: Duration, userId: String?): DeviceDTO {
+        if (getAll().isEmpty()) {
+            throw NoNodesRegisteredException("No nodes are registered to create a device")
+        }
+
         val node: ISimulatorsNode = getAlive()
                 .map { wrapper -> wrapper.node }
                 .maxBy { node -> node.capacityRemaining(desiredCapabilities) }
