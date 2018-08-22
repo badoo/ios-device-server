@@ -18,7 +18,7 @@ class NodeRegistrar(
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private var autoRegisteringJob: Future<*>? = null
-    private val nodeWrappers: List<NodeWrapper> = nodesConfig.map {
+    val nodeWrappers: List<NodeWrapper> = nodesConfig.map {
         NodeWrapper(it, nodeFactory, nodeRegistry)
     }
 

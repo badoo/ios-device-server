@@ -7,6 +7,7 @@ import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.ErrorDto
 import com.badoo.automation.deviceserver.data.toDto
 import com.badoo.automation.deviceserver.host.management.DeviceManager
+import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
@@ -228,8 +229,11 @@ fun Application.module() {
                 is DeviceNotFoundException -> HttpStatusCode.NotFound
                 is NoAliveNodesException -> HttpStatusCode.TooManyRequests
                 is OverCapacityException -> HttpStatusCode.TooManyRequests
+                is DeviceCreationException -> HttpStatusCode.ServiceUnavailable
                 else -> HttpStatusCode.InternalServerError
             }
+
+            logger.error(call.request.toString(), exception)
             call.respond(statusCode,
                     hashMapOf(
                             "error" to exception.toDto()
