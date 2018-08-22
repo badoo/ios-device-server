@@ -68,7 +68,25 @@ class FBSimctl(
         if (model != null) { args.add("'$model'") }
 
         val result = fbsimctl(args)
+
+        if (result.isEmpty()) {
+            // FIXME: We don't take available device types and runtimes in account when routing device creation request.
+            // We only take in account existing devices when matching node to desired capabilities.
+            // This means that if none of the nodes have at least one of desired model devices already,
+            // we will choose a random one to handle creation request which might be the one that can not create
+            // specific model, while other nodes could.
+            val suggestions = suggestCreationArgs()
+            throw(RuntimeException("Could not create simulator \"$model\" \"$os\"\n$suggestions"))
+        }
         return parser.parseDeviceCreation(result, transitional)
+    }
+
+    private fun suggestCreationArgs(): String {
+        val types = SimulatorTypes(shellCommand)
+        val models = types.availableModels()
+        val osVersions = types.availableRuntimes()
+
+        return "Available models:\n  " + models.joinToString("\n  ") + "\nAvailable os versions:\n  " + osVersions.joinToString("\n  ")
     }
 
     override fun diagnose(udid: UDID): FBSimctlDeviceDiagnosticInfo {
