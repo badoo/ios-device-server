@@ -2,7 +2,13 @@
     <conversionRule conversionWord="highlight" converterClass="deviceserver.LogHighlighter" />
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %logger{36} - %msg%n</pattern>
+            <pattern>
+                %d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %logger{36} - %msg%n%rEx{full,
+                    kotlinx,
+                    io.ktor,
+                    io.netty
+                }
+            </pattern>
         </encoder>
     </appender>
 
