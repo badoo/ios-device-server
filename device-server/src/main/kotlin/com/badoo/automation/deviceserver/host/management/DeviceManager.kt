@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
+import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.host.management.util.AutoreleaseLooper
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import org.slf4j.LoggerFactory
@@ -110,7 +111,13 @@ class DeviceManager(
     }
 
     override fun createDeviceAsync(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
-        return nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, userId)
+        try {
+            return nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, userId)
+        } catch(e: NoNodesRegisteredException) {
+            val erredNodes = autoRegistrar.nodeWrappers.filter { n -> n.lastError != null }
+            val errors = erredNodes.joinToString { n -> "${n.node.remoteAddress} -> ${n.lastError?.localizedMessage}" }
+            throw(NoNodesRegisteredException(e.message+"\n$errors"))
+        }
     }
 
     override fun deleteReleaseDevice(ref: DeviceRef, reason: String) {

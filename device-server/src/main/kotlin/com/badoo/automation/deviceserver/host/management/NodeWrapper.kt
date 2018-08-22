@@ -32,6 +32,8 @@ class NodeWrapper(
     private var healthCheckPeriodicTask: Future<*>? = null
     val node: ISimulatorsNode = hostFactory.getHostFromConfig(config)
 
+    var lastError: Exception? = null
+
     fun isAlive(): Boolean = isStarted && node.isReachable()
 
     override fun toString(): String = "NodeWrapper for ${config.host}"
@@ -53,8 +55,10 @@ class NodeWrapper(
                 node.prepareNode()
                 logger.info(logMarker, "Successfully started the node from config: $config")
                 isStarted = true
+                lastError = null
             } catch (e: Exception) {
                 logger.error(logMarker, "Failed to start the node from config: $config", e)
+                lastError = e
             }
             return isStarted
         }
