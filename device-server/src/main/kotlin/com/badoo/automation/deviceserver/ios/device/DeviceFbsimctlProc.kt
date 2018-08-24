@@ -25,7 +25,6 @@ class DeviceFbsimctlProc(
 
         return listOf(
             FBSimctl.FBSIMCTL_BIN,
-            FBSimctl.RESPONSE_FORMAT,
             udid,
             "listen",
             "--http",
