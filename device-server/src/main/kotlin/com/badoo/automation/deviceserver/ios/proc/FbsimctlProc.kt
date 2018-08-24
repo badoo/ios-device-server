@@ -60,7 +60,6 @@ open class FbsimctlProc(
     protected open fun getFbsimctlCommand(headless: Boolean): List<String> {
         val cmd = mutableListOf(
             FBSimctl.FBSIMCTL_BIN,
-            FBSimctl.RESPONSE_FORMAT,
             udid,
             "boot"
         )

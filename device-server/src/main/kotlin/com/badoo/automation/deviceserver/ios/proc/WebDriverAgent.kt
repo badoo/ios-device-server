@@ -26,7 +26,6 @@ open class WebDriverAgent(
 ) : LongRunningProc(udid, remote.hostName) {
     private val launchXctestCommand: List<String> = listOf(
             FBSimctl.FBSIMCTL_BIN,
-            FBSimctl.RESPONSE_FORMAT,
             udid,
             "launch_xctest",
             wdaPath,
