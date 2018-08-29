@@ -41,7 +41,6 @@ class DeviceFbsimctlProcTest {
         ).start()
         val expectedCommand = listOf(
             "/usr/local/bin/fbsimctl",
-            "--json",
             "UDID",
             "listen",
             "--http",
