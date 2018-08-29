@@ -32,7 +32,6 @@ class FbsimctlProcTest {
         FbsimctlProc(remote, udid, endpoint, headless, this::childFactory).start()
         val expectedCommand = listOf(
             "/usr/local/bin/fbsimctl",
-            "--json",
             "UDID",
             "boot",
             "--direct-launch",
@@ -50,7 +49,6 @@ class FbsimctlProcTest {
         FbsimctlProc(remote, udid, endpoint, headless, this::childFactory).start()
         val expectedCommand = listOf(
             "/usr/local/bin/fbsimctl",
-            "--json",
             "UDID",
             "boot",
             "--",
