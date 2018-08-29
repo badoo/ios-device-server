@@ -525,18 +525,29 @@ class Simulator (
     /**
      * [see Deleting-Safari-Cookies-in-iOS-Simulator.html](http://www.ryanchapin.com/fv-b-4-744/Deleting-Safari-Cookies-in-iOS-Simulator.html)
      */
+    private val cookieJars = listOf(
+        "Cookies.binarycookies", // pre iOS 12
+        "com.apple.SafariViewService.binarycookies" // iOS 12
+    )
+
     override fun clearSafariCookies(): Map<String, String> {
         val apps = remote.fbsimctl.listApps(udid)
         check(!apps.isEmpty()) { "Could not list apps for $this" }
 
         val safari = apps.find { SAFARI_BUNDLE_ID == it.bundle.bundle_id }
-        checkNotNull(safari) { "$SAFARI_BUNDLE_ID not found in $apps for $this" }
 
-        val cookiesPath = File(safari!!.data_container, listOf("Library", "Cookies", "Cookies.binarycookies").joinToString(File.separator))
+        if (safari == null) {
+            throw IllegalStateException("$SAFARI_BUNDLE_ID not found in $apps for $this")
+        }
 
-        val result = remote.execIgnoringErrors(listOf("rm", "-f", cookiesPath.absolutePath))
-        check(result.isSuccess) { "Failed to remove safari cookies (${cookiesPath.absolutePath} on $remote for $this: $result" }
+        val cookieJarPaths = cookieJars.map { cookieJar ->
+            File(safari.data_container, listOf("Library", "Cookies", cookieJar).joinToString(File.separator)).absolutePath
+        }
 
+        val cmd = mutableListOf("rm", "-f")
+        cmd.addAll(cookieJarPaths)
+        val result = remote.execIgnoringErrors(cmd)
+        check(result.isSuccess) { "Failed to remove safari cookies ($cookieJarPaths on $remote for $this: $result" }
         return mapOf("status" to "true")
     }
 
