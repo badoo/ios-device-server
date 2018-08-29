@@ -465,6 +465,7 @@ class Simulator (
     //region approveAccess
     override fun approveAccess(bundleId: String) {
         updatePermission(bundleId, "kTCCServiceCamera")
+        updatePermission(bundleId, "kTCCServiceMicrophone")
         updatePermission(bundleId, "kTCCServicePhotos")
         updatePermission(bundleId, "kTCCServiceAddressBook")
     }
