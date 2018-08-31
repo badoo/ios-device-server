@@ -64,8 +64,9 @@ class FBSimctl(
     override fun create(model: String?, os: String?, transitional: Boolean): FBSimctlDevice {
         val args = mutableListOf("create")
 
-        if (os != null) { args.add("'$os'") }
-        if (model != null) { args.add("'$model'") }
+        // FIXME: escaping should be part of exec implementation and hidden from caller. Fix in separate ticket.
+        if (os != null) { args.add(shellCommand.escape(os)) }
+        if (model != null) { args.add(shellCommand.escape(model)) }
 
         val result = fbsimctl(args)
 
