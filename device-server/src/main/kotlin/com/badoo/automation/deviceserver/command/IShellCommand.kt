@@ -30,4 +30,10 @@ interface IShellCommand {
         logMarker: Marker? = null,
         processListener: LongRunningProcessListener
     )
+
+    /**
+     * Escape exec argument string if needed
+     */
+    fun escape(value: String): String // FIXME: this is temp workaround. Need to embed escaping into exec itself
+
 }

@@ -63,6 +63,10 @@ open class ShellCommand(
         startProcessInternal(command, environment, processListener)
     }
 
+    override fun escape(value: String): String {
+        return value
+    }
+
     private fun startProcessInternal(command: List<String>, environment: Map<String, String>, processListener: NuProcessHandler): NuProcess {
         logger.info(logMarker, "Executing command: ${command.joinToString(" ")}")
         val cmdEnv = environment + commonEnvironment
