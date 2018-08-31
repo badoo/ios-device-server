@@ -85,6 +85,10 @@ class RemoteShellCommand(
         super.startProcess(getCommandWithSSHPrefix(command), getEnvironmentForSSH(), logMarker, processListener)
     }
 
+    override fun escape(value: String): String {
+        return ShellUtils.escape(value)
+    }
+
     private fun getEnvironmentForSSH(): HashMap<String, String> {
         val envWithSsh = HashMap<String, String>(sshEnv)
         envWithSsh.putAll(envWithSsh)
