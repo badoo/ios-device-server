@@ -6,11 +6,12 @@ import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.util.ensure
 import com.badoo.automation.deviceserver.util.uriWithPath
+import java.io.File
 import java.net.URI
 
 open class WebDriverAgent(
     protected val remote: IRemote,
-    protected val wdaPath: String,
+    protected val wdaRunnerXctest: File,
     protected val hostApp: String,
     protected val udid: UDID,
     private val wdaEndpoint: URI,
@@ -28,7 +29,7 @@ open class WebDriverAgent(
             FBSimctl.FBSIMCTL_BIN,
             udid,
             "launch_xctest",
-            wdaPath,
+            wdaRunnerXctest.absolutePath,
             hostApp,
             "--port",
             port.toString(),
@@ -41,7 +42,7 @@ open class WebDriverAgent(
 
     override fun start() {
         ensure(childProcess == null) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
-        ensure(remote.isDirectory(wdaPath)) { WebDriverAgentError("WebDriverAgent $wdaPath does not exist or is not a directory") }
+        ensure(remote.isDirectory(wdaRunnerXctest.absolutePath)) { WebDriverAgentError("WebDriverAgent ${wdaRunnerXctest.absolutePath} does not exist or is not a directory") }
         logger.debug(logMarker, "$this — Starting child process")
 
         terminateHostApp()
