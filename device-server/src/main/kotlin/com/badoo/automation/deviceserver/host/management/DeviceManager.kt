@@ -2,7 +2,6 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.data.*
-import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.host.management.util.AutoreleaseLooper
@@ -15,7 +14,7 @@ private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_V
 
 class DeviceManager(
         config: DeviceServerConfig,
-        nodeFactory: IHostFactory = HostFactory(),
+        nodeFactory: IHostFactory,
         activeDevices: ActiveDevices = ActiveDevices(),
         private val autoreleaseLooper: IAutoreleaseLooper = AutoreleaseLooper()
 ) : IDeviceManager {
