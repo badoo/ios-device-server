@@ -20,10 +20,13 @@ import java.util.concurrent.TimeUnit
 class DevicesNode(
     private val remote: IRemote,
     portAllocator: PortAllocator = PortAllocator(),
-    wdaPath: File,
+    wdaRunnerXctest: File,
     knownDevices: List<KnownDevice>,
     private val whitelistedApps: Set<String>,
-    private val uninstallApps: Boolean
+    private val uninstallApps: Boolean,
+    private val wdaBundlePath: File,
+    private val remoteWdaBundleRoot: File,
+    private val fbsimctlVersion: String
 ) : ISimulatorsNode {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(
@@ -37,7 +40,7 @@ class DevicesNode(
 
     private val deviceInfoProvider = DeviceInfoProvider(remote)
     private val slots: DeviceSlots =
-        DeviceSlots(remote, wdaPath.absolutePath, portAllocator, deviceInfoProvider, knownDevices)
+        DeviceSlots(remote, wdaRunnerXctest, portAllocator, deviceInfoProvider, knownDevices)
 
     private var deviceRegistrar: Future<Unit>? = null
 
@@ -267,11 +270,9 @@ class DevicesNode(
             throw RuntimeException("Expecting Xcode 9.2 or higher, but it is $xcodeVersion")
         }
 
-        val expectedFbsimctlVersion = "HEAD-ec54965"
-
         // temp solution, prerequisites should be satisfied without having to switch anything
         val switchRes = remote.execIgnoringErrors(
-            listOf("/usr/local/bin/brew", "switch", "fbsimctl", expectedFbsimctlVersion),
+            listOf("/usr/local/bin/brew", "switch", "fbsimctl", fbsimctlVersion),
             env = mapOf("RUBYOPT" to "")
         )
 
@@ -284,8 +285,8 @@ class DevicesNode(
         val match = Regex("/fbsimctl/([-.\\w]+)/bin/fbsimctl").find(fbsimctlPath)
                 ?: throw RuntimeException("Could not read fbsimctl version from $fbsimctlPath")
         val actualFbsimctlVersion = match.groupValues[1]
-        if (actualFbsimctlVersion != expectedFbsimctlVersion) {
-            throw RuntimeException("Expecting fbsimctl $expectedFbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
+        if (actualFbsimctlVersion != fbsimctlVersion) {
+            throw RuntimeException("Expecting fbsimctl $fbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
         }
 
         val iproxy = remote.execIgnoringErrors((listOf(UsbProxy.IPROXY_BIN)))
@@ -302,8 +303,8 @@ class DevicesNode(
     private fun copyWdaBundleToHost() {
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
         remote.rsync(
-            HostFactory.WDA_DEVICE_BUNDLE.absolutePath,
-            HostFactory.REMOTE_WDA_DEVICE_BUNDLE_ROOT,
+            wdaBundlePath.absolutePath,
+            remoteWdaBundleRoot.absolutePath,
             setOf("-r", "--delete")
         )
     }
