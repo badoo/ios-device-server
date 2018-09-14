@@ -4,18 +4,18 @@ import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgent
 import java.net.URI
-import java.nio.file.Paths
+import java.io.File
 
 class DeviceWebDriverAgent(
     remote: IRemote,
-    wdaPath: String,
+    wdaRunnerXctest: File,
     udid: UDID,
     wdaEndpoint: URI,
     port: Int,
-    hostApp: String = Paths.get(wdaPath).parent.parent.toString()
+    hostApp: String = wdaRunnerXctest.parentFile.parentFile.absolutePath
 ) : WebDriverAgent(
     remote = remote,
-    wdaPath = wdaPath,
+    wdaRunnerXctest = wdaRunnerXctest,
     hostApp = hostApp,
     udid = udid,
     wdaEndpoint = wdaEndpoint,

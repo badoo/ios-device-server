@@ -1,13 +1,12 @@
 package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.host.HostFactory.Companion.REMOTE_WDA_BUNDLE_ROOT
-import com.badoo.automation.deviceserver.host.HostFactory.Companion.WDA_BUNDLE
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.time.Duration
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -22,12 +21,11 @@ interface ISimulatorHostChecker {
 
 class SimulatorHostChecker(
         val remote: IRemote,
-        private val diskCleanupInterval: Duration = Duration.ofMinutes(15)
+        private val diskCleanupInterval: Duration = Duration.ofMinutes(15),
+        private val wdaBundle: File,
+        private val remoteWdaBundleRoot: File,
+        private val fbsimctlVersion: String
 ) : ISimulatorHostChecker {
-    companion object {
-        private const val EXPECTED_FBSIMCTL = "HEAD-ec54965"
-    }
-
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
             LogMarkers.HOSTNAME to remote.hostName
@@ -37,7 +35,11 @@ class SimulatorHostChecker(
 
     override fun copyWdaBundleToHost() {
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
-        remote.rsync(WDA_BUNDLE.absolutePath, REMOTE_WDA_BUNDLE_ROOT, setOf("-r", "--delete"))
+        remote.rsync(
+            wdaBundle.absolutePath,
+            remoteWdaBundleRoot.absolutePath,
+            setOf("-r", "--delete")
+        )
     }
 
     override fun killDiskCleanupThread() {
@@ -55,7 +57,7 @@ class SimulatorHostChecker(
         }
 
         // temp solution, prereq should be satisfied without having to switch anything
-        val rv = remote.execIgnoringErrors(listOf("/usr/local/bin/brew", "switch", "fbsimctl", EXPECTED_FBSIMCTL), env = mapOf("RUBYOPT" to ""))
+        val rv = remote.execIgnoringErrors(listOf("/usr/local/bin/brew", "switch", "fbsimctl", fbsimctlVersion), env = mapOf("RUBYOPT" to ""))
         if (!rv.isSuccess) {
             logger.warn(logMarker, "fbsimctl switch failed, see: $rv")
         }
@@ -64,8 +66,8 @@ class SimulatorHostChecker(
         val match = Regex("/fbsimctl/([-.\\w]+)/bin/fbsimctl").find(fbsimctlPath)
                 ?: throw RuntimeException("Could not read fbsimctl version from $fbsimctlPath")
         val actualFbsimctlVersion = match.groupValues[1]
-        if (actualFbsimctlVersion != EXPECTED_FBSIMCTL) {
-            throw RuntimeException("Expecting fbsimctl $EXPECTED_FBSIMCTL, but it was $actualFbsimctlVersion ${match.groupValues}")
+        if (actualFbsimctlVersion != fbsimctlVersion) {
+            throw RuntimeException("Expecting fbsimctl $fbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
         }
     }
 

@@ -1,21 +1,21 @@
 package com.badoo.automation.deviceserver.host
 
-import com.badoo.automation.deviceserver.Configuration
 import com.badoo.automation.deviceserver.NodeConfig
 import com.badoo.automation.deviceserver.host.management.IHostFactory
+import com.badoo.automation.deviceserver.host.management.SimulatorHostChecker
 import org.slf4j.LoggerFactory
 import java.io.File
 
 class HostFactory(
-        private val remoteProvider: (hostName: String, userName: String, publicHost: String) -> IRemote = { hostName, userName, publicHostName -> Remote(hostName, userName, publicHostName) },
-        private val simulatorHostProvider: ISimulatorHostProvider = DefaultSimulatorHostProvider
+    private val remoteProvider: (hostName: String, userName: String, publicHost: String) -> IRemote = { hostName, userName, publicHostName -> Remote(hostName, userName, publicHostName) },
+    private val wdaSimulatorBundle: File,
+    private val wdaDeviceBundle: File,
+    private val fbsimctlVersion: String
 ) : IHostFactory {
     companion object {
-        val WDA_BUNDLE = File(Configuration.WDA_BUNDLE_PATH).canonicalFile!! // can't be null. Configuration will blow up otherwise
-        val WDA_DEVICE_BUNDLE = File(Configuration.WDA_DEVICE_BUNDLE_PATH).canonicalFile!!
         val WDA_XCTEST = File("PlugIns/WebDriverAgentRunner.xctest")
-        const val REMOTE_WDA_BUNDLE_ROOT = "/tmp/web_driver_agent/"
-        const val REMOTE_WDA_DEVICE_BUNDLE_ROOT = "/tmp/web_driver_agent_devices/"
+        private val REMOTE_WDA_BUNDLE_ROOT = File("/tmp/web_driver_agent/")
+        private val REMOTE_WDA_DEVICE_BUNDLE_ROOT = File("/tmp/web_driver_agent_devices/")
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -32,39 +32,42 @@ class HostFactory(
             throw RuntimeException("Config for non-localhost nodes must have non-empty 'user'. Current config: $config")
         }
 
-        if (config.type == NodeConfig.NodeType.Simulators) {
-            return simulatorHostProvider.simulatorsNode(
-                remote,
-                config.simulatorLimit,
-                config.concurrentBoots,
-                getWdaSimulatorsPath(remote.isLocalhost())
+        return if (config.type == NodeConfig.NodeType.Simulators) {
+            SimulatorsNode(
+                remote = remote,
+                hostChecker = SimulatorHostChecker(
+                    remote,
+                    wdaBundle = wdaSimulatorBundle,
+                    remoteWdaBundleRoot = REMOTE_WDA_BUNDLE_ROOT,
+                    fbsimctlVersion = fbsimctlVersion
+                ),
+                simulatorLimit = config.simulatorLimit,
+                concurrentBoots = config.concurrentBoots,
+                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaSimulatorBundle, REMOTE_WDA_BUNDLE_ROOT)
             )
         } else {
-            return DevicesNode(
+            DevicesNode(
                 remote,
                 whitelistedApps = config.whitelistApps,
-                wdaPath = getWdaDevicesPath(remote.isLocalhost()),
                 knownDevices = config.knownDevices,
-                uninstallApps = config.uninstallApps
+                uninstallApps = config.uninstallApps,
+                wdaBundlePath = wdaDeviceBundle,
+                remoteWdaBundleRoot = REMOTE_WDA_DEVICE_BUNDLE_ROOT,
+                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaDeviceBundle, REMOTE_WDA_DEVICE_BUNDLE_ROOT),
+                fbsimctlVersion = fbsimctlVersion
             )
         }
     }
 
-    private fun getWdaSimulatorsPath(isLocalhost: Boolean): File {
-        return if (isLocalhost) {
-            File(WDA_BUNDLE, WDA_XCTEST.path)
-        } else {
-            val xcTestPath = File(WDA_BUNDLE.name, WDA_XCTEST.path).path
-            File(REMOTE_WDA_BUNDLE_ROOT, xcTestPath)
-        }
-    }
+    private fun getWdaRunnerXctest(isLocalHost: Boolean, wdaBundle: File, remoteWdaBundleRoot: File): File {
+        val wdaRunnerXctest = File(wdaBundle.name, WDA_XCTEST.path).path
 
-    private fun getWdaDevicesPath(isLocalhost: Boolean): File {
-        return if (isLocalhost) {
-            File(WDA_DEVICE_BUNDLE, WDA_XCTEST.path)
+        val wdaBundleRoot = if (isLocalHost) {
+            wdaBundle.parentFile
         } else {
-            val xcTestPath = File(WDA_DEVICE_BUNDLE.name, WDA_XCTEST.path).path
-            File(REMOTE_WDA_DEVICE_BUNDLE_ROOT, xcTestPath)
+            remoteWdaBundleRoot
         }
+
+        return File(wdaBundleRoot, wdaRunnerXctest)
     }
 }

@@ -118,7 +118,7 @@ class SimulatorsNodeTest {
                 eq(fbsimulatorDevice),
                 eq(DeviceAllocatedPorts(1,2, 3)),
                 eq("/node/specific/device/set"),
-                eq("some/file/from/wdaPathProc"),
+                eq(File("some/file/from/wdaPathProc")),
                 any(),
                 eq(false),
                 eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)")

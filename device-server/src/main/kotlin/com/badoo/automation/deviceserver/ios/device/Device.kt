@@ -18,13 +18,13 @@ import java.net.URL
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-
+import java.io.File
 
 class Device(
     private val remote: IRemote,
     val deviceInfo: DeviceInfo,
     val allocatedPorts: DeviceAllocatedPorts,
-    wdaPath: String,
+    wdaRunnerXctest: File,
     usbProxy: UsbProxyFactory = UsbProxyFactory(remote)
 ) {
     val udid: String = deviceInfo.udid
@@ -58,7 +58,7 @@ class Device(
         }
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
-    private val wdaProc = DeviceWebDriverAgent(remote, wdaPath, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort)
+    private val wdaProc = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort)
 
     private val status = SimulatorStatus()
 
