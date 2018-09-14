@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
-import com.badoo.automation.deviceserver.host.management.SimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
@@ -21,10 +20,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 class SimulatorsNode(
         val remote: IRemote,
-        private val hostChecker: ISimulatorHostChecker = SimulatorHostChecker(remote),
+        private val hostChecker: ISimulatorHostChecker,
         private val simulatorLimit: Int,
         concurrentBoots: Int,
-        private val wdaPath: File,
+        private val wdaRunnerXctest: File,
         private val simulatorProvider: ISimulatorProvider = SimulatorProvider(remote),
         private val portAllocator: PortAllocator = PortAllocator(),
         private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
@@ -88,7 +87,7 @@ class SimulatorsNode(
 
             logger.debug(simLogMarker, "Will create simulator $ref")
 
-            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath, wdaPath.path, concurrentBoot, desiredCaps.headless, fbSimctlDevice.toString())
+            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath, wdaRunnerXctest, concurrentBoot, desiredCaps.headless, fbSimctlDevice.toString())
             simulator.prepareAsync()
             devicePool[ref] = simulator
 

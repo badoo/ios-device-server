@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.data.DataPath
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.ErrorDto
 import com.badoo.automation.deviceserver.data.toDto
+import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
@@ -72,13 +73,15 @@ fun getAddresses(): List<String> {
     }
 }
 
+private val appConfiguration = ApplicationConfiguration()
+
 private fun serverConfig(): DeviceServerConfig {
-    if (Configuration.DEVICE_SERVER_CONFIG_PATH.isEmpty()) {
+    if (appConfiguration.deviceServerConfigPath.isEmpty()) {
         logger.info("Using default config")
         return DeviceServerConfig(nodes = listOf(NodeConfig()), timeouts = emptyMap())
     }
 
-    val configFile = File(Configuration.DEVICE_SERVER_CONFIG_PATH)
+    val configFile = File(appConfiguration.deviceServerConfigPath)
 
     if (!configFile.exists()) {
         val msg = "Config file ${configFile.path} not found"
@@ -97,8 +100,12 @@ private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpl
 @Suppress("unused")
 fun Application.module() {
     val config = serverConfig()
-
-    val deviceManager = DeviceManager(config)
+    val hostFactory = HostFactory(
+        wdaSimulatorBundle = File(appConfiguration.wdaSimulatorBundlePath).canonicalFile,
+        wdaDeviceBundle = File(appConfiguration.wdaDeviceBundlePath).canonicalFile,
+        fbsimctlVersion = appConfiguration.fbsimctlVersion
+    )
+    val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchAutoReleaseLoop()
 

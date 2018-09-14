@@ -13,10 +13,11 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.io.File
 
 class DeviceSlots(
     val remote: IRemote,
-    val wdaPath: String,
+    private val wdaRunnerXctest: File,
     private val portAllocator: PortAllocator,
     private val deviceInfoProvider: DeviceInfoProvider,
     knownDevicesList: List<KnownDevice>
@@ -142,7 +143,7 @@ class DeviceSlots(
             remote =remote,
             deviceInfo = deviceInfo,
             allocatedPorts = allocatedPorts,
-            wdaPath = wdaPath
+            wdaRunnerXctest = wdaRunnerXctest
         )
 
         device.prepareAsync()
