@@ -74,7 +74,7 @@ class SimulatorHostChecker(
     override fun cleanup() {
         try {
             logger.info(logMarker, "Will kill abandoned long living fbsimctl processes")
-            remote.pkill("fbsimctl")
+            remote.pkill("/usr/local/bin/fbsimctl")
             logger.info(logMarker, "Will shutdown booted simulators")
             remote.fbsimctl.shutdownAllBooted()
             logger.info(logMarker, "Done shutting down booted simulators")
