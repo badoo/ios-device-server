@@ -20,6 +20,7 @@ open class WebDriverAgent(
                 remoteHost: String,
                 userName: String,
                 cmd: List<String>,
+                environment: Map<String, String>,
                 isInteractiveShell: Boolean,
                 out_reader: (line: String) -> Unit,
                 err_reader: (line: String) -> Unit
@@ -37,6 +38,7 @@ open class WebDriverAgent(
             "listen"
     )
     private val uri: URI = uriWithPath(wdaEndpoint, "wda/healthcheck")
+    protected open val environment: Map<String, String> = mapOf()
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
 
@@ -51,6 +53,7 @@ open class WebDriverAgent(
                 remote.hostName,
                 remote.userName,
                 launchXctestCommand,
+                environment,
                 false,
                 { message -> logger.info(logMarker, "${this@WebDriverAgent}: WDA <o>: ${message.trim()}") },
                 { message -> logger.warn(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }

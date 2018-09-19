@@ -3,10 +3,12 @@ package com.badoo.automation.deviceserver.host
 import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
+import com.badoo.automation.deviceserver.XcodeFinder
 import com.badoo.automation.deviceserver.data.*
-import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
-import com.badoo.automation.deviceserver.host.management.PortAllocator
+import com.badoo.automation.deviceserver.host.management.*
+import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import kotlinx.coroutines.experimental.launch
@@ -26,6 +28,7 @@ class SimulatorsNode(
         private val wdaRunnerXctest: File,
         private val simulatorProvider: ISimulatorProvider = SimulatorProvider(remote),
         private val portAllocator: PortAllocator = PortAllocator(),
+        private val xcodeApps: Lazy<List<Xcode>> = lazy { XcodeFinder(remote).findInstalledXcodeApplications() },
         private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
 ) : ISimulatorsNode {
 
@@ -45,6 +48,10 @@ class SimulatorsNode(
         }
         hostChecker.cleanup()
         hostChecker.setupHost()
+
+        xcodeApps.value.forEach { logger.info(logMarker, "Found Xcode: $it") }
+        check(xcodeApps.value.isNotEmpty()) { DeviceCreationException("Failed to find any xcodes") }
+
         logger.info(logMarker, "Prepared node ${remote.hostName}")
     }
 
@@ -87,7 +94,8 @@ class SimulatorsNode(
 
             logger.debug(simLogMarker, "Will create simulator $ref")
 
-            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath, wdaRunnerXctest, concurrentBoot, desiredCaps.headless, fbSimctlDevice.toString())
+            val xcode = findXcodeForSimulator(fbSimctlDevice)
+            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath, xcode, wdaRunnerXctest, concurrentBoot, desiredCaps.headless, fbSimctlDevice.toString())
             simulator.prepareAsync()
             devicePool[ref] = simulator
 
@@ -95,6 +103,29 @@ class SimulatorsNode(
 
             return simulatorToDTO(simulator)
         }
+    }
+
+    private fun findXcodeForSimulator(fbSimctlDevice: FBSimctlDevice): Xcode {
+        val os = getOsMajorVersion(fbSimctlDevice.os)
+        return xcodeApps.value.find {
+            if (os >= 12) {
+                it.version >= XcodeVersion(10, 0)
+            } else {
+                it.version < XcodeVersion(10, 0)
+            }
+        } ?: throw DeviceCreationException("Failed to find version of Xcode for iOS ${fbSimctlDevice.os}. " +
+            "Please use Xcode 9.4.1 for iOS 11 and Xcode 10 for iOS 12. " +
+            "It is a temporary known issue.\n" +
+            "Available installed Xcode versions are $xcodeApps")
+    }
+
+    /**
+     * "iOS 11.4", "iOS 12.0"
+     */
+    private fun getOsMajorVersion(os: String): Int {
+        val version = os.split(" ").last()
+        val major = version.split(".").first()
+        return major.toInt()
     }
 
     private fun simulatorToDTO(device: ISimulator): DeviceDTO {

@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.host
 import com.badoo.automation.deviceserver.data.DeviceAllocatedPorts
 import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.data.DeviceRef
+import com.badoo.automation.deviceserver.host.management.Xcode
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.Simulator
@@ -16,11 +17,12 @@ interface ISimulatorFactory {
             fbdev: FBSimctlDevice,
             ports: DeviceAllocatedPorts,
             deviceSetPath: String,
+            xcode: Xcode,
             wdaRunnerXctest: File,
             concurrentBoot: ThreadPoolDispatcher,
             headless: Boolean,
             fbsimctlSubject: String
     ): ISimulator {
-        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaRunnerXctest, concurrentBoot, headless, fbsimctlSubject)
+        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, xcode, wdaRunnerXctest, concurrentBoot, headless, fbsimctlSubject)
     }
 }

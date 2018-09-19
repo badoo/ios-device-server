@@ -53,6 +53,7 @@ class RemoteShellCommandTest {
 
         val expectedCommand = listOf(
                 "/usr/bin/ssh",
+                "-o", "SendEnv=DEVELOPER_DIR",
                 "-o", "ConnectTimeout=1",
                 "-o", "PreferredAuthentications=publickey",
                 "-q",
@@ -76,6 +77,7 @@ class RemoteShellCommandTest {
 
         val expectedCommand = listOf(
                 "/usr/bin/ssh",
+                "-o", "SendEnv=DEVELOPER_DIR",
                 "-o", "ConnectTimeout=1",
                 "-o", "PreferredAuthentications=publickey",
                 "-q",
@@ -98,6 +100,7 @@ class RemoteShellCommandTest {
 
         val expectedCommand = listOf(
                 "/usr/bin/ssh",
+                "-o", "SendEnv=DEVELOPER_DIR",
                 "-o", "ConnectTimeout=1",
                 "-o", "PreferredAuthentications=publickey",
                 "-q",

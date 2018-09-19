@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
+import com.badoo.automation.deviceserver.host.management.Xcode
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
 import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
@@ -35,6 +36,7 @@ class Simulator (
         deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
+        xcode: Xcode,
         wdaRunnerXctest: File,
         private val concurrentBootsPool: ThreadPoolDispatcher,
         headless: Boolean,
@@ -65,7 +67,7 @@ class Simulator (
 
     private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
-    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint)
+    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, xcode, wdaEndpoint)
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
     private val simulatorStatus = SimulatorStatus()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)

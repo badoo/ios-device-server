@@ -65,6 +65,7 @@ class FbsimctlProcTest {
         remoteHost: String,
         username: String,
         cmd: List<String>,
+        environment: Map<String, String>,
         isInteractiveShell: Boolean,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
