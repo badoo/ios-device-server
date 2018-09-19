@@ -9,6 +9,7 @@ import java.time.Duration
 
 class ChildProcess private constructor(
     command: List<String>,
+    environment: Map<String, String>,
     executor: IShellCommand,
     remoteHostname: String,
     private val processListener: LongRunningProcessListener
@@ -18,7 +19,7 @@ class ChildProcess private constructor(
 
     init {
         logger.debug(logMarker, "Starting long living process from command [$command]")
-        executor.startProcess(command, mapOf(), processListener = processListener)
+        executor.startProcess(command, environment, processListener = processListener)
         logger.debug(logMarker, "Started long living process $this from command [$command]")
     }
 
@@ -41,12 +42,16 @@ class ChildProcess private constructor(
 
     companion object {
         fun fromCommand(
-            remoteHost: String, userName: String, cmd: List<String>, isInteractiveShell: Boolean,
+            remoteHost: String,
+            userName: String,
+            cmd: List<String>,
+            environment: Map<String, String>,
+            isInteractiveShell: Boolean,
             out_reader: (line: String) -> Unit,
             err_reader: (line: String) -> Unit
         ): ChildProcess {
             val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName, isInteractiveShell = isInteractiveShell)
-            return ChildProcess(cmd, executor, remoteHost, LongRunningProcessListener(out_reader, err_reader))
+            return ChildProcess(cmd, environment, executor, remoteHost, LongRunningProcessListener(out_reader, err_reader))
         }
     }
 }

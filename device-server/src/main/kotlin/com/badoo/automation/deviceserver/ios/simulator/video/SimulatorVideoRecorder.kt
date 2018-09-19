@@ -15,8 +15,13 @@ import kotlin.concurrent.withLock
 class SimulatorVideoRecorder(
         private val udid: UDID,
         private val remote: IRemote,
-        private val childFactory: (remoteHost: String, username: String, cmd: List<String>, isInteractiveShell: Boolean,
-                                   out_reader: (line: String) -> Unit, err_reader: (line: String) -> Unit
+        private val childFactory: (remoteHost: String,
+                                   username: String,
+                                   cmd: List<String>,
+                                   environment: Map<String, String>,
+                                   isInteractiveShell: Boolean,
+                                   out_reader: (line: String) -> Unit,
+                                   err_reader: (line: String) -> Unit
         ) -> ChildProcess? = ChildProcess.Companion::fromCommand,
         private val recorderStopTimeout: Duration = RECORDER_STOP_TIMEOUT
 ) : LongRunningProc(udid, remote.hostName) {
@@ -69,7 +74,7 @@ class SimulatorVideoRecorder(
             }
 
             delete()
-            childProcess = childFactory(remote.hostName, remote.userName, listOf(startVideoRecordingCommand), false,
+            childProcess = childFactory(remote.hostName, remote.userName, listOf(startVideoRecordingCommand), mapOf(),false,
                 { logger.debug(logMarker, "$udid: VideoRecorder <o>: ${it.trim()}") },
                 { logger.debug(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
             )

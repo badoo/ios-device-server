@@ -19,7 +19,7 @@ class SimulatorVideoRecorderTest {
     private val udid = "udid"
     @Suppress("UNUSED_PARAMETER")
     private fun childFactory(
-        remoteHost: String, username: String, cmd: List<String>, isInteractiveShell: Boolean,
+        remoteHost: String, username: String, cmd: List<String>, env: Map<String, String>, isInteractiveShell: Boolean,
         out_reader: (line: String) -> Unit, err_reader: (line: String) -> Unit
     ): ChildProcess? {
         return childProcess

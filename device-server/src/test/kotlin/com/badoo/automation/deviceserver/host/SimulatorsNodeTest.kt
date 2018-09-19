@@ -4,6 +4,8 @@ import com.badoo.automation.deviceserver.JsonMapper
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
+import com.badoo.automation.deviceserver.host.management.Xcode
+import com.badoo.automation.deviceserver.host.management.XcodeVersion
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
@@ -14,6 +16,7 @@ import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.net.URI
@@ -40,7 +43,7 @@ class SimulatorsNodeTest {
             "Model",
             "Name",
             "Udid1",
-            "Os")
+            "iOS 12.0")
 
     private val fbsimulatorDevice2: FBSimctlDevice = FBSimctlDevice(
             "Arch",
@@ -48,13 +51,15 @@ class SimulatorsNodeTest {
             "Model",
             "Name",
             "Udid2",
-            "Os")
+            "iOS 11.4")
 
     private val portAllocator = PortAllocator(1, 10)
 
     private val configuredSimulatorLimit = 3
 
     private val simulatorFactory: ISimulatorFactory = mockThis()
+    private val xcode9: Xcode = Xcode(XcodeVersion(9, 4), File("/DevDir"))
+    private val xcode10: Xcode = Xcode(XcodeVersion(10, 0), File("/DevDir"))
     private val simulatorsNode1 = SimulatorsNode(
             iRemote,
             hostChecker,
@@ -63,6 +68,7 @@ class SimulatorsNodeTest {
             wdaPath,
             iSimulatorProvider,
             portAllocator,
+            lazy { listOf(xcode9, xcode10) },
             simulatorFactory
     )
     private val simulatorsNode = simulatorsNode1
@@ -84,6 +90,11 @@ class SimulatorsNodeTest {
             ActualCapabilities(true, true)
     )
     private val expectedDeviceDTOJson = JsonMapper().toJson(expectedDeviceDTO)
+
+    @Before
+    fun setUp() {
+        whenever(desiredCapabilities.os).thenReturn("iOS 12.0")
+    }
 
     @Test
     fun shouldPrepareNodeOnlyOnce() {
@@ -118,10 +129,11 @@ class SimulatorsNodeTest {
                 eq(fbsimulatorDevice),
                 eq(DeviceAllocatedPorts(1,2, 3)),
                 eq("/node/specific/device/set"),
+                eq(Xcode(XcodeVersion(10, 0), File("/DevDir"))),
                 eq(File("some/file/from/wdaPathProc")),
                 any(),
                 eq(false),
-                eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)")
+                eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=iOS 12.0)")
         )
         verify(simulatorMock).prepareAsync()
 
@@ -151,7 +163,7 @@ class SimulatorsNodeTest {
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
 
-        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         simulatorMocks.forEach { pair ->
             simfac = simfac.thenReturn(pair.first)
         }

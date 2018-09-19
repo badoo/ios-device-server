@@ -25,6 +25,7 @@ class RemoteShellCommand(
         val sshPrefix = arrayListOf<String>()
         sshPrefix.addAll(listOf(
                 SSH_COMMAND,
+                "-o", "SendEnv=DEVELOPER_DIR",
                 "-o", "ConnectTimeout=$connectionTimeout",
                 "-o", "PreferredAuthentications=publickey",
                 QUIET_MODE
@@ -59,7 +60,7 @@ class RemoteShellCommand(
                       processListener: IShellCommandListener): CommandResult {
         val cmd = getCommandWithSSHPrefix(command)
         val start = System.currentTimeMillis()
-        val result = super.exec(cmd, getEnvironmentForSSH(), timeOut, returnFailure, logMarker, processListener)
+        val result = super.exec(cmd, getEnvironmentForSSH(environment), timeOut, returnFailure, logMarker, processListener)
         val elapsed = System.currentTimeMillis() - start
         val marker = MapEntriesAppendingMarker(
             mapOf(
@@ -82,16 +83,16 @@ class RemoteShellCommand(
 
     override fun startProcess(command: List<String>, environment: Map<String, String>, logMarker: Marker?,
                               processListener: LongRunningProcessListener) {
-        super.startProcess(getCommandWithSSHPrefix(command), getEnvironmentForSSH(), logMarker, processListener)
+        super.startProcess(getCommandWithSSHPrefix(command), getEnvironmentForSSH(environment), logMarker, processListener)
     }
 
     override fun escape(value: String): String {
         return ShellUtils.escape(value)
     }
 
-    private fun getEnvironmentForSSH(): HashMap<String, String> {
+    private fun getEnvironmentForSSH(environment: Map<String, String>): HashMap<String, String> {
         val envWithSsh = HashMap<String, String>(sshEnv)
-        envWithSsh.putAll(envWithSsh)
+        envWithSsh.putAll(environment)
         return envWithSsh
     }
 

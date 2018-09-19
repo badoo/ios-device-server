@@ -68,7 +68,7 @@ open class ShellCommand(
     }
 
     private fun startProcessInternal(command: List<String>, environment: Map<String, String>, processListener: NuProcessHandler): NuProcess {
-        logger.info(logMarker, "Executing command: ${command.joinToString(" ")}")
+        logger.info(logMarker, "Executing command: [${command.joinToString(" ")}] with environment [$environment]")
         val cmdEnv = environment + commonEnvironment
         val processBuilder = builderFactory(command, cmdEnv)
         processBuilder.setProcessListener(processListener)
