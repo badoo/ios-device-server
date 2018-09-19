@@ -28,7 +28,8 @@ class NodeWrapper(
         )
     )
     private val lock = ReentrantLock(true)
-    @Volatile private var isStarted = false
+    @Volatile
+    private var isStarted = false
     private var healthCheckPeriodicTask: Future<*>? = null
     val node: ISimulatorsNode = hostFactory.getHostFromConfig(config)
 
@@ -46,7 +47,10 @@ class NodeWrapper(
             }
 
             if (!node.isReachable()) {
-                logger.error(logMarker, "Failed to start the node from config: $config. Reason: unreachable node: $node.")
+                logger.error(
+                    logMarker,
+                    "Failed to start the node from config: $config. Reason: unreachable node: $node."
+                )
                 return false
             }
 
@@ -67,7 +71,7 @@ class NodeWrapper(
     fun stop() {
         lock.withLock {
             if (!isStarted) {
-                logger.error(logMarker, "The node is not started. Node config: $config")
+                logger.info(logMarker, "No need to stop(): the node is not started. Node config: $config")
                 return
             }
 
@@ -86,7 +90,7 @@ class NodeWrapper(
 
         val executor = Executors.newSingleThreadExecutor()
         var healthCheckAttempts = 0
-        healthCheckPeriodicTask = executor.submit({
+        healthCheckPeriodicTask = executor.submit {
             while (!Thread.currentThread().isInterrupted) {
                 Thread.sleep(nodeCheckInterval.toMillis())
 
@@ -106,7 +110,7 @@ class NodeWrapper(
                 }
 
             }
-        })
+        }
         executor.shutdown()
     }
 

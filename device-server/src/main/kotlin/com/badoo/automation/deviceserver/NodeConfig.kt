@@ -35,6 +35,9 @@ data class NodeConfig(
 ) {
 
     enum class NodeType {
+        @JsonProperty("emulators")
+        AndroidEmulators,
+
         @JsonProperty("simulators")
         Simulators,
 

@@ -55,7 +55,7 @@ class SimulatorsNodeTest {
     private val configuredSimulatorLimit = 3
 
     private val simulatorFactory: ISimulatorFactory = mockThis()
-    private val simulatorsNode1 = SimulatorsNode(
+    private val simulatorsNode = SimulatorsNode(
             iRemote,
             hostChecker,
             configuredSimulatorLimit,
@@ -65,7 +65,6 @@ class SimulatorsNodeTest {
             portAllocator,
             simulatorFactory
     )
-    private val simulatorsNode = simulatorsNode1
 
     private val desiredCapabilities: DesiredCapabilities = mockThis()
 
@@ -87,7 +86,7 @@ class SimulatorsNodeTest {
 
     @Test
     fun shouldPrepareNodeOnlyOnce() {
-        simulatorsNode1.prepareNode()
+        simulatorsNode.prepareNode()
 
         val inOrder = inOrder(hostChecker)
         inOrder.verify(hostChecker).checkPrerequisites()

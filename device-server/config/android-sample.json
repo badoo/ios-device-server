@@ -1,0 +1,12 @@
+{
+    "timeouts": {
+        "device": null
+    },
+    "nodes": [
+        {
+            "type": "emulators",
+            "user": "",
+            "host": "automation7.d4:8088",
+        }
+    ]
+}

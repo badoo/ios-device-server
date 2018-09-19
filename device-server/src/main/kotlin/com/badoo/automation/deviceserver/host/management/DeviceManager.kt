@@ -127,7 +127,7 @@ class DeviceManager(
         try { // using try-catch here not to expose tryGetNodeFor
             nodeRegistry.activeDevices.releaseDevice(ref, reason)
         } catch (e: DeviceNotFoundException) {
-            logger.warn("Skipping $ref release because no node knows about it")
+            logger.warn("Skipping release of ref='$ref' because no node knows about it")
             return
         }
     }

@@ -32,6 +32,12 @@ class Remote(
         }
     }
 
+    init {
+        if (userName.isBlank() && !isLocalhost()) {
+            throw RuntimeException("Config for non-localhost nodes must have non-empty 'user'.")
+        }
+    }
+
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
             LogMarkers.HOSTNAME to hostName

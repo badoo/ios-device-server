@@ -24,14 +24,30 @@ interface ISimulatorsNode {
     fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray
 
     val remoteAddress: String
+
+    // Simple reachability test
     fun isReachable(): Boolean
+
+    // Initial setting up: ensure support files copied over, local server configured with emulator count, etc.
     fun prepareNode()
+
     fun count(): Int
     fun list(): List<DeviceDTO>
+
+    // Relinquish this device.
     fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean
+
+    // Data Transfer Object of device
     fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO
+
+    // How many devices supporting the desired capabilities this node could theoretically provide.
     fun totalCapacity(desiredCaps: DesiredCapabilities): Int
+
+    // Fraction of devices still available: unused/(used+unused)
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
+
+    // Arrange for the device to be created at some point in the future - possibly on another thread.
     fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
 }
+
