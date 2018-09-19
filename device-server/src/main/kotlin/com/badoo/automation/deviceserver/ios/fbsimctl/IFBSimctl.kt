@@ -1,8 +1,11 @@
 package com.badoo.automation.deviceserver.ios.fbsimctl
 
 import com.badoo.automation.deviceserver.data.UDID
+import java.io.File
 
 interface IFBSimctl {
+    fun installApp(udid: UDID, bundlePath: File)
+
     /**
      * List simulators
      */

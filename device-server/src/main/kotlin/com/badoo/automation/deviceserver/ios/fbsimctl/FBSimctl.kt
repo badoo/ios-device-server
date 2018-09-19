@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.command.RemoteShellCommand
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.util.ensure
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.time.Duration
 
 class FBSimctl(
@@ -20,6 +21,14 @@ class FBSimctl(
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
+
+    override fun installApp(udid: UDID, bundlePath: File) {
+        val response = fbsimctl(listOf("install", bundlePath.absolutePath), udid, raiseOnError = true)
+        val result = parser.parseInstallApp(response)
+        if (!result.isSuccess) {
+            throw FBSimctlError("Failed to install application [${bundlePath.absolutePath}]. Error:\n${result.errorMessage}")
+        }
+    }
 
     override fun listSimulators(): List<FBSimctlDevice> {
         val cmd = listOf("--simulators", "list")
