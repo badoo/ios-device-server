@@ -35,3 +35,8 @@ data class FBSimctlDeviceDiagnosticInfo(
         val coreSimulatorLogLocation: String?,
         val videoLocation: String?
 )
+
+data class FBSimctlInstallResult(
+        val isSuccess: Boolean,
+        val errorMessage: String = ""
+)
