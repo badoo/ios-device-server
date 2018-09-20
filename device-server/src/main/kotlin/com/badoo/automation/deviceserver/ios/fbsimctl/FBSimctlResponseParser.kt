@@ -71,6 +71,31 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
         return parsedResponse.subject
     }
 
+    override fun parseInstallApp(response: String): FBSimctlInstallResult {
+        val mapper = JsonMapper()
+        val events = response.lines()
+            .asSequence()
+            .filter { !isLogEvent(it) }
+            .map { mapper.fromJson<Map<String, String>>(it) }
+            .toList()
+
+        val failureEvent = events.find {
+            it["event_name"] == "failure"
+        }
+
+        val errorMessage = if (failureEvent != null) {
+            failureEvent["subject"] ?: response
+        } else {
+            ""
+        }
+
+        val isInstalled = failureEvent == null && events.any {
+            it["event_type"] == "ended" && it["event_name"] == "install"
+        }
+
+        return FBSimctlInstallResult(isInstalled, errorMessage)
+    }
+
     private fun getFileLocation(result: List<Map<String, Any>>, fileType: String): String? {
         val found = result
                 .map {

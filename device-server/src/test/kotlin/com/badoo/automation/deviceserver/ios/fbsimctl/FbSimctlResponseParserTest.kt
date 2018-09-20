@@ -1,7 +1,6 @@
 package com.badoo.automation.deviceserver.ios.fbsimctl
 
-import org.hamcrest.Matchers.equalTo
-import org.hamcrest.Matchers.instanceOf
+import org.hamcrest.Matchers.*
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -39,7 +38,19 @@ class FbSimctlResponseParserTest {
         {"event_name":"log","timestamp":1521028581,"level":"info","subject":"Did Change State => Booted","event_type":"discrete"}
         {"event_name":"log","timestamp":1521028581,"level":"info","subject":"Simulator Did launch => Process launchd_sim | PID 88778","event_type":"discrete"}
         {"event_name":"create","timestamp":1521028581,"subject":{"pid":0,"arch":"x86_64","os":"iOS 11.2","container-pid":0,"model":"iPhone 6","udid":"7CA9DCE7-22A2-434B-A9EE-3E2A497E3881","name":"iPhone 6","state":"Shutdown"},"event_type":"ended"}
-        """.trimIndent()
+    """.trimIndent()
+
+    private val appInstallFailure = """
+        { "event_name": "log", "timestamp": 1537374100, "level": "info", "subject": "Running \/usr\/bin\/xcode-select --print-path with environment {\n HOME = \"\/Users\/vfrolov\";\n}", "event_type": "discrete" }
+        { "event_type": "started", "subject": { "application_path": "\/Users\/vfrolov\/GitHub\/ios-device-server\/ios\/facebook\/simulators-Facebook-c233bf07-x10\/WebDriverAgentRunner-Runner.app\/aasdfasdfasdf", "codesign": false }, "timestamp": 1537374100, "target": { "arch": "x86_64", "state": "Booted", "model": "iPhone 6", "name": "iPhone 6", "udid": "AB3C83FF-C05F-4CAA-9199-18E6C87FA9FB", "os": "iOS 11.4" }, "event_name": "install" }
+        { "event_name": "failure", "timestamp": 1537374100, "subject": "Error Domain=com.facebook.FBControlCore Code=0 \"File at path \/Users\/vfrolov\/GitHub\/ios-device-server\/ios\/facebook\/simulators-Facebook-c233bf07-x10\/WebDriverAgentRunner-Runner.app\/aasdfasdfasdf is neither an IPA not a .app\" UserInfo={NSLocalizedDescription=File at path \/Users\/vfrolov\/GitHub\/ios-device-server\/ios\/facebook\/simulators-Facebook-c233bf07-x10\/WebDriverAgentRunner-Runner.app\/aasdfasdfasdf is neither an IPA not a .app, NSUnderlyingError=0x7fb40a114ba0 {Error Domain=com.facebook.FBControlCore Code=0 \"Failed to open \/Users\/vfrolov\/GitHub\/ios-device-server\/ios\/facebook\/simulators-Facebook-c233bf07-x10\/WebDriverAgentRunner-Runner.app\/aasdfasdfasdf for reading\" UserInfo={NSLocalizedDescription=Failed to open \/Users\/vfrolov\/GitHub\/ios-device-server\/ios\/facebook\/simulators-Facebook-c233bf07-x10\/WebDriverAgentRunner-Runner.app\/aasdfasdfasdf for reading}}}", "event_type": "discrete" }]
+    """.trimIndent()
+
+    private val appInstallSuccess = """
+        { "event_name": "log", "timestamp": 1537373327, "level": "info", "subject": "Running \/usr\/bin\/xcode-select --print-path with environment {\n HOME = \"\/Users\/vfrolov\";\n}", "event_type": "discrete" }
+        { "event_type": "started", "subject": { "application_path": "\/Users\/vfrolov\/GitHub\/ios-device-server\/ios\/facebook\/simulators-Facebook-c233bf07-x10\/WebDriverAgentRunner-Runner.app", "codesign": false }, "timestamp": 1537373327, "target": { "arch": "x86_64", "state": "Booted", "model": "iPhone 6", "name": "iPhone 6", "udid": "AB3C83FF-C05F-4CAA-9199-18E6C87FA9FB", "os": "iOS 11.4" }, "event_name": "install" }
+        { "event_type": "ended", "subject": { "application_path": "\/Users\/vfrolov\/GitHub\/ios-device-server\/ios\/facebook\/simulators-Facebook-c233bf07-x10\/WebDriverAgentRunner-Runner.app", "codesign": false }, "timestamp": 1537373330, "target": { "arch": "x86_64", "state": "Booted", "model": "iPhone 6", "name": "iPhone 6", "udid": "AB3C83FF-C05F-4CAA-9199-18E6C87FA9FB", "os": "iOS 11.4" }, "event_name": "install" }
+     """.trimIndent()
 
     @Test fun parseList() {
         val parsedValue = FBSimctlResponseParser().parse(simulatorsListString)
@@ -51,6 +62,18 @@ class FbSimctlResponseParserTest {
     @Test fun parseCreateDevice() {
         val parsedValue = FBSimctlResponseParser().parseDeviceCreation(simulatorCreateStrings, false)
         assertEquals("7CA9DCE7-22A2-434B-A9EE-3E2A497E3881", parsedValue.udid)
+    }
+
+    @Test fun installAppSuccess() {
+        val result = FBSimctlResponseParser().parseInstallApp(appInstallSuccess)
+        assertTrue("Wrong install result", result.isSuccess)
+        assertTrue("Wrong install error message", result.errorMessage.isBlank())
+    }
+
+    @Test fun installAppFail() {
+        val result = FBSimctlResponseParser().parseInstallApp(appInstallFailure)
+        assertFalse("Wrong install result", result.isSuccess)
+        assertThat(result.errorMessage, containsString("is neither an IPA not a .app"))
     }
 
     @Test fun parseDeviceList() {
