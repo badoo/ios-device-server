@@ -108,8 +108,8 @@ class SimulatorHostChecker(
         cleanUpTask = periodicTasksPool.scheduleWithFixedDelay(
                 cleanUpRunnable,
                 0,
-                diskCleanupInterval.toSeconds(),
-                TimeUnit.SECONDS)
+                diskCleanupInterval.toMinutes(),
+                TimeUnit.MINUTES)
     }
 
     override fun setupHost() {

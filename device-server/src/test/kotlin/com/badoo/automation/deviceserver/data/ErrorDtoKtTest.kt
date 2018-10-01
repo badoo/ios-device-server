@@ -11,9 +11,9 @@ class ErrorDtoKtTest {
     @Test
     fun toDto() {
         val stackTrace: Array<StackTraceElement> = listOf(
-            StackTraceElement("", "", "", "com.badoo.SomeClass", "someMethod", "SomeFile.kt", 2),
-            StackTraceElement("", "", "", "com.badoo.SomeClass", "someMethod", "SomeFile.kt", 1),
-            StackTraceElement("", "", "", "io.ktor.SomeClass", "someMethod", "SomeFile.kt", 2)
+            StackTraceElement("com.badoo.SomeClass", "someMethod", "SomeFile.kt", 2),
+            StackTraceElement("com.badoo.SomeClass", "someMethod", "SomeFile.kt", 1),
+            StackTraceElement("io.ktor.SomeClass", "someMethod", "SomeFile.kt", 2)
         ).toTypedArray()
         whenever(exception.stackTrace).thenReturn(stackTrace)
 
