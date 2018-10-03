@@ -27,6 +27,7 @@ interface ISimulator {
     fun approveAccess(bundleId: String)
     fun release(reason: String)
     fun clearSafariCookies(): Map<String, String>
+    fun shake(): Boolean
     fun lastCrashLog(): CrashLog
     fun dataContainer(bundleId: String): DataContainer
 }
