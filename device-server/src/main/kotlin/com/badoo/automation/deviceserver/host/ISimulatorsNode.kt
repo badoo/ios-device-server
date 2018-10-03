@@ -10,6 +10,7 @@ interface ISimulatorsNode {
 
     fun approveAccess(deviceRef: DeviceRef, bundleId: String)
     fun clearSafariCookies(deviceRef: DeviceRef)
+    fun shake(deviceRef: DeviceRef)
     fun endpointFor(deviceRef: DeviceRef, port: Int): URL
     fun lastCrashLog(deviceRef: DeviceRef): CrashLog
     fun state(deviceRef: DeviceRef): SimulatorStatusDTO
