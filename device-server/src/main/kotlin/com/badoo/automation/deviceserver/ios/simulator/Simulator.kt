@@ -551,6 +551,12 @@ class Simulator (
         return mapOf("status" to "true")
     }
 
+    override fun shake() : Boolean {
+        val command = listOf("xcrun", "simctl", "notify_post", udid, "com.apple.UIKit.SimulatorShake")
+        val result = remote.execIgnoringErrors(command)
+        return result.isSuccess
+    }
+
     //region last crash log
     override fun lastCrashLog(): CrashLog {
         val crashLogs = listCrashLogs()
