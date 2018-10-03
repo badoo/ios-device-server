@@ -13,6 +13,7 @@ interface IDeviceManager {
     fun approveAccess(ref: DeviceRef, bundleId: String)
     fun getEndpointFor(ref: DeviceRef, port: Int): URL
     fun getLastCrashLog(ref: DeviceRef): CrashLog
+    fun shake(ref: DeviceRef)
     fun startVideo(ref: DeviceRef)
     fun stopVideo(ref: DeviceRef)
     fun getVideo(ref: DeviceRef): ByteArray

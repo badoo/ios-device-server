@@ -89,6 +89,10 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).lastCrashLog(ref)
     }
 
+    override fun shake(ref: DeviceRef) {
+        nodeRegistry.activeDevices.getNodeFor(ref).shake(ref)
+    }
+
     override fun startVideo(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingStart(ref)
     }

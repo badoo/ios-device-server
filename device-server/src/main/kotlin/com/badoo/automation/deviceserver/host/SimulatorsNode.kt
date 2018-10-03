@@ -130,6 +130,10 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).clearSafariCookies()
     }
 
+    override fun shake(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).shake()
+    }
+
     override fun count(): Int = devicePool.size
 
     override fun dispose() {

@@ -26,6 +26,7 @@ class DevicesController(private val deviceManager: IDeviceManager) {
         when (action) {
             "reset" -> deviceManager.resetAsyncDevice(ref)
             "clear_safari_cookies" -> deviceManager.clearSafariCookies(ref)
+            "shake" -> deviceManager.shake(ref)
             else -> throw IllegalArgumentException("Unknown action $action")
         }
         return happy
