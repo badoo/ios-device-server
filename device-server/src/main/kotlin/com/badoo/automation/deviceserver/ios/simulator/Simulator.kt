@@ -91,12 +91,12 @@ class Simulator (
             val elapsed = measureTimeMillis {
                 prepare(clean = true)
             }
-            logger.info(logMarker, "Device ${Simulator@this.toString()} ready in ${elapsed / 1000} seconds")
+            logger.info(logMarker, "Device ${this@Simulator} ready in ${elapsed / 1000} seconds")
         }
     }
 
     private fun prepare(timeout: Duration = PREPARE_TIMEOUT, clean: Boolean) {
-        logger.info(logMarker, "Starting to prepare ${Simulator@this}. Will wait for ${timeout.seconds} seconds")
+        logger.info(logMarker, "Starting to prepare ${this@Simulator}. Will wait for ${timeout.seconds} seconds")
         lastException = null
         wdaProc.kill()
         shutdown()
@@ -104,7 +104,7 @@ class Simulator (
         //FIXME: add checks for cancellation of criticalAsyncPromise
         executeWithTimeout(timeout, "Preparing simulator") {
             // erase simulator if there is no existing backup, this is to ensure backup is created from a clean state
-            logger.info(logMarker, "Launch prepare sequence for ${Simulator@this} asynchronously")
+            logger.info(logMarker, "Launch prepare sequence for ${this@Simulator} asynchronously")
 
             if (backup.isExist()) {
                 if (clean) {
@@ -175,7 +175,7 @@ class Simulator (
     }
 
     private fun shutdown() {
-        logger.info(logMarker, "Shutting down ${Simulator@this}")
+        logger.info(logMarker, "Shutting down ${this@Simulator}")
         ignoringErrors({ fbsimctlProc.kill() })
 
         if (remote.fbsimctl.listDevice(udid)?.state != FBSimctlDeviceState.SHUTDOWN.value) {
@@ -186,11 +186,11 @@ class Simulator (
             }
         }
 
-        logger.info(logMarker, "Successfully shut down ${Simulator@this}")
+        logger.info(logMarker, "Successfully shut down ${this@Simulator}")
     }
 
     private fun boot() {
-        logger.info(logMarker, "Booting ${Simulator@this} asynchronously")
+        logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
         val bootJob = async(context = concurrentBootsPool) {
             truncateSystemLogIfExists()
 
@@ -272,15 +272,15 @@ class Simulator (
         } else {
             try {
                 remote.shell("echo -n > $sysLog", returnOnFailure = true)
-                logger.debug(logMarker, "Truncated syslog of simulator ${Simulator@ this}")
+                logger.debug(logMarker, "Truncated syslog of simulator ${this@Simulator}")
             } catch (e: RuntimeException) {
-                logger.error(logMarker, "Error while truncating syslog of simulator ${Simulator@ this}", e)
+                logger.error(logMarker, "Error while truncating syslog of simulator ${this@Simulator}", e)
             }
         }
     }
 
     private fun logTiming(actionName: String, action: () -> Unit) {
-        logger.info(logMarker, "Device ${Simulator@this} starting action <$actionName>")
+        logger.info(logMarker, "Device ${this@Simulator} starting action <$actionName>")
         val millis = measureTimeMillis(action)
         val seconds = millis / 1000
         val measurement = mutableMapOf(
@@ -288,7 +288,7 @@ class Simulator (
                 "duration" to seconds
         )
         measurement.putAll(commonLogMarkerDetails)
-        logger.info(MapEntriesAppendingMarker(measurement), "Device ${Simulator@this} action <$actionName> took $seconds seconds")
+        logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} action <$actionName> took $seconds seconds")
     }
     //endregion
 
@@ -340,7 +340,7 @@ class Simulator (
 
     private fun executeCritical(action: () -> Unit) {
         if (deviceLock.isLocked) {
-            logger.info(logMarker, "Awaiting for previous action. Likely a criticalAsyncPromise $criticalAsyncPromise on ${Simulator@this}")
+            logger.info(logMarker, "Awaiting for previous action. Likely a criticalAsyncPromise $criticalAsyncPromise on ${this@Simulator}")
         }
 
         deviceLock.withLock {
@@ -351,7 +351,7 @@ class Simulator (
                 lastException = e
                 // FIXME: force shutdown failed sim
                 logger.error(logMarker, "Execute critical block finished with exception. Message: [${e.message}]", e)
-                logger.warn(logMarker, "Host stats on ${Simulator@this} are:\n${getSystemStats()}")
+                logger.warn(logMarker, "Host stats on ${this@Simulator} are:\n${getSystemStats()}")
             }
         }
     }
