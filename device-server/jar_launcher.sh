@@ -3,7 +3,7 @@
 set -xe
 
 declare -r DEVICE_SERVER_CONFIG_PATH="${DEVICE_SERVER_CONFIG_PATH}"
-declare -r DEVICE_SERVER_JAR="${DEVICE_SERVER_JAR}"
+declare -r DEVICE_SERVER_JAR="${DEVICE_SERVER_JAR:?Jar file is required}"
 
 declare -r WDA_RUNNER=${DEVICE_SERVER_WDA_SIMULATOR_RUNNER:-'../ios/facebook/simulators/WebDriverAgentRunner-Runner.app'}
 declare -r WDA_DEVICE_RUNNER=${DEVICE_SERVER_WDA_DEVICE_RUNNER:-'../ios/facebook/devices/WebDriverAgentRunner-Runner.app'}
