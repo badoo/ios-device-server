@@ -475,7 +475,7 @@ class Simulator (
         val sqlCmd = "sqlite3 ${path.absolutePath}/data/Library/TCC/TCC.db"
         val insert =
             "$sqlCmd \"INSERT INTO access (service, client, client_type, allowed, prompt_count) VALUES ('$key','$bundleId',0,1,1);\""
-        val update = "$sqlCmd \"UPDATE access SET allowed=1 where client='#{bundle_id}' AND service='#{key}'\""
+        val update = "$sqlCmd \"UPDATE access SET allowed=1 where client='$bundleId' AND service='$key'\""
 
         // FIXME: should we fail if sqlite3 fails (insert or update) or shall we do a separate check for access to be granted?
         remote.shell(insert)
