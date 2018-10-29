@@ -30,4 +30,5 @@ interface ISimulator {
     fun shake(): Boolean
     fun lastCrashLog(): CrashLog
     fun dataContainer(bundleId: String): DataContainer
+    fun uninstallApplication(bundleId: String)
 }

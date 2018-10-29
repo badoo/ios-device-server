@@ -362,6 +362,10 @@ class Device(
         }
     }
 
+    fun uninstallApplication(bundleId: String) {
+        remote.fbsimctl.uninstallApp(udid, bundleId)
+    }
+
     private companion object {
         private const val CALABASH_PORT = 37265
         private const val WDA_PORT = 8100
