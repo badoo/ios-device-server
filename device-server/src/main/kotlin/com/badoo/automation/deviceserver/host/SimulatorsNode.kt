@@ -225,6 +225,10 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).dataContainer(dataPath.bundleId).readFile(dataPath.path)
     }
 
+    override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
+        getDeviceFor(deviceRef).uninstallApplication(bundleId)
+    }
+
     override fun toString(): String {
         return "${javaClass.simpleName} at $remoteAddress"
     }

@@ -34,4 +34,5 @@ interface ISimulatorsNode {
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
     fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
+    fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)
 }

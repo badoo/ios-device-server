@@ -92,4 +92,9 @@ class DevicesController(private val deviceManager: IDeviceManager) {
     fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
         return deviceManager.pullFile(ref, dataPath)
     }
+
+    fun uninstallApplication(ref: DeviceRef, bundleId: String): EmptyMap {
+        deviceManager.uninstallApplication(ref, bundleId)
+        return happy
+    }
 }

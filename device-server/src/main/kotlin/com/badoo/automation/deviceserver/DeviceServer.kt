@@ -2,10 +2,7 @@ package com.badoo.automation.deviceserver
 
 import com.badoo.automation.deviceserver.controllers.DevicesController
 import com.badoo.automation.deviceserver.controllers.StatusController
-import com.badoo.automation.deviceserver.data.DataPath
-import com.badoo.automation.deviceserver.data.DesiredCapabilities
-import com.badoo.automation.deviceserver.data.ErrorDto
-import com.badoo.automation.deviceserver.data.toDto
+import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
@@ -200,6 +197,13 @@ fun Application.module() {
                         val ref = param(call, "ref")
                         val dataPath = jsonContent<DataPath>(call)
                         call.respond(devicesController.listFiles(ref, dataPath))
+                    }
+                }
+                route("app") {
+                    delete("{bundleId}") {
+                        val ref = param(call, "ref")
+                        val bundleId = param(call, "bundleId")
+                        call.respond(devicesController.uninstallApplication(ref, bundleId))
                     }
                 }
                 route("video") {

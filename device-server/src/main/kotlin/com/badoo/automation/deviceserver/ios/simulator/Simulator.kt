@@ -611,4 +611,8 @@ class Simulator (
     }
 
     //endregion
+
+    override fun uninstallApplication(bundleId: String) {
+        remote.fbsimctl.uninstallApp(udid, bundleId)
+    }
 }
