@@ -109,6 +109,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingDelete(ref)
     }
 
+    override fun uninstallApplication(ref: DeviceRef, bundleId: String) {
+        nodeRegistry.activeDevices.getNodeFor(ref).uninstallApplication(ref, bundleId)
+    }
+
     override fun getDeviceState(ref: DeviceRef): SimulatorStatusDTO {
         return nodeRegistry.activeDevices.getNodeFor(ref).state(ref)
     }
