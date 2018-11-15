@@ -11,17 +11,24 @@ class SimulatorWebDriverAgent(
         remote: IRemote,
         wdaRunnerXctest: File,
         udid: UDID,
-        wdaEndpoint: URI
+        wdaEndpoint: URI,
+        debugXCTest: Boolean
 ) : WebDriverAgent(
         remote = remote,
         wdaRunnerXctest = wdaRunnerXctest,
         hostApp = wdaRunnerXctest.parentFile.parentFile.absolutePath,
         udid = udid,
-        wdaEndpoint = wdaEndpoint
+        wdaEndpoint = wdaEndpoint,
+        debugXCTest = debugXCTest
 ) {
     override fun start() {
         installHostApp()
         super.start()
+    }
+
+    override fun kill() {
+        remote.fbsimctl.terminateApp(udid, "com.apple.test.WebDriverAgentRunner-Runner", false)
+        super.kill()
     }
 
     private fun installHostApp() {
@@ -37,6 +44,8 @@ class SimulatorWebDriverAgent(
         ) {
             isHostAppInstalled()
         }
+
+        Thread.sleep(5000) // 5 should be ok
     }
 
     private fun isHostAppInstalled(): Boolean {

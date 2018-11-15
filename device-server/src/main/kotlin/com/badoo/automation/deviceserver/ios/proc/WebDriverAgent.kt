@@ -16,13 +16,15 @@ open class WebDriverAgent(
     protected val udid: UDID,
     private val wdaEndpoint: URI,
     port: Int = wdaEndpoint.port,
+    private val debugXCTest: Boolean,
     private val childFactory: (
                 remoteHost: String,
                 userName: String,
                 cmd: List<String>,
                 isInteractiveShell: Boolean,
-                out_reader: (line: String) -> Unit,
-                err_reader: (line: String) -> Unit
+                environment: Map<String, String>,
+                out_reader: ((line: String) -> Unit)?,
+                err_reader: ((line: String) -> Unit)?
         ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
     private val launchXctestCommand: List<String> = listOf(
@@ -47,12 +49,19 @@ open class WebDriverAgent(
 
         terminateHostApp()
 
+        val outReader: ((String) -> Unit)? = if (debugXCTest) {
+            { message -> logger.info(logMarker, "${this@WebDriverAgent}: WDA <o>: ${message.trim()}") }
+        } else {
+            null
+        }
+
         childProcess = childFactory(
                 remote.hostName,
                 remote.userName,
                 launchXctestCommand,
                 false,
-                { message -> logger.info(logMarker, "${this@WebDriverAgent}: WDA <o>: ${message.trim()}") },
+                mapOf("FBCONTROLCORE_DEBUG_LOGGING" to "NO"),
+                null,
                 { message -> logger.warn(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
         )
 

@@ -19,7 +19,8 @@ class DeviceWebDriverAgent(
     hostApp = hostApp,
     udid = udid,
     wdaEndpoint = wdaEndpoint,
-    port = port
+    port = port,
+    debugXCTest = true
 ) {
     override fun terminateHostApp() {
         remote.fbsimctl.uninstallApp(udid, hostApp)

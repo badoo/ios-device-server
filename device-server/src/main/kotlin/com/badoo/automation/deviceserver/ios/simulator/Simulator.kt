@@ -38,7 +38,8 @@ class Simulator (
         wdaRunnerXctest: File,
         private val concurrentBootsPool: ThreadPoolDispatcher,
         headless: Boolean,
-        override val fbsimctlSubject: String
+        override val fbsimctlSubject: String,
+        debugXCTest: Boolean
 ) : ISimulator
 {
     private companion object {
@@ -65,7 +66,7 @@ class Simulator (
 
     private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
-    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint)
+    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, debugXCTest)
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
     private val simulatorStatus = SimulatorStatus()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -124,7 +125,7 @@ class Simulator (
         }
     }
 
-    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(30), retryInterval: Duration = Duration.ofSeconds(3)) {
+    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(60), retryInterval: Duration = Duration.ofSeconds(3)) {
         val maxRetries = 3
 
         for (attempt in 1..maxRetries) {

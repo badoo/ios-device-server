@@ -56,6 +56,7 @@ class DeviceFbsimctlProcTest {
         username: String,
         cmd: List<String>,
         isInteractiveShell: Boolean,
+        environment: Map<String, String>,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
     ): ChildProcess {

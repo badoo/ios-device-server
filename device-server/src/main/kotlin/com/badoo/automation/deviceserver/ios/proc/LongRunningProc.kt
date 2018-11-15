@@ -18,7 +18,12 @@ abstract class LongRunningProc(udid: UDID, remoteHostName: String) : ILongRunnin
             LogMarkers.UDID to udid
     ))
     @Volatile protected var childProcess: ChildProcess? = null
-    override val isProcessAlive: Boolean get() = true == childProcess?.isAlive()
+    override val isProcessAlive: Boolean get() {
+        val alive = childProcess?.isAlive()
+        logger.debug(logMarker, "$this — Child process is null [${childProcess == null}] child process is alive [$alive]")
+
+        return true == alive
+    }
 
     override fun kill() {
         if (childProcess == null) {

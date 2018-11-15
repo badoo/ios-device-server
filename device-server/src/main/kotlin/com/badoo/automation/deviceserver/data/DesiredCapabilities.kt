@@ -6,5 +6,6 @@ data class DesiredCapabilities(
         val os: String?,
         val headless: Boolean = true,
         val existing: Boolean = true,
-        val arch: String? = null
+        val arch: String? = null,
+        val debug: Boolean = false
 )

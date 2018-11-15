@@ -16,6 +16,7 @@ class SimulatorVideoRecorder(
         private val udid: UDID,
         private val remote: IRemote,
         private val childFactory: (remoteHost: String, username: String, cmd: List<String>, isInteractiveShell: Boolean,
+                                   environment: Map<String, String>,
                                    out_reader: (line: String) -> Unit, err_reader: (line: String) -> Unit
         ) -> ChildProcess? = ChildProcess.Companion::fromCommand,
         private val recorderStopTimeout: Duration = RECORDER_STOP_TIMEOUT
@@ -70,6 +71,7 @@ class SimulatorVideoRecorder(
 
             delete()
             childProcess = childFactory(remote.hostName, remote.userName, listOf(startVideoRecordingCommand), false,
+                mapOf<String, String>(),
                 { logger.debug(logMarker, "$udid: VideoRecorder <o>: ${it.trim()}") },
                 { logger.debug(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
             )

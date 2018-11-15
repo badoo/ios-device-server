@@ -121,7 +121,8 @@ class SimulatorsNodeTest {
                 eq(File("some/file/from/wdaPathProc")),
                 any(),
                 eq(false),
-                eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)")
+                eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)"),
+                eq(false)
         )
         verify(simulatorMock).prepareAsync()
 
@@ -151,7 +152,7 @@ class SimulatorsNodeTest {
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
 
-        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         simulatorMocks.forEach { pair ->
             simfac = simfac.thenReturn(pair.first)
         }

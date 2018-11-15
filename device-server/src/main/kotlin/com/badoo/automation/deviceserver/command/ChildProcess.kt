@@ -11,6 +11,7 @@ class ChildProcess private constructor(
     command: List<String>,
     executor: IShellCommand,
     remoteHostname: String,
+    environment: Map<String, String>,
     private val processListener: LongRunningProcessListener
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -18,7 +19,7 @@ class ChildProcess private constructor(
 
     init {
         logger.debug(logMarker, "Starting long living process from command [$command]")
-        executor.startProcess(command, mapOf(), processListener = processListener)
+        executor.startProcess(command, environment, processListener = processListener)
         logger.debug(logMarker, "Started long living process $this from command [$command]")
     }
 
@@ -42,11 +43,12 @@ class ChildProcess private constructor(
     companion object {
         fun fromCommand(
             remoteHost: String, userName: String, cmd: List<String>, isInteractiveShell: Boolean,
-            out_reader: (line: String) -> Unit,
-            err_reader: (line: String) -> Unit
+            environment: Map<String, String>,
+            out_reader: ((line: String) -> Unit)?,
+            err_reader: ((line: String) -> Unit)?
         ): ChildProcess {
             val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName, isInteractiveShell = isInteractiveShell)
-            return ChildProcess(cmd, executor, remoteHost, LongRunningProcessListener(out_reader, err_reader))
+            return ChildProcess(cmd, executor, remoteHost, environment, LongRunningProcessListener(out_reader, err_reader))
         }
     }
 }

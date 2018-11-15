@@ -11,8 +11,8 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 class LongRunningProcessListener(
-    private val outReader: (line: String) -> Unit,
-    private val errReader: (line: String) -> Unit
+    private val outReader: ((line: String) -> Unit)?,
+    private val errReader: ((line: String) -> Unit)?
 ) : NuAbstractCharsetHandler(UTF_8.newEncoder(), UTF_8.newDecoder(), UTF_8.newDecoder()) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val errStringBuilder = StringBuilder(BUFFER_SIZE)
@@ -45,18 +45,25 @@ class LongRunningProcessListener(
     }
 
     override fun onExit(exitCode: Int) {
+        logger.warn("Exiting process with pid [$pid] with exit code [$exitCode]")
         this.exitCode = exitCode
         super.onExit(exitCode)
     }
 
     //region read out and err
     override fun onStderrChars(buffer: CharBuffer?, closed: Boolean, coderResult: CoderResult?) {
-        fetchOutput(buffer, closed, errStringBuilder, errReader)
+        if (errReader != null) {
+            fetchOutput(buffer, closed, errStringBuilder, errReader)
+        }
+
         super.onStderrChars(buffer, closed, coderResult)
     }
 
     override fun onStdoutChars(buffer: CharBuffer?, closed: Boolean, coderResult: CoderResult?) {
-        fetchOutput(buffer, closed, outStringBuilder, outReader)
+        if (outReader != null) {
+            fetchOutput(buffer, closed, outStringBuilder, outReader)
+        }
+
         super.onStdoutChars(buffer, closed, coderResult)
     }
 

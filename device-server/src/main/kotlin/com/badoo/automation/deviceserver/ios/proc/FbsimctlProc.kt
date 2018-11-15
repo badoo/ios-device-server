@@ -17,11 +17,13 @@ open class FbsimctlProc(
         username: String,
         cmd: List<String>,
         isInteractiveShell: Boolean,
+        environment: Map<String, String>,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
     private val uri: URI = uriWithPath(fbsimctlEndpoint, "list")
+    private val environment: Map<String, String> = mapOf()
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${fbsimctlEndpoint.port}>"
 
@@ -34,6 +36,7 @@ open class FbsimctlProc(
                 remote.userName,
                 getFbsimctlCommand(headless),
                 true,
+                environment,
                 { logger.info(logMarker, "${this@FbsimctlProc}: FbSimCtl <o>: ${it.trim()}") },
                 { logger.warn(logMarker, "${this@FbsimctlProc}: FbSimCtl <e>: ${it.trim()}") }
         )

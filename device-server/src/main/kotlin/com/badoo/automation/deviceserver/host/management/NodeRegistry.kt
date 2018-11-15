@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Stream
 
 class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
     private var initialRegistrationComplete: Boolean = false
@@ -52,9 +53,11 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
     }
 
     fun capacitiesTotal(desiredCapabilities: DesiredCapabilities): Map<String, Int> {
-        val count = getAlive()
+        val capacities: Stream<Int> = getAlive()
+                .parallelStream()
                 .map { it.node.totalCapacity(desiredCapabilities) }
-                .sum()
+
+        val count = capacities.reduce(0, Integer::sum)
 
         return mapOf("total" to count)
     }

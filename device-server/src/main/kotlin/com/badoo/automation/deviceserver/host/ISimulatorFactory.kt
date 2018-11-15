@@ -19,8 +19,20 @@ interface ISimulatorFactory {
             wdaRunnerXctest: File,
             concurrentBoot: ThreadPoolDispatcher,
             headless: Boolean,
-            fbsimctlSubject: String
+            fbsimctlSubject: String,
+            debugXCTest: Boolean
     ): ISimulator {
-        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaRunnerXctest, concurrentBoot, headless, fbsimctlSubject)
+        return Simulator(
+            ref,
+            remote,
+            DeviceInfo(fbdev),
+            ports,
+            deviceSetPath,
+            wdaRunnerXctest,
+            concurrentBoot,
+            headless,
+            fbsimctlSubject,
+            debugXCTest
+        )
     }
 }

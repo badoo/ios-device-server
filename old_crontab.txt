@@ -1,0 +1,2 @@
+5 11,15 * * * /Users/vfrolov/badooasset.app/Contents/MacOS/assets_mac.sh >/dev/null 2>&1
+* * * * * echo -e "qwer" >> /Users/vfrolov/asdfqwer.txt
