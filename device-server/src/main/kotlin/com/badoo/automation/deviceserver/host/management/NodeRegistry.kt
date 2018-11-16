@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Collectors.toSet
 import java.util.stream.Stream
 
 class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
@@ -49,8 +50,11 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
     }
 
     private fun getAlive(): Set<NodeWrapper> {
-        // todo - in parallel.
-        return nodeWrappers.filter { it.isAlive() }.toSet()
+        val filteredStream: Stream<NodeWrapper> = nodeWrappers
+            .parallelStream()
+            .filter { it.isAlive() }
+        val aliveNodes = filteredStream.collect(toSet())
+        return aliveNodes
     }
 
     fun capacitiesTotal(desiredCapabilities: DesiredCapabilities): Map<String, Int> {
