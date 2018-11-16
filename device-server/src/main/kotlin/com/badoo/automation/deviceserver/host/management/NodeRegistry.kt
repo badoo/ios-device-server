@@ -49,6 +49,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
     }
 
     private fun getAlive(): Set<NodeWrapper> {
+        // todo - in parallel.
         return nodeWrappers.filter { it.isAlive() }.toSet()
     }
 
@@ -67,17 +68,20 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
             throw NoNodesRegisteredException("No nodes are registered to create a device")
         }
 
-        val node: ISimulatorsNode = getAlive()
+        // FIXME: sequential
+        val node: ISimulatorsNode = getAlive() // FIXME: we get stuck somewhere here
                 .map { wrapper -> wrapper.node }
                 .maxBy { node -> node.capacityRemaining(desiredCapabilities) }
                 ?: throw NoAliveNodesException("No alive nodes are available to create device at the moment")
 
+        // FIXME: we get stuck somewhere here
         val dto = node.createDeviceAsync(desiredCapabilities)
 
         val logMarker: Marker = MapEntriesAppendingMarker(mutableMapOf(
                 LogMarkers.DEVICE_REF to dto.ref,
                 LogMarkers.UDID to dto.info.udid
         ))
+
         logger.info(logMarker, "Create device started, register with timeout ${deviceTimeout.seconds} secs")
 
         activeDevices.registerDevice(dto.ref, node, deviceTimeout, userId)
