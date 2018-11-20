@@ -248,6 +248,25 @@ class AndroidEmulatorsNodeTest {
         assertFalse(emulatorsNode.deleteRelease(expectedDeviceRef, "because I want to"))
     }
 
+    @Test
+    fun testStateOfCreatedDevice() {
+        givenListAllWithContainerAndDevice()
+        val d: DeviceDTO = givenSuccessfulCreatedDevice(emulatorsNode)
+
+        assertEquals(SimulatorStatusDTO(
+            true, true, true, "created", null),
+            emulatorsNode.state(d.ref))
+    }
+
+    @Test
+    fun testStateOfFailedDevice() {
+        val d: DeviceDTO = givenSuccessfulCreatedDevice(emulatorsNode)
+
+        assertEquals(SimulatorStatusDTO(
+            false, false, true, "failed", null),
+            emulatorsNode.state(d.ref))
+    }
+
     private fun givenListAllWithContainerAndDevice(
         a5554: String = "5554",
         extra: String = ":CONTAINER: $expectedDeviceRef Up 16 seconds\n" +

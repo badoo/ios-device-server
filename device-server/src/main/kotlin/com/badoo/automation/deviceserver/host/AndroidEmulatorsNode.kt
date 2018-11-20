@@ -104,6 +104,16 @@ class AndroidEmulatorsNode(
         return allocatedEmulators.values.mapNotNull { refToDto[it] }
     }
 
+    override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
+        val deviceDTO = getDeviceDTO(deviceRef)
+        return SimulatorStatusDTO(
+            deviceDTO.state == DeviceState.CREATED,
+            deviceDTO.wda_endpoint.toString().isNotEmpty(),
+            deviceDTO.fbsimctl_endpoint.toString().isNotEmpty(),
+            deviceDTO.state.value,
+            null)
+    }
+
     private fun requestEmulatorAndAwaitBooted(
         ref: DeviceRef,
         model: String
@@ -333,10 +343,6 @@ class AndroidEmulatorsNode(
 
     override fun lastCrashLog(deviceRef: DeviceRef): CrashLog {
         TODO("lastCrashLog not implemented")
-    }
-
-    override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
-        TODO("state not implemented")
     }
 
     override fun videoRecordingDelete(deviceRef: DeviceRef) {
