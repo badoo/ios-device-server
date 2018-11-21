@@ -76,6 +76,7 @@ class Simulator (
     )
     private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
+    private val simulatorProcess = SimulatorProcess(remote, udid)
     //endregion
 
     //region properties from ruby with backing mutable field
@@ -475,7 +476,7 @@ class Simulator (
         val sqlCmd = "sqlite3 ${path.absolutePath}/data/Library/TCC/TCC.db"
         val insert =
             "$sqlCmd \"INSERT INTO access (service, client, client_type, allowed, prompt_count) VALUES ('$key','$bundleId',0,1,1);\""
-        val update = "$sqlCmd \"UPDATE access SET allowed=1 where client='#{bundle_id}' AND service='#{key}'\""
+        val update = "$sqlCmd \"UPDATE access SET allowed=1 where client='$bundleId' AND service='$key'\""
 
         // FIXME: should we fail if sqlite3 fails (insert or update) or shall we do a separate check for access to be granted?
         remote.shell(insert)
@@ -540,6 +541,9 @@ class Simulator (
             throw IllegalStateException("$SAFARI_BUNDLE_ID not found in $apps for $this")
         }
 
+        // Have to kill Simulator's SafariViewService process as it holds cookies loaded
+        simulatorProcess.terminateChildProcess("SafariViewService")
+
         val cookieJarPaths = cookieJars.map { cookieJar ->
             File(safari.data_container, listOf("Library", "Cookies", cookieJar).joinToString(File.separator)).absolutePath
         }
@@ -548,6 +552,7 @@ class Simulator (
         cmd.addAll(cookieJarPaths)
         val result = remote.execIgnoringErrors(cmd)
         check(result.isSuccess) { "Failed to remove safari cookies ($cookieJarPaths on $remote for $this: $result" }
+
         return mapOf("status" to "true")
     }
 
@@ -611,4 +616,7 @@ class Simulator (
     }
 
     //endregion
+    override fun uninstallApplication(bundleId: String) {
+        remote.fbsimctl.uninstallApp(udid, bundleId)
+    }
 }

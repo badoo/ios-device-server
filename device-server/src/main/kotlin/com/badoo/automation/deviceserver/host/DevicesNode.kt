@@ -238,6 +238,11 @@ class DevicesNode(
     override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray = throw(NotImplementedError())
     // endregion
 
+    override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
+        val device = slotByExternalRef(deviceRef).device
+        device.uninstallApplication(bundleId)
+    }
+
     private fun deviceToDto(deviceRef: DeviceRef, device: Device): DeviceDTO {
         return DeviceDTO(
             ref = deviceRef,
