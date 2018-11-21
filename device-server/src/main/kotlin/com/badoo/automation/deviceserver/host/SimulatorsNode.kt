@@ -166,8 +166,8 @@ class SimulatorsNode(
         return simulatorToDTO(getDeviceFor(deviceRef))
     }
 
-    override fun lastCrashLog(deviceRef: DeviceRef): CrashLog {
-        return getDeviceFor(deviceRef).lastCrashLog()
+    override fun lastCrashLog(deviceRef: DeviceRef, app: String): CrashLog {
+        return getDeviceFor(deviceRef).lastCrashLog(app)
     }
 
     override fun list(): List<DeviceDTO> {

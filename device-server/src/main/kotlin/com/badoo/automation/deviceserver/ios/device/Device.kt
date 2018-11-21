@@ -173,7 +173,7 @@ class Device(
         }
     }
 
-    fun lastCrashLog(): CrashLog? {
+    fun lastCrashLog(app: String): CrashLog? {
         // TODO unlike for simulators, crash logs for physical devices are not at $HOME/Library/Logs/DiagnosticReports
         return null
     }

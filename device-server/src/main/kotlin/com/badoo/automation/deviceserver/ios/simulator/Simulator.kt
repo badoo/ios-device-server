@@ -563,8 +563,8 @@ class Simulator (
     }
 
     //region last crash log
-    override fun lastCrashLog(): CrashLog {
-        val crashLogs = listCrashLogs()
+    override fun lastCrashLog(app: String): CrashLog {
+        val crashLogs = listCrashLogs(app)
 
         if (crashLogs.isEmpty()) {
             //FIXME: in Ruby there is a JSON parse exception for not found case
@@ -598,8 +598,8 @@ class Simulator (
         }
     }
 
-    private fun listCrashLogs(): List<String> {
-        val cmd = "ls -t \$HOME/Library/Logs/DiagnosticReports/*.crash | xargs grep -l $udid || true"
+    private fun listCrashLogs(app: String): List<String> {
+        val cmd = "ls -t \$HOME/Library/Logs/DiagnosticReports/$app*.crash | xargs grep -l $udid || true"
 
         val result = remote.shell(cmd, returnOnFailure = true)
         if (!result.isSuccess) {

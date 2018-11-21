@@ -292,9 +292,9 @@ class SimulatorsNodeTest {
     fun lastCrashLog() {
         createDeviceForTest()
 
-        simulatorsNode.lastCrashLog(ref1)
+        simulatorsNode.lastCrashLog(ref1, "app")
 
-        verify(simulatorMock).lastCrashLog()
+        verify(simulatorMock).lastCrashLog("app")
     }
 
     @Test

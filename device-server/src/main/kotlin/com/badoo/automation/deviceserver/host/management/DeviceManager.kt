@@ -85,8 +85,8 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).endpointFor(ref, port)
     }
 
-    override fun getLastCrashLog(ref: DeviceRef): CrashLog {
-        return nodeRegistry.activeDevices.getNodeFor(ref).lastCrashLog(ref)
+    override fun getLastCrashLog(ref: DeviceRef, app: String): CrashLog {
+        return nodeRegistry.activeDevices.getNodeFor(ref).lastCrashLog(ref, app)
     }
 
     override fun shake(ref: DeviceRef) {

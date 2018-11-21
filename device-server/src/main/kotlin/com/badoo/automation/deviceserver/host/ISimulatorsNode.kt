@@ -12,7 +12,7 @@ interface ISimulatorsNode {
     fun clearSafariCookies(deviceRef: DeviceRef)
     fun shake(deviceRef: DeviceRef)
     fun endpointFor(deviceRef: DeviceRef, port: Int): URL
-    fun lastCrashLog(deviceRef: DeviceRef): CrashLog
+    fun lastCrashLog(deviceRef: DeviceRef, app: String): CrashLog
     fun state(deviceRef: DeviceRef): SimulatorStatusDTO
 
     fun videoRecordingDelete(deviceRef: DeviceRef)

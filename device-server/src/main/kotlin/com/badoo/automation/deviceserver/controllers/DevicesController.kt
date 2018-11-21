@@ -50,8 +50,8 @@ class DevicesController(private val deviceManager: IDeviceManager) {
         return mapOf("endpoint" to deviceManager.getEndpointFor(ref, port).toString())
     }
 
-    fun getLastCrashLog(ref: DeviceRef): Map<String, String> {
-        val log = deviceManager.getLastCrashLog(ref)
+    fun getLastCrashLog(ref: DeviceRef, app: String): Map<String, String> {
+        val log = deviceManager.getLastCrashLog(ref, app)
         return mapOf("filename" to log.filename, "content" to log.content)
     }
 

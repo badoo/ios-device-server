@@ -140,13 +140,13 @@ class DevicesControllerTest {
     @Test
     fun getLastCrashLog() {
         val expectedCrashLog = mapOf("filename" to "some_path_name", "content" to "cat of pathname")
-        whenever(deviceManager.getLastCrashLog(deviceRef)).thenReturn(CrashLog(
+        whenever(deviceManager.getLastCrashLog(deviceRef, "app")).thenReturn(CrashLog(
                 expectedCrashLog["filename"]!!,
                 expectedCrashLog["content"]!!))
 
-        val actualCrashLog = deviceServer.getLastCrashLog(deviceRef)
+        val actualCrashLog = deviceServer.getLastCrashLog(deviceRef, "app")
 
-        verify(deviceManager).getLastCrashLog(deviceRef)
+        verify(deviceManager).getLastCrashLog(deviceRef, "app")
         assertThat(actualCrashLog, equalTo(expectedCrashLog))
     }
 

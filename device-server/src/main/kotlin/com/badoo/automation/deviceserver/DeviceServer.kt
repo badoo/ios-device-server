@@ -185,7 +185,7 @@ fun Application.module() {
                     call.respond(devicesController.getEndpointFor(param(call, "ref"), paramInt(call, "port")))
                 }
                 get("crashes/last") {
-                    call.respond(devicesController.getLastCrashLog(param(call, "ref")))
+                    call.respond(devicesController.getLastCrashLog(param(call, "ref"), param(call, "app")))
                 }
                 route("data") {
                     post("pull_file") {

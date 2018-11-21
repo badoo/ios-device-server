@@ -220,9 +220,9 @@ class DevicesNode(
 
     // region diagnostics
 
-    override fun lastCrashLog(deviceRef: DeviceRef): CrashLog {
+    override fun lastCrashLog(deviceRef: DeviceRef, app: String): CrashLog {
         val device = slotByExternalRef(deviceRef).device
-        return device.lastCrashLog() ?: CrashLog("", "")
+        return device.lastCrashLog(app) ?: CrashLog("", "")
     }
 
     override fun videoRecordingDelete(deviceRef: DeviceRef): Unit = throw(NotImplementedError())

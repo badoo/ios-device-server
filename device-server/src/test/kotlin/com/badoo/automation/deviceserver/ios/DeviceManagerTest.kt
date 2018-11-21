@@ -139,8 +139,8 @@ class DeviceManagerTest {
     fun getLastCrashLog() {
         withDeviceOnHost(hostTwo) {
             val crashLog = CrashLog("some/path", "stdout from cat of filename")
-            whenever(hostTwo.lastCrashLog(ref)).thenReturn(crashLog)
-            val actual = deviceManager.getLastCrashLog(ref)
+            whenever(hostTwo.lastCrashLog(ref, "app")).thenReturn(crashLog)
+            val actual = deviceManager.getLastCrashLog(ref, "app")
             assertThat(actual, equalTo(crashLog))
         }
     }
