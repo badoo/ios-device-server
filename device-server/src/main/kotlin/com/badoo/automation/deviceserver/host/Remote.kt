@@ -42,26 +42,14 @@ class Remote(
 
     override fun isReachable(): Boolean {
         //FIXME: We need a reliable way to determine if node is available. SSH request might just time-out if node is under heavy load.
-        var attempts = 3
-
-        do {
-            attempts--
-
-            if (isReachableBySSH()) {
-                return true
-            }
-
-        } while (attempts > 0)
-
-        logger.error(logMarker, "Node $hostName is NOT reachable by SSH.")
-        return false
+        return isReachableBySSH()
     }
 
     private fun isReachableBySSH(): Boolean {
-        try {
-            return remoteExecutor.exec(listOf("echo", "1"), returnFailure = true).isSuccess
+        return try {
+            remoteExecutor.exec(listOf("echo", "1"), returnFailure = true, timeOut = Duration.ofSeconds(15)).isSuccess
         } catch (e: SshConnectionException) {
-            return false
+            false
         }
     }
 
