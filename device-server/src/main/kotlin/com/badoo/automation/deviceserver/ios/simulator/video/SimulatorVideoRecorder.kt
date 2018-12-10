@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.ios.simulator.video
 
 import com.badoo.automation.deviceserver.command.ChildProcess
-import com.badoo.automation.deviceserver.data.UDID
+import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl.Companion.FBSIMCTL_BIN
 import com.badoo.automation.deviceserver.ios.proc.LongRunningProc
@@ -13,50 +13,37 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 class SimulatorVideoRecorder(
-        private val udid: UDID,
-        private val remote: IRemote,
-        private val childFactory: (remoteHost: String, username: String, cmd: List<String>, isInteractiveShell: Boolean,
+    private val deviceInfo: DeviceInfo,
+    private val remote: IRemote,
+    private val childFactory: (remoteHost: String, username: String, cmd: List<String>, isInteractiveShell: Boolean,
                                    out_reader: (line: String) -> Unit, err_reader: (line: String) -> Unit
         ) -> ChildProcess? = ChildProcess.Companion::fromCommand,
-        private val recorderStopTimeout: Duration = RECORDER_STOP_TIMEOUT
-) : LongRunningProc(udid, remote.hostName) {
-    @Volatile private var isStarted: Boolean = false
+    private val recorderStopTimeout: Duration = RECORDER_STOP_TIMEOUT,
+    location: File
+) : LongRunningProc(deviceInfo.udid, remote.hostName) {
+
+    private val udid = deviceInfo.udid
+
+    @Volatile
+    private var isStarted: Boolean = false
+
+    private val recordingLocation = location.absoluteFile
+
     private val lock = ReentrantLock(true)
-    private val startVideoRecordingCommand = "set -x ;" +
-            "$FBSIMCTL_BIN $udid record start -- listen -- record stop -- diagnose &" + // background fbsimctl
-            "PID=$! && " +
-            "trap \"kill \$PID\" EXIT && " + // ensure we kill fbsimctl even when ssh is killed without sending input to stdin
-            "read && " + // block until there is an input on stdin
-            "kill -INT \$PID" // gracefully terminate fbsimctl recording
 
     override fun toString(): String = udid
 
     override fun checkHealth(): Boolean = childProcess?.isAlive() ?: false
 
+    private val uniqueTag = "video-recording-$udid"
+
     fun delete() {
         logger.debug(logMarker, "Deleting video recording")
-        val info = remote.fbsimctl.diagnose(udid)
 
-        if (info.videoLocation == null || info.videoLocation.isBlank()) {
-            logger.debug(logMarker, "No video recording to delete")
-            return
-        }
-
-        val result = remote.execIgnoringErrors(listOf("rm", "-f", info.videoLocation))
+        val result = remote.execIgnoringErrors(listOf("rm", "-f", recordingLocation.toString()))
         ensure(result.isSuccess) {
             SimulatorVideoRecordingException("Could not delete stale recordings. Reason: $result")
         }
-    }
-
-    fun dispose() {
-        if (childProcess?.isAlive() != true) {
-            return
-        }
-
-        logger.info(logMarker, "Terminating video recording process")
-        childProcess?.kill(Duration.ofSeconds(3))
-        delete()
-        logger.info(logMarker, "Disposed video recording")
     }
 
     override fun start() {
@@ -69,7 +56,19 @@ class SimulatorVideoRecorder(
             }
 
             delete()
-            childProcess = childFactory(remote.hostName, remote.userName, listOf(startVideoRecordingCommand), false,
+
+            val properties = surfaceAttributes()
+
+            if (!properties.pixelFormat.contains("BGRA")) {
+                throw RuntimeException("Unexpected pixel format ${properties.pixelFormat}")
+            }
+
+            val frameWidth = properties.width
+            val frameHeight = properties.height
+
+            val cmd = shell(videoRecordingCmd(fps = 5, frameWidth = frameWidth, frameHeight = frameHeight))
+
+            childProcess = childFactory(remote.hostName, remote.userName, cmd, true,
                 { logger.debug(logMarker, "$udid: VideoRecorder <o>: ${it.trim()}") },
                 { logger.debug(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
             )
@@ -87,30 +86,32 @@ class SimulatorVideoRecorder(
                 throw SimulatorVideoRecordingException(message)
             }
 
-            logger.info(logMarker, "Stopping video recording")
-            childProcess?.writeStdin("q\n")
-            pollFor(recorderStopTimeout, "Stop video recording", false, Duration.ofMillis(500), logger, logMarker) {
-                childProcess?.isAlive() == false
+            try {
+                logger.info(logMarker, "Stopping video recording")
+
+                // Regex.escape is incompatible with pkill regex, so let's not escape and hope
+                val pattern = """^$FFMPEG_PATH.*$uniqueTag"""
+                remote.execIgnoringErrors(listOf("pkill", "-f", pattern))
+
+                pollFor(recorderStopTimeout, "Stop video recording", false, Duration.ofMillis(500), logger, logMarker) {
+                    logger.warn("${childProcess?.isAlive()}")
+
+                    childProcess?.isAlive() == false
+                }
             }
-            childProcess?.kill()
-            childProcess = null
-            logger.info(logMarker, "Stopped video recording")
-            isStarted = false
+            finally {
+                childProcess?.kill()
+                childProcess = null
+                logger.info(logMarker, "Stopped video recording")
+                isStarted = false
+            }
         }
     }
 
     fun getRecording(): ByteArray {
         logger.info(logMarker, "Getting video recording")
-        val info = remote.fbsimctl.diagnose(udid)
 
-        if (info.videoLocation == null) {
-            val message = "Could not find diagnostic video events in $info"
-            logger.error(logMarker, message)
-            throw SimulatorVideoRecordingException(message)
-        }
-
-        logger.debug(logMarker, "Found video recording ${info.videoLocation}")
-        val videoFile: File = tryCompressVideo(File(info.videoLocation))
+        val videoFile = recordingLocation
 
         // TODO: is there a better way to read binary file over ssh without rsyncing?
         // We should get rid of ssh and move to having 1 http server per 1 host and some proxy node to tie them together
@@ -125,33 +126,60 @@ class SimulatorVideoRecorder(
         return result.stdOutBytes
     }
 
-    // because we compress videos, we can't simple forward response from fbsimctl http request to /diagnose/video
-    // if we move compression to consumer side, this method can be simplified
-    private fun tryCompressVideo(srcVideo: File): File {
-        //FIXME: move this ["which", FFMPEG_PATH] logic to host checker. no need to do it every time when fetching a video.
-        if (!remote.execIgnoringErrors(listOf("which", FFMPEG_PATH)).isSuccess) {
-            return srcVideo
+    fun dispose() {
+        if (childProcess?.isAlive() != true) {
+            return
         }
 
-        val dstVideo = File(srcVideo.parent, "compressed.mp4")
-        val compressionResult = remote.execIgnoringErrors(
-            listOf(
-                FFMPEG_PATH,
-                "-loglevel", "panic",
-                "-i", srcVideo.absolutePath,
-                "-y", "-preset", "ultrafast",
-                dstVideo.absolutePath
-            )
-        )
+        logger.info(logMarker, "Terminating video recording process")
+        childProcess?.kill(Duration.ofSeconds(1))
+        delete()
+        logger.info(logMarker, "Disposed video recording")
+    }
 
-        if (compressionResult.isSuccess) {
-            remote.execIgnoringErrors(listOf("rm", "-f", srcVideo.absolutePath))
-            logger.debug(logMarker, "Successfully compressed video to $dstVideo")
-            return dstVideo
+    private fun shell(command: String): List<String> {
+        return if (remote.isLocalhost()) {
+            listOf("bash", "-c", command)
         } else {
-            logger.error(logMarker, "Failed to compress video $srcVideo. $compressionResult")
-            remote.execIgnoringErrors(listOf("rm", "-f", dstVideo.absolutePath))
-            return srcVideo
+            listOf(command)
+        }
+    }
+
+    private fun videoRecordingCmd(fps: Int = 5, frameWidth: Int, frameHeight: Int, crf: Int = 35): String {
+        val fbsimctlStream = "$FBSIMCTL_BIN $udid stream --bgra --fps $fps -"
+
+        val maxRecording = Duration.ofMinutes(15) // Video recording duration is capped
+
+        val frameSize = "${frameWidth}x$frameHeight"
+        val recorder = "$FFMPEG_PATH -hide_banner -loglevel warning " +
+                "-f rawvideo " +
+                "-pixel_format bgra " +
+                "-s:v $frameSize " +
+                "-framerate $fps " +
+                "-i pipe:0 " +
+                "-f mp4 -vcodec h264 " +
+                "-t ${durationToString(maxRecording)} " +
+                "-crf $crf " +
+                "-metadata comment=$uniqueTag " +
+                "-y $recordingLocation"
+
+        return "set -xeo pipefail; $fbsimctlStream | $recorder"
+    }
+
+    private fun durationToString(duration: Duration): String {
+        return "%02d:%02d:%02d".format(duration.toHoursPart(), duration.toMinutesPart(), duration.toSecondsPart())
+    }
+
+    private fun surfaceAttributes(): IOSurfaceAttributes {
+        val cmd = shell("set -eo pipefail; $FBSIMCTL_BIN --debug-logging $udid stream --bgra --fps 1 - | exit")
+
+        val rv = remote.execIgnoringErrors(cmd)
+
+
+        try {
+            return IOSurfaceAttributes.fromFbSimctlLog(rv.stdErr)
+        } catch(e: RuntimeException) {
+            throw(RuntimeException("Could not get IO surface attributes: $rv", e))
         }
     }
 

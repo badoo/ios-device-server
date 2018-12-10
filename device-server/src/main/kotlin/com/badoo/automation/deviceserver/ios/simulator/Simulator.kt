@@ -23,6 +23,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URI
 import java.net.URL
+import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -47,7 +48,6 @@ class Simulator (
         private const val SAFARI_BUNDLE_ID = "com.apple.mobilesafari"
     }
 
-    //region public properties copied from Ruby
     override val ref = deviceRef
     override val udid = deviceInfo.udid
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
@@ -55,8 +55,10 @@ class Simulator (
     override val userPorts = allocatedPorts
     override val info = deviceInfo
     override val calabashPort: Int = allocatedPorts.calabashPort
-    override val videoRecorder: SimulatorVideoRecorder = SimulatorVideoRecorder(udid, remote)
-    //endregion
+
+    private val recordingLocation = Paths.get(deviceSetPath, udid, "video.mp4").toFile()
+
+    override val videoRecorder: SimulatorVideoRecorder = SimulatorVideoRecorder(deviceInfo, remote, location = recordingLocation)
 
     //region instance state variables
     private val deviceLock = ReentrantLock()
