@@ -34,8 +34,8 @@ open class FbsimctlProc(
                 remote.userName,
                 getFbsimctlCommand(headless),
                 true,
-                { logger.info(logMarker, "${this@FbsimctlProc}: FbSimCtl <o>: ${it.trim()}") },
-                { logger.warn(logMarker, "${this@FbsimctlProc}: FbSimCtl <e>: ${it.trim()}") }
+                { logger.trace(logMarker, "${this@FbsimctlProc}: FbSimCtl <o>: ${it.trim()}") },
+                { logger.debug(logMarker, "${this@FbsimctlProc}: FbSimCtl <e>: ${it.trim()}") }
         )
 
         logger.debug(logMarker, "$this FBSimCtl: $childProcess")
