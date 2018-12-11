@@ -41,7 +41,7 @@ class UsbProxy(
             remote.userName,
             listOf(IPROXY_BIN, localPort.toString(), devicePort.toString(), udid),
             false,
-            { message -> logger.debug(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
+            { message -> logger.trace(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
             { message -> logger.debug(logMarker, "${this}: iproxy <e>: ${message.trim()}") }
         )
 
@@ -50,7 +50,7 @@ class UsbProxy(
             remote.userName,
             listOf(SOCAT_BIN, "tcp-listen:$localPort,reuseaddr,fork", "tcp:0.0.0.0:$localPort"),
             false,
-            { message -> logger.debug(logMarker, "${this}: socat <o>: ${message.trim()}") },
+            { message -> logger.trace(logMarker, "${this}: socat <o>: ${message.trim()}") },
             { message -> logger.debug(logMarker, "${this}: socat <e>: ${message.trim()}") }
         )
     }

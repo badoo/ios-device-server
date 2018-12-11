@@ -52,8 +52,8 @@ open class WebDriverAgent(
                 remote.userName,
                 launchXctestCommand,
                 false,
-                { message -> logger.info(logMarker, "${this@WebDriverAgent}: WDA <o>: ${message.trim()}") },
-                { message -> logger.warn(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
+                { message -> logger.trace(logMarker, "${this@WebDriverAgent}: WDA <o>: ${message.trim()}") },
+                { message -> logger.debug(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
         )
 
         Thread.sleep(5000) // 5 should be ok
