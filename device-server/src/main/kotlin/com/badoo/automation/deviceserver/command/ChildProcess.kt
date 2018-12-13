@@ -42,8 +42,8 @@ class ChildProcess private constructor(
     companion object {
         fun fromCommand(
             remoteHost: String, userName: String, cmd: List<String>, isInteractiveShell: Boolean,
-            out_reader: (line: String) -> Unit,
-            err_reader: (line: String) -> Unit
+            out_reader: ((line: String) -> Unit)?,
+            err_reader: ((line: String) -> Unit)?
         ): ChildProcess {
             val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName, isInteractiveShell = isInteractiveShell)
             return ChildProcess(cmd, executor, remoteHost, LongRunningProcessListener(out_reader, err_reader))

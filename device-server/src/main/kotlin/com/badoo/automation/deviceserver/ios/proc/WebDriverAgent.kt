@@ -21,8 +21,8 @@ open class WebDriverAgent(
                 userName: String,
                 cmd: List<String>,
                 isInteractiveShell: Boolean,
-                out_reader: (line: String) -> Unit,
-                err_reader: (line: String) -> Unit
+                out_reader: ((line: String) -> Unit)?,
+                err_reader: ((line: String) -> Unit)?
         ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
     private val launchXctestCommand: List<String> = listOf(
@@ -52,7 +52,7 @@ open class WebDriverAgent(
                 remote.userName,
                 launchXctestCommand,
                 false,
-                { message -> logger.trace(logMarker, "${this@WebDriverAgent}: WDA <o>: ${message.trim()}") },
+                null,
                 { message -> logger.debug(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
         )
 
