@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.data
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URI
 
 data class DeviceDTO(
@@ -15,7 +16,12 @@ data class DeviceDTO(
 )
 
 data class ActualCapabilities(
+        @JsonProperty("set_location")
         val setLocation: Boolean,
+
+        @JsonProperty("terminate_app")
         val terminateApp: Boolean,
+
+        @JsonProperty("video_capture")
         val videoCapture: Boolean
 )
