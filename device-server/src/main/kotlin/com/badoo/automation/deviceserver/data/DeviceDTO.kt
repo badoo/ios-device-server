@@ -16,5 +16,6 @@ data class DeviceDTO(
 
 data class ActualCapabilities(
         val setLocation: Boolean,
-        val terminateApp: Boolean
+        val terminateApp: Boolean,
+        val videoCapture: Boolean
 )
