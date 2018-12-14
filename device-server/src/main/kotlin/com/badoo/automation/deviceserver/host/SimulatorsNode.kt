@@ -100,17 +100,18 @@ class SimulatorsNode(
     private fun simulatorToDTO(device: ISimulator): DeviceDTO {
         with(device) {
             return DeviceDTO(
-                    ref,
-                    state,
-                    fbsimctlEndpoint,
-                    wdaEndpoint,
-                    calabashPort,
-                    device.userPorts.toSet(),
-                    device.info,
-                    device.lastError?.toDto(),
-                    capabilities = ActualCapabilities(
+                ref,
+                state,
+                fbsimctlEndpoint,
+                wdaEndpoint,
+                calabashPort,
+                device.userPorts.toSet(),
+                device.info,
+                device.lastError?.toDto(),
+                capabilities = ActualCapabilities(
                     setLocation = true,
-                    terminateApp = true
+                    terminateApp = true,
+                    videoCapture = true
                 )
             )
         }

@@ -81,7 +81,7 @@ class SimulatorsNodeTest {
             setOf(1, 2, 3, 37265),
             DeviceInfo("", "", "", "", ""),
             null,
-            ActualCapabilities(true, true)
+            ActualCapabilities(true, true, true)
     )
     private val expectedDeviceDTOJson = JsonMapper().toJson(expectedDeviceDTO)
 
@@ -274,7 +274,7 @@ class SimulatorsNodeTest {
                 setOf(1,2,3, 37265),
                 DeviceInfo("", "", "", "", ""),
                 null,
-                ActualCapabilities(true, true)
+                ActualCapabilities(true, true, true)
         )))
     }
 

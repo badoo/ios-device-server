@@ -255,7 +255,8 @@ class DevicesNode(
             last_error = device.lastException?.toDto(),
             capabilities = ActualCapabilities(
                 setLocation = false,
-                terminateApp = false
+                terminateApp = false,
+                videoCapture = false
             )
         )
     }
