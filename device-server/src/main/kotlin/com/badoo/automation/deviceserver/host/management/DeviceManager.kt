@@ -85,6 +85,14 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).endpointFor(ref, port)
     }
 
+    override fun crashLogs(ref: DeviceRef, pastMinutes: Long?): List<CrashLog> {
+        return nodeRegistry.activeDevices.getNodeFor(ref).crashLogs(ref, pastMinutes)
+    }
+
+    override fun deleteCrashLogs(ref: DeviceRef): Boolean {
+        return nodeRegistry.activeDevices.getNodeFor(ref).deleteCrashLogs(ref)
+    }
+
     override fun getLastCrashLog(ref: DeviceRef): CrashLog {
         return nodeRegistry.activeDevices.getNodeFor(ref).lastCrashLog(ref)
     }

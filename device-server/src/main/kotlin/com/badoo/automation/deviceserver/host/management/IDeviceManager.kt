@@ -12,6 +12,8 @@ interface IDeviceManager {
     fun resetAsyncDevice(ref: DeviceRef)
     fun approveAccess(ref: DeviceRef, bundleId: String)
     fun getEndpointFor(ref: DeviceRef, port: Int): URL
+    fun crashLogs(ref: DeviceRef, pastMinutes: Long?): List<CrashLog>
+    fun deleteCrashLogs(ref: DeviceRef): Boolean
     fun getLastCrashLog(ref: DeviceRef): CrashLog
     fun shake(ref: DeviceRef)
     fun startVideo(ref: DeviceRef)

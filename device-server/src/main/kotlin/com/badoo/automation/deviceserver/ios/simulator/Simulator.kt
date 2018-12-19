@@ -565,52 +565,71 @@ class Simulator (
     }
 
     //region last crash log
+
+    @Deprecated("Will be removed in favor of crashLogs. Note that crashLogs does not delete old crashes")
     override fun lastCrashLog(): CrashLog {
-        val crashLogs = listCrashLogs()
+        val crashLog = crashLogs(pastMinutes = null).firstOrNull() ?: CrashLog("no crash logs found", "")
 
-        if (crashLogs.isEmpty()) {
-            //FIXME: in Ruby there is a JSON parse exception for not found case
-            return CrashLog("no crash logs found", "")
-        }
+        deleteCrashLogs() // FIXME: this will delete current crash log which makes method non-idempotent
 
-        val logFileName = crashLogs.first()
-
-        if (logFileName.isBlank()) {
-            return CrashLog("no crash logs found", "")
-        }
-
-        val result = remote.execIgnoringErrors(listOf("cat", logFileName))
-
-        if (!result.isSuccess) {
-            throw SimulatorError("Failed to read crash file $logFileName on $remote for $this: $result")
-        } else {
-            cleanupOldCrashLogs(crashLogs) // FIXME: this will delete current crash log which makes method non-idempotent
-        }
-
-        return CrashLog(filename = File(logFileName).name, content = result.stdOut)
+        return crashLog
     }
 
-    private fun cleanupOldCrashLogs(crashLogs: List<String>) {
-        crashLogs.forEach { logFileName ->
-            try {
-                remote.execIgnoringErrors(listOf("rm", "-f", "'$logFileName'"), timeOutSeconds = 5)
-            } catch (e: RuntimeException) {
-                logger.warn(logMarker, "Failed to delete crash log $logFileName: $e")
+    override fun crashLogs(pastMinutes: Long?): List<CrashLog> {
+        var crashLogFiles = listCrashLogs(pastMinutes)
+
+        var crashLogs = crashLogFiles.map {
+            val rv = remote.execIgnoringErrors(listOf("cat", it))
+
+            if (rv.isSuccess) {
+                CrashLog(filename = File(it).name, content = rv.stdOut)
+            } else {
+                logger.warn(logMarker, "Cannot read  crash log file $it")
+                null
             }
         }
+
+        return crashLogs.filterNotNull()
     }
 
-    private fun listCrashLogs(): List<String> {
-        val cmd = "ls -t \$HOME/Library/Logs/DiagnosticReports/*.crash | xargs grep -l $udid || true"
+    /**
+     * Returns list of crashes (file names) since {@code pastMinutes} sorted by most recent first
+     * @param pastMinutes optional duration to search from, for example Duration.ofMinutes(5)
+     */
+    private fun listCrashLogs(pastMinutes: Long? = null):List<String> {
+        if (pastMinutes != null && pastMinutes < 0) {
+            throw IllegalArgumentException("pastMinutes should be positive ")
+        }
+
+        val predicate = when (pastMinutes) {
+            null -> ""
+            else -> "-mmin -$pastMinutes"
+        }
+
+        // `ls -1t` is for backwards compatibility with lastCrashLog as it expects this method to return most recent crashes first
+        val cmd = "find \$HOME/Library/Logs/DiagnosticReports $predicate -type f -name \\*.crash -print0 | " +
+                "xargs -0 grep --files-with-matches --null $udid | " +
+                "xargs -0 ls -1t"
 
         val result = remote.shell(cmd, returnOnFailure = true)
         if (!result.isSuccess) {
             SimulatorError("Failed to list crash logs for $this: $result")
         }
         return result.stdOut
-                .split("\n")
-                .map { it.trim() }
-                .filter { it.isNotBlank() }
+            .lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toList()
+    }
+
+    override fun deleteCrashLogs(): Boolean {
+        val cmd = "find \$HOME/Library/Logs/DiagnosticReports -type f -name \\*.crash -print0 | " +
+                "xargs -0 grep --files-with-matches --null $udid | " +
+                "xargs -0 rm"
+
+        val result = remote.shell(cmd, returnOnFailure = true)
+
+        return result.isSuccess
     }
 
     override fun dataContainer(bundleId: String): DataContainer {
@@ -619,7 +638,7 @@ class Simulator (
 
     //endregion
     override fun uninstallApplication(bundleId: String) {
-        logger.debug(logMarker, "Uninstalling aplication $bundleId from Simulator $this")
+        logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")
         remote.execIgnoringErrors(listOf("xcrun", "simctl", "uninstall", udid, bundleId))
     }
 }

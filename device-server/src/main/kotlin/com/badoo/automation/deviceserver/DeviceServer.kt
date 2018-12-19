@@ -184,8 +184,19 @@ fun Application.module() {
                 get("endpoint/{port}") {
                     call.respond(devicesController.getEndpointFor(param(call, "ref"), paramInt(call, "port")))
                 }
-                get("crashes/last") {
-                    call.respond(devicesController.getLastCrashLog(param(call, "ref")))
+                route("crashes") {
+                    get {
+                        val pastMinutes = call.request.queryParameters["pastMinutes"]?.toLong()
+
+                        call.respond(devicesController.crashLogs(param(call, "ref"), pastMinutes))
+                    }
+                    delete {
+                        val rv = devicesController.deleteCrashLogs(param(call, "ref"))
+                        call.respond(mapOf("result" to rv))
+                    }
+                    get("last") {// this route is going to be deprecated
+                        call.respond(devicesController.getLastCrashLog(param(call, "ref")))
+                    }
                 }
                 route("data") {
                     post("pull_file") {
