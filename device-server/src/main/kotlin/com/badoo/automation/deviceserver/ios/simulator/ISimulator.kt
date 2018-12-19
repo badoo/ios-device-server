@@ -29,6 +29,8 @@ interface ISimulator {
     fun clearSafariCookies(): Map<String, String>
     fun shake(): Boolean
     fun lastCrashLog(): CrashLog
+    fun crashLogs(pastMinutes: Long?): List<CrashLog>
     fun dataContainer(bundleId: String): DataContainer
     fun uninstallApplication(bundleId: String)
+    fun deleteCrashLogs(): Boolean
 }
