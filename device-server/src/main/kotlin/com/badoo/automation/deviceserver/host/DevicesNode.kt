@@ -225,6 +225,14 @@ class DevicesNode(
         return device.lastCrashLog() ?: CrashLog("", "")
     }
 
+    override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
+        throw NotImplementedError()
+    }
+
+    override fun deleteCrashLogs(deviceRef: DeviceRef): Boolean {
+        return false // crash logs are not supported on devices yet
+    }
+
     override fun videoRecordingDelete(deviceRef: DeviceRef): Unit = throw(NotImplementedError())
 
     override fun videoRecordingGet(deviceRef: DeviceRef): ByteArray = throw(NotImplementedError())

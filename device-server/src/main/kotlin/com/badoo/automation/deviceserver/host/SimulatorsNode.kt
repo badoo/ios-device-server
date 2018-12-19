@@ -171,6 +171,14 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).lastCrashLog()
     }
 
+    override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
+        return getDeviceFor(deviceRef).crashLogs(pastMinutes)
+    }
+
+    override fun deleteCrashLogs(deviceRef: DeviceRef): Boolean {
+        return getDeviceFor(deviceRef).deleteCrashLogs()
+    }
+
     override fun list(): List<DeviceDTO> {
         return devicePool.map { simulatorToDTO(it.value) }
     }
