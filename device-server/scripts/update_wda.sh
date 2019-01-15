@@ -7,7 +7,7 @@ readonly SIGNING_PATCH=${SIGNING_PATCH:-}
 readonly NO_DEVICE_BUILD=${NO_DEVICE_BUILD:-0}
 
 readonly REPOSITORY=https://github.com/facebook/WebDriverAgent.git
-readonly REVISION=e92bce2
+readonly REVISION=bbd0009
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly WORKING_DIR=$(mktemp -d)
 readonly BASE_DEST=${DIR}/../../ios/facebook
