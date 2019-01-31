@@ -109,4 +109,8 @@ class DevicesController(private val deviceManager: IDeviceManager) {
         deviceManager.uninstallApplication(ref, bundleId)
         return happy
     }
+
+    fun runXcuiTest(ref: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig): Map<String, String> {
+        return deviceManager.runXcuiTest(ref, xcuiTestExecutionConfig)
+    }
 }

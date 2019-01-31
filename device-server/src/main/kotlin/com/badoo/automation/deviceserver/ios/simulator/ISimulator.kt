@@ -19,6 +19,7 @@ interface ISimulator {
     val calabashPort: Int
     val videoRecorder: SimulatorVideoRecorder
     val fbsimctlSubject: String
+    val initialEnvironmentVariables: MutableMap<String, String>
 
     fun prepareAsync()
     fun resetAsync()
@@ -33,4 +34,6 @@ interface ISimulator {
     fun dataContainer(bundleId: String): DataContainer
     fun uninstallApplication(bundleId: String)
     fun deleteCrashLogs(): Boolean
+    fun setEnvironmentVariables(envs: Map<String, String>)
+    fun runXcuiTest(xcuiTestExecutionConfig: XcuiTestExecutionConfig): Map<String, String>
 }

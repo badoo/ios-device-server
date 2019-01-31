@@ -29,7 +29,6 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.system.measureTimeMillis
 
-
 class Simulator (
         private val deviceRef: DeviceRef,
         private val remote: IRemote,
@@ -39,6 +38,7 @@ class Simulator (
         wdaRunnerXctest: File,
         private val concurrentBootsPool: ThreadPoolDispatcher,
         headless: Boolean,
+        private val useWda: Boolean,
         override val fbsimctlSubject: String
 ) : ISimulator
 {
@@ -79,6 +79,7 @@ class Simulator (
     private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
     private val simulatorProcess = SimulatorProcess(remote, udid)
+    override val initialEnvironmentVariables = mutableMapOf<String, String>()
     //endregion
 
     //region properties from ruby with backing mutable field
@@ -119,7 +120,11 @@ class Simulator (
 
             logTiming("simulator boot") { boot() }
 
-            logTiming("starting WebDriverAgent") { startWdaWithRetry() }
+            if (useWda) {
+                logTiming("starting WebDriverAgent") { startWdaWithRetry() }
+            }
+
+            logTiming("setting environment variables") { setEnvironmentVariables(initialEnvironmentVariables) }
 
             logger.info(logMarker, "Finished preparing $this")
             deviceState = DeviceState.CREATED
@@ -179,7 +184,7 @@ class Simulator (
 
     private fun shutdown() {
         logger.info(logMarker, "Shutting down ${this@Simulator}")
-        ignoringErrors({ fbsimctlProc.kill() })
+        ignoringErrors { fbsimctlProc.kill() }
 
         if (remote.fbsimctl.listDevice(udid)?.state != FBSimctlDeviceState.SHUTDOWN.value) {
             remote.fbsimctl.shutdown(udid)
@@ -198,6 +203,7 @@ class Simulator (
             truncateSystemLogIfExists()
 
             logger.info(logMarker, "Starting fbsimctl on ${this@Simulator}")
+
             fbsimctlProc.start() // boots simulator
 
             var lastState: String? = null
@@ -412,7 +418,7 @@ class Simulator (
 
         runBlocking {
             val isFbsimctlHealthyTask = async { fbsimctlProc.isHealthy() }
-            val isWdaHealthyTask = async { wdaProc.isHealthy() }
+            val isWdaHealthyTask = async { if (useWda) wdaProc.isHealthy() else true }
 
             val isFbsimctlHealthy: Boolean = isFbsimctlHealthyTask.await()
             val isWdaHealthy: Boolean = isWdaHealthyTask.await()
@@ -640,5 +646,29 @@ class Simulator (
     override fun uninstallApplication(bundleId: String) {
         logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")
         remote.execIgnoringErrors(listOf("xcrun", "simctl", "uninstall", udid, bundleId))
+    }
+
+    override fun setEnvironmentVariables(envs: Map<String, String>) {
+        logger.debug(logMarker, "Setting environment variables $envs for Simulator $this")
+        envs.keys.forEach {
+            remote.shell("xcrun simctl spawn $udid launchctl setenv $it ${envs[it]}")
+        }
+    }
+
+    override fun runXcuiTest(xcuiTestExecutionConfig: XcuiTestExecutionConfig): Map<String, String> {
+        logger.debug(logMarker, "Running XCUI test '${xcuiTestExecutionConfig.testName}' of '${xcuiTestExecutionConfig.appName}'" +
+                " using '${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}' on Simulator $this")
+
+        val cmd = "xcodebuild test-without-building -xctestrun " +
+                "'${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}' " +
+                "-destination 'platform=iOS Simulator,id=$udid' -only-testing:${xcuiTestExecutionConfig.testName}"
+
+        val result = remote.shell(cmd)
+        return mapOf(
+                "command" to result.cmd.joinToString(" "),
+                "exitCode" to result.exitCode.toString(),
+                "stdOut" to result.stdOut,
+                "stdErr" to result.stdErr
+        )
     }
 }

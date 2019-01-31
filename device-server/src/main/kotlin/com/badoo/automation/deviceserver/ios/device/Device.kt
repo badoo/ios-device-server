@@ -13,12 +13,12 @@ import com.badoo.automation.deviceserver.util.pollFor
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
+import java.io.File
 import java.net.URI
 import java.net.URL
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import java.io.File
 
 class Device(
     private val remote: IRemote,
@@ -364,6 +364,23 @@ class Device(
 
     fun uninstallApplication(bundleId: String) {
         remote.fbsimctl.uninstallApp(udid, bundleId)
+    }
+
+    fun runXcuiTest(xcuiTestExecutionConfig: XcuiTestExecutionConfig): Map<String, String> {
+        logger.debug(logMarker, "Running XCUI test '${xcuiTestExecutionConfig.testName}' of '${xcuiTestExecutionConfig.appName}'" +
+                " using '${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}' on device $this")
+
+        val cmd = "xcodebuild test-without-building -xctestrun " +
+                "'${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}' " +
+                "-destination 'platform=iOS,id=$udid' -only-testing:${xcuiTestExecutionConfig.testName}"
+
+        val result = remote.shell(cmd)
+        return mapOf(
+                "command" to result.cmd.joinToString(" "),
+                "exitCode" to result.exitCode.toString(),
+                "stdOut" to result.stdOut,
+                "stdErr" to result.stdErr
+        )
     }
 
     private companion object {

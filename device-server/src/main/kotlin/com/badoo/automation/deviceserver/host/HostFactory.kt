@@ -43,7 +43,8 @@ class HostFactory(
                 ),
                 simulatorLimit = config.simulatorLimit,
                 concurrentBoots = config.concurrentBoots,
-                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaSimulatorBundle, REMOTE_WDA_BUNDLE_ROOT)
+                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaSimulatorBundle, REMOTE_WDA_BUNDLE_ROOT),
+                initialEnvironmentVariables = config.environmentVariables
             )
         } else {
             DevicesNode(

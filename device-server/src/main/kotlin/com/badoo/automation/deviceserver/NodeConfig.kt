@@ -31,7 +31,10 @@ data class NodeConfig(
     val uninstallApps: Boolean = false,
 
     @JsonProperty("devices")
-    val knownDevices: List<KnownDevice> = emptyList()
+    val knownDevices: List<KnownDevice> = emptyList(),
+
+    @JsonProperty("environment_variables")
+    val environmentVariables: Map<String, String> = mapOf()
 ) {
 
     enum class NodeType {

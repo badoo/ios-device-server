@@ -10,7 +10,7 @@ class DesiredCapabilitiesMatcherTest {
         val matcher = DesiredCapabilitiesMatcher()
 
         assertTrue {
-            matcher.isRuntimeMatch("iOS 11", "iOS 11.2")
+            matcher.isRuntimeMatch("iOS 11", "iOS 11")
         }
     }
 

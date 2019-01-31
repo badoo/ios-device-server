@@ -76,7 +76,6 @@ class RemoteShellCommand(
             logger.error(logMarker, message)
             throw SshConnectionException(message)
         }
-
         return result
     }
 
@@ -89,16 +88,13 @@ class RemoteShellCommand(
         return ShellUtils.escape(value)
     }
 
-    private fun getEnvironmentForSSH(): HashMap<String, String> {
-        val envWithSsh = HashMap<String, String>(sshEnv)
-        envWithSsh.putAll(envWithSsh)
-        return envWithSsh
+    private fun getEnvironmentForSSH(): Map<String, String> {
+        return HashMap(sshEnv)
     }
 
-    private fun getCommandWithSSHPrefix(command: List<String>): ArrayList<String> {
-        val commandWithSshPrefix = ArrayList<String>(sshCommandPrefix)
-        commandWithSshPrefix.addAll(command)
-        return commandWithSshPrefix
+    private fun getCommandWithSSHPrefix(command: List<String>): List<String> {
+        return ArrayList(sshCommandPrefix)
+                .plus(command)
     }
 
     private companion object {

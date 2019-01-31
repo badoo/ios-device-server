@@ -233,6 +233,11 @@ fun Application.module() {
                 get("state") {
                     call.respond(devicesController.getDeviceState(param(call, "ref")))
                 }
+                post("run_xcuitest") {
+                    val ref = param(call, "ref")
+                    val xcuiTestExecutionConfig = jsonContent<XcuiTestExecutionConfig>(call)
+                    call.respond(devicesController.runXcuiTest(ref, xcuiTestExecutionConfig))
+                }
             }
         }
     }

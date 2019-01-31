@@ -13,6 +13,7 @@ import org.junit.Test
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import java.net.URL
+import java.nio.file.Paths
 
 private val happyEmpty: Map<Unit, Unit> = mapOf()
 
@@ -209,5 +210,24 @@ class DevicesControllerTest {
         val actualResult = deviceServer.getDeviceState(deviceRef)
         assertThat(actualResult, equalTo(expectedState))
     }
-}
 
+    @Test
+    fun runXcuiTest() {
+        val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
+                "appName",
+                "file_name",
+                "test name",
+                Paths.get("/some/path")
+        )
+        val expectedResult = mapOf(
+                "command" to "some command",
+                "exitCode" to "0",
+                "stdOut" to "some stdOut",
+                "stdErr" to "some stdErr"
+        )
+        whenever(deviceManager.runXcuiTest(deviceRef, xcuiTestExecutionConfig)).thenReturn(expectedResult)
+        val actualResult = deviceServer.runXcuiTest(deviceRef, xcuiTestExecutionConfig)
+        verify(deviceManager).runXcuiTest(deviceRef, xcuiTestExecutionConfig)
+        assertThat(actualResult, equalTo(expectedResult))
+    }
+}
