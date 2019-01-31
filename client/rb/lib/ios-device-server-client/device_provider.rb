@@ -63,7 +63,7 @@ module IosDeviceServerClient
     def create(dc)
       with_http do |http|
         headers = { 'Content-Type' => 'application/json' }
- 
+
         if credentials
           headers['Authorization'] = auth_header_value
         end
