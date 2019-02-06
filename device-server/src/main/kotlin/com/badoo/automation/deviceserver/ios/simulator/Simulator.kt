@@ -659,11 +659,11 @@ class Simulator (
         logger.debug(logMarker, "Running XCUI test '${xcuiTestExecutionConfig.testName}' of '${xcuiTestExecutionConfig.appName}'" +
                 " using '${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}' on Simulator $this")
 
-        val cmd = "xcodebuild test-without-building -xctestrun " +
-                "'${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}' " +
-                "-destination 'platform=iOS Simulator,id=$udid' -only-testing:${xcuiTestExecutionConfig.testName}"
+        val command = listOf("xcodebuild", "test-without-building", "-xctestrun",
+                "${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}",
+                "-destination", "platform=iOS Simulator,id=$udid", "-only-testing:${xcuiTestExecutionConfig.testName}")
 
-        val result = remote.shell(cmd)
+        val result = remote.execIgnoringErrors(command, timeOutSeconds = 300)
         return mapOf(
                 "command" to result.cmd.joinToString(" "),
                 "exitCode" to result.exitCode.toString(),
