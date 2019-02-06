@@ -11,6 +11,7 @@ interface IDeviceManager {
     fun clearSafariCookies(ref: DeviceRef)
     fun resetAsyncDevice(ref: DeviceRef)
     fun approveAccess(ref: DeviceRef, bundleId: String)
+    fun setPermissions(ref: DeviceRef, permissions: AppPermissionsDto)
     fun getEndpointFor(ref: DeviceRef, port: Int): URL
     fun crashLogs(ref: DeviceRef, pastMinutes: Long?): List<CrashLog>
     fun deleteCrashLogs(ref: DeviceRef): Boolean
