@@ -123,6 +123,19 @@ module IosDeviceServerClient
       end
     end
 
+    def set_permissions(device_ref, bundle_id:, permissions:)
+      raise_if_ref_is_empty(device_ref)
+
+      payload = {
+        bundle_id:   bundle_id,
+        permissions: permissions
+      }
+
+      with_http do |http|
+        http.post("/devices/#{device_ref}/permissions", JSON.dump(payload))
+      end
+    end
+
     def video_start(device_ref)
       raise_if_ref_is_empty(device_ref)
 
