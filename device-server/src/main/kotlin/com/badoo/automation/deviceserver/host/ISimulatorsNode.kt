@@ -9,6 +9,7 @@ interface ISimulatorsNode {
     fun resetAsync(deviceRef: DeviceRef)
 
     fun approveAccess(deviceRef: DeviceRef, bundleId: String)
+    fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto)
     fun clearSafariCookies(deviceRef: DeviceRef)
     fun shake(deviceRef: DeviceRef)
     fun endpointFor(deviceRef: DeviceRef, port: Int): URL
