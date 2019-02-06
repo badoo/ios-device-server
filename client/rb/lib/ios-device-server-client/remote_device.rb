@@ -3,6 +3,7 @@ require 'base64'
 
 require_relative 'device_provider'
 require_relative 'device_client'
+require_relative 'permissions'
 
 module IosDeviceServerClient
   module RemoteDeviceError
@@ -95,6 +96,13 @@ module IosDeviceServerClient
     def approve_access(bundle_ids)
       ensure_ready
       @server.approve_access(@device_ref, bundle_ids)
+    end
+
+    # @param [String] bundle_id
+    # @param [Hash<String, String>] permissions map {Permissions::Type} to {Permissions::Allowed}
+    def set_permissions(bundle_id:, permissions:)
+      ensure_ready
+      @server.set_permissions(@device_ref, bundle_id: bundle_id, permissions: permissions)
     end
 
     def app_installed?(bundle_id)

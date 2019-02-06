@@ -123,6 +123,10 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).approveAccess(bundleId)
     }
 
+    override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
+        getDeviceFor(deviceRef).setPermissions(appPermissions.bundleId, appPermissions.permissions)
+    }
+
     override fun capacityRemaining(desiredCaps: DesiredCapabilities): Float {
         return (simulatorLimit - count()) * 1F / simulatorLimit
     }

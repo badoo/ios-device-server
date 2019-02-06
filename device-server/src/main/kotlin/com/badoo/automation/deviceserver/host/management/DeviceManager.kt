@@ -77,8 +77,12 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).resetAsync(ref)
     }
 
-    override fun approveAccess(ref: DeviceRef, bundleId: String) {
+    override fun  approveAccess(ref: DeviceRef, bundleId: String) {
         nodeRegistry.activeDevices.getNodeFor(ref).approveAccess(ref, bundleId)
+    }
+
+    override fun setPermissions(ref: DeviceRef, permissions: AppPermissionsDto) {
+        nodeRegistry.activeDevices.getNodeFor(ref).setPermissions(ref, permissions)
     }
 
     override fun getEndpointFor(ref: DeviceRef, port: Int): URL {
