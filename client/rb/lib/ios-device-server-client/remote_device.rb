@@ -31,10 +31,10 @@ module IosDeviceServerClient
     # @return [String]
     attr_reader :device_ref
 
-    def initialize(server_endpoint, device_ref)
+    def initialize(server_endpoint, device_ref, read_timeout: 120)
       raise(ArgumentError, 'device_ref cannot be null') if device_ref.nil?
 
-      @server = DeviceProviderFactory.create(server_endpoint)
+      @server = DeviceProviderFactory.create(server_endpoint, read_timeout: read_timeout)
       @device_ref = device_ref
       @device = nil # fbsimctl client
       device = @server.get(@device_ref)
@@ -59,6 +59,12 @@ module IosDeviceServerClient
       @device = nil
       @server.reset(@device_ref)
       await(timeout: timeout)
+    end
+
+    def reset_async()
+      ensure_ready
+      @device = nil
+      @server.reset(@device_ref)
     end
 
     def await(timeout: 60)
