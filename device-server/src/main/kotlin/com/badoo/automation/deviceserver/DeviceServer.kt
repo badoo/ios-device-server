@@ -179,7 +179,7 @@ fun Application.module() {
                     call.respond(devicesController.deleteReleaseDevice(param(call, "ref")))
                 }
                 post("permissions") {
-                    call.respond(devicesController.setAccessToCameraAndThings(param(call, "ref"), jsonContent(call)))
+                    call.respond(devicesController.setPermissions(param(call, "ref"), jsonContent(call)))
                 }
                 get("endpoint/{port}") {
                     call.respond(devicesController.getEndpointFor(param(call, "ref"), paramInt(call, "port")))
