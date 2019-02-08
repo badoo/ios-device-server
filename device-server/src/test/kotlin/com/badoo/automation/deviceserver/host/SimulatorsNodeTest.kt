@@ -421,7 +421,6 @@ class SimulatorsNodeTest {
 
         val actualResult = simulatorsNode.runXcuiTest(ref1, xcuiTestExecutionConfig)
 
-        verify(simulatorMock).setEnvironmentVariables(xcuiTestExecutionConfig.environmentVariables)
         verify(simulatorMock).runXcuiTest(xcuiTestExecutionConfig)
         assertThat(actualResult, CoreMatchers.equalTo(expectedResult))
     }
