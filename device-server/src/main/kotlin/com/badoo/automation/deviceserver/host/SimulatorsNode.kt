@@ -250,7 +250,6 @@ class SimulatorsNode(
     }
 
     override fun runXcuiTest(deviceRef: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig) : Map<String, String> {
-        getDeviceFor(deviceRef).setEnvironmentVariables(xcuiTestExecutionConfig.environmentVariables)
         return getDeviceFor(deviceRef).runXcuiTest(xcuiTestExecutionConfig)
     }
 

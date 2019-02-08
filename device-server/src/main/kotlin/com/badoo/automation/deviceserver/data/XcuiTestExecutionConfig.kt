@@ -14,8 +14,5 @@ class XcuiTestExecutionConfig(
         val testName: String,
 
         @JsonProperty("path_to_dir_with_xctestrun_file")
-        val pathToDirWithXctestrunFile: Path,
-
-        @JsonProperty("environment_variables")
-        val environmentVariables: Map<String, String> = mapOf()
+        val pathToDirWithXctestrunFile: Path
 )
