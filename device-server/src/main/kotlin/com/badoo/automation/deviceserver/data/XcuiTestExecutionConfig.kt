@@ -3,7 +3,7 @@ package com.badoo.automation.deviceserver.data
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.nio.file.Path
 
-class XcuiTestExecutionConfig(
+data class XcuiTestExecutionConfig(
         @JsonProperty("app_name")
         val appName: String,
 
@@ -14,5 +14,8 @@ class XcuiTestExecutionConfig(
         val testName: String,
 
         @JsonProperty("path_to_dir_with_xctestrun_file")
-        val pathToDirWithXctestrunFile: Path
+        val pathToDirWithXctestrunFile: Path,
+
+        @JsonProperty("timeout_sec")
+        val timeoutSec: Long = 300
 )

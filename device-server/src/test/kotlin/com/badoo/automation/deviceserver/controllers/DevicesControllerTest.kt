@@ -212,6 +212,18 @@ class DevicesControllerTest {
     }
 
     @Test
+    fun setEnvironmentVariables() {
+        val environmentVariables = mapOf(
+                "ENV_NAME1" to "ENV_VALUE1",
+                "ENV_NAME2" to "ENV_VALUE2"
+        )
+        val actualResult = deviceServer.setEnvironmentVariables(deviceRef, environmentVariables)
+
+        verify(deviceManager).setEnvironmentVariables(deviceRef, environmentVariables)
+        assertThat(actualResult, equalTo(happyEmpty))
+    }
+
+    @Test
     fun runXcuiTest() {
         val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
                 "appName",

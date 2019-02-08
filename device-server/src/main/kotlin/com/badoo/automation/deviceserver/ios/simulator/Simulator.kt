@@ -659,7 +659,7 @@ class Simulator (
                 "${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}",
                 "-destination", "platform=iOS Simulator,id=$udid", "-only-testing:${xcuiTestExecutionConfig.testName}")
 
-        val result = remote.execIgnoringErrors(command, timeOutSeconds = 300)
+        val result = remote.execIgnoringErrors(command, timeOutSeconds = xcuiTestExecutionConfig.timeoutSec)
         return mapOf(
                 "command" to result.cmd.joinToString(" "),
                 "exitCode" to result.exitCode.toString(),
