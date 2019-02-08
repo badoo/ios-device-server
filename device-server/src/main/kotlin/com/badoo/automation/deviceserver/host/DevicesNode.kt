@@ -64,6 +64,10 @@ class DevicesNode(
         throw(NotImplementedError("Approve Access is not supported by physical devices"))
     }
 
+    override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
+        throw(NotImplementedError("Set Permissions is not supported by physical devices"))
+    }
+
     override fun clearSafariCookies(deviceRef: DeviceRef) {
         throw(NotImplementedError("Clear Safari Cookies is not supported by physical devices"))
     }

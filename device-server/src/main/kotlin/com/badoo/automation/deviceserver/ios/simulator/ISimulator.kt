@@ -26,6 +26,7 @@ interface ISimulator {
     fun status(): SimulatorStatusDTO
     fun endpointFor(port: Int): URL
     fun approveAccess(bundleId: String)
+    fun setPermissions(bundleId: String, permissions: PermissionSet)
     fun release(reason: String)
     fun clearSafariCookies(): Map<String, String>
     fun shake(): Boolean

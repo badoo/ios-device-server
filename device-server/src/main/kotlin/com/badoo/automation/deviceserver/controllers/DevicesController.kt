@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.controllers
 
 import com.badoo.automation.deviceserver.EmptyMap
+import com.badoo.automation.deviceserver.JsonMapper
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.IDeviceManager
 import com.fasterxml.jackson.databind.JsonNode
@@ -43,6 +44,17 @@ class DevicesController(private val deviceManager: IDeviceManager) {
 
     fun setAccessToCameraAndThings(ref: DeviceRef, jsonContent: JsonNode): EmptyMap {
         jsonContent.elements().forEach { deviceManager.approveAccess(ref, it["bundle_id"].textValue()) }
+        return happy
+    }
+
+    fun setPermissions(ref: DeviceRef, json: JsonNode): EmptyMap {
+        if (json.isArray) {
+            return setAccessToCameraAndThings(ref, json)
+        }
+
+        val permissions = JsonMapper().fromJson<AppPermissionsDto>(json)
+        deviceManager.setPermissions(ref, permissions)
+
         return happy
     }
 
@@ -107,6 +119,11 @@ class DevicesController(private val deviceManager: IDeviceManager) {
 
     fun uninstallApplication(ref: DeviceRef, bundleId: String): EmptyMap {
         deviceManager.uninstallApplication(ref, bundleId)
+        return happy
+    }
+
+    fun setEnvironmentVariables(ref: DeviceRef, environmentVariables: Map<String, String>): EmptyMap {
+        deviceManager.setEnvironmentVariables(ref, environmentVariables)
         return happy
     }
 

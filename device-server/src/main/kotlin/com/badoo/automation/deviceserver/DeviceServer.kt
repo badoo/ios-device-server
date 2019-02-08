@@ -179,7 +179,7 @@ fun Application.module() {
                     call.respond(devicesController.deleteReleaseDevice(param(call, "ref")))
                 }
                 post("permissions") {
-                    call.respond(devicesController.setAccessToCameraAndThings(param(call, "ref"), jsonContent(call)))
+                    call.respond(devicesController.setPermissions(param(call, "ref"), jsonContent(call)))
                 }
                 get("endpoint/{port}") {
                     call.respond(devicesController.getEndpointFor(param(call, "ref"), paramInt(call, "port")))
@@ -232,6 +232,11 @@ fun Application.module() {
                 }
                 get("state") {
                     call.respond(devicesController.getDeviceState(param(call, "ref")))
+                }
+                post("set_env") {
+                    val ref = param(call, "ref")
+                    val environmentVariables = jsonContent<Map<String, String>>(call)
+                    call.respond(devicesController.setEnvironmentVariables(ref, environmentVariables))
                 }
                 post("run_xcuitest") {
                     val ref = param(call, "ref")

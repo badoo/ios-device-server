@@ -472,28 +472,24 @@ class Simulator (
     }
 
     //region approveAccess
+
     override fun approveAccess(bundleId: String) {
-        updatePermission(bundleId, "kTCCServiceCamera")
-        updatePermission(bundleId, "kTCCServiceMicrophone")
-        updatePermission(bundleId, "kTCCServicePhotos")
-        updatePermission(bundleId, "kTCCServiceAddressBook")
+        val permissions = SimulatorPermissions(remote, deviceSetPath, this)
+
+        permissions.setServicePermission(bundleId, PermissionType.Camera, PermissionAllowed.Yes)
+        permissions.setServicePermission(bundleId, PermissionType.Microphone, PermissionAllowed.Yes)
+        permissions.setServicePermission(bundleId, PermissionType.Photos, PermissionAllowed.Yes)
+        permissions.setServicePermission(bundleId, PermissionType.Contacts, PermissionAllowed.Yes)
     }
 
-    private fun updatePermission(bundleId: String, key: String) {
-        val path = File(deviceSetPath, udid)
-        val sqlCmd = "sqlite3 ${path.absolutePath}/data/Library/TCC/TCC.db"
-        val insert =
-            "$sqlCmd \"INSERT INTO access (service, client, client_type, allowed, prompt_count) VALUES ('$key','$bundleId',0,1,1);\""
-        val update = "$sqlCmd \"UPDATE access SET allowed=1 where client='$bundleId' AND service='$key'\""
+    override fun setPermissions(bundleId: String, permissions: PermissionSet) {
+        val manager = SimulatorPermissions(remote, deviceSetPath, this)
 
-        // FIXME: should we fail if sqlite3 fails (insert or update) or shall we do a separate check for access to be granted?
-        remote.shell(insert)
-        val result = remote.shell(update)
-
-        if (!result.isSuccess) {
-            logger.error(logMarker, "Device $this permission update failed ${result.stdErr}")
+        permissions.forEach { type, allowed ->
+            manager.setServicePermission(bundleId, type, allowed)
         }
     }
+
     //endregion
 
     //region release
@@ -659,11 +655,11 @@ class Simulator (
         logger.debug(logMarker, "Running XCUI test '${xcuiTestExecutionConfig.testName}' of '${xcuiTestExecutionConfig.appName}'" +
                 " using '${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}' on Simulator $this")
 
-        val cmd = "xcodebuild test-without-building -xctestrun " +
-                "'${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}' " +
-                "-destination 'platform=iOS Simulator,id=$udid' -only-testing:${xcuiTestExecutionConfig.testName}"
+        val command = listOf("xcodebuild", "test-without-building", "-xctestrun",
+                "${xcuiTestExecutionConfig.pathToDirWithXctestrunFile}/${xcuiTestExecutionConfig.xctestrunFileName}",
+                "-destination", "platform=iOS Simulator,id=$udid", "-only-testing:${xcuiTestExecutionConfig.testName}")
 
-        val result = remote.shell(cmd)
+        val result = remote.execIgnoringErrors(command, timeOutSeconds = 300)
         return mapOf(
                 "command" to result.cmd.joinToString(" "),
                 "exitCode" to result.exitCode.toString(),

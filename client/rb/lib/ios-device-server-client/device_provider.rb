@@ -63,7 +63,7 @@ module IosDeviceServerClient
     def create(dc)
       with_http do |http|
         headers = { 'Content-Type' => 'application/json' }
- 
+
         if credentials
           headers['Authorization'] = auth_header_value
         end
@@ -124,6 +124,19 @@ module IosDeviceServerClient
       end
     end
 
+    def set_permissions(device_ref, bundle_id:, permissions:)
+      raise_if_ref_is_empty(device_ref)
+
+      payload = {
+        bundle_id:   bundle_id,
+        permissions: permissions
+      }
+
+      with_http do |http|
+        http.post("/devices/#{device_ref}/permissions", JSON.dump(payload))
+      end
+    end
+
     def video_start(device_ref)
       raise_if_ref_is_empty(device_ref)
 
@@ -171,6 +184,22 @@ module IosDeviceServerClient
         request = Net::HTTP::Delete.new('/devices/')
         request['Authorization'] = auth_header_value
         http.request(request)
+      end
+    end
+
+    def set_env(device_ref, environment_variables)
+      raise_if_ref_is_empty(device_ref)
+
+      with_http do |http|
+        headers = { 'Content-Type' => 'application/json' }
+ 
+        if credentials
+          headers['Authorization'] = auth_header_value
+        end
+
+        request = Net::HTTP::Post.new("/devices/#{device_ref}/set_env", headers)
+        request.body = JSON.dump(environment_variables)
+        return http.request(request)
       end
     end
 

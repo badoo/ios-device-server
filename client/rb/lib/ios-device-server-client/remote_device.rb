@@ -3,6 +3,7 @@ require 'base64'
 
 require_relative 'device_provider'
 require_relative 'device_client'
+require_relative 'permissions'
 
 module IosDeviceServerClient
   module RemoteDeviceError
@@ -31,10 +32,10 @@ module IosDeviceServerClient
     # @return [String]
     attr_reader :device_ref
 
-    def initialize(server_endpoint, device_ref)
+    def initialize(server_endpoint, device_ref, read_timeout: 120)
       raise(ArgumentError, 'device_ref cannot be null') if device_ref.nil?
 
-      @server = DeviceProviderFactory.create(server_endpoint)
+      @server = DeviceProviderFactory.create(server_endpoint, read_timeout: read_timeout)
       @device_ref = device_ref
       @device = nil # fbsimctl client
       device = @server.get(@device_ref)
@@ -59,6 +60,12 @@ module IosDeviceServerClient
       @device = nil
       @server.reset(@device_ref)
       await(timeout: timeout)
+    end
+
+    def reset_async()
+      ensure_ready
+      @device = nil
+      @server.reset(@device_ref)
     end
 
     def await(timeout: 60)
@@ -88,6 +95,11 @@ module IosDeviceServerClient
       @server.clear_safari_cookies(@device_ref)
     end
 
+    def set_env(environment_variables)
+      ensure_ready
+      return @server.set_env(@device_ref, environment_variables)
+    end
+
     def run_xcuitest(test_execution_config)
       ensure_ready
       return @server.run_xcuitest(@device_ref, test_execution_config)
@@ -98,6 +110,13 @@ module IosDeviceServerClient
     def approve_access(bundle_ids)
       ensure_ready
       @server.approve_access(@device_ref, bundle_ids)
+    end
+
+    # @param [String] bundle_id
+    # @param [Hash<String, String>] permissions map {Permissions::Type} to {Permissions::Allowed}
+    def set_permissions(bundle_id:, permissions:)
+      ensure_ready
+      @server.set_permissions(@device_ref, bundle_id: bundle_id, permissions: permissions)
     end
 
     def app_installed?(bundle_id)
