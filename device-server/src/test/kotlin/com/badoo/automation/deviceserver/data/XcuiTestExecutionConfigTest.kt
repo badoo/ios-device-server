@@ -20,4 +20,24 @@ class XcuiTestExecutionConfigTest {
         assertEquals(XcuiTestExecutionConfig("com.app", "test.xctestrun",
                 "ui-tests/TestSome", Paths.get("/tmp/Build/Product")), actual)
     }
+
+    @Test
+    fun fromJsonParsesConfigWithTimeout() {
+        val json = """{"app_name": "com.app","xctestrun_file_name":"test.xctestrun", "timeout_sec": 240,
+            |"test_name":"ui-tests/TestSome","path_to_dir_with_xctestrun_file":"/tmp/Build/Product"}""".trimMargin()
+        val actual = fromJson(json)
+
+        assertEquals(XcuiTestExecutionConfig("com.app", "test.xctestrun",
+                "ui-tests/TestSome", Paths.get("/tmp/Build/Product"), 240), actual)
+    }
+
+    @Test
+    fun fromJsonParsesConfigWithTimeoutAsString() {
+        val json = """{"app_name": "com.app","xctestrun_file_name":"test.xctestrun", "timeout_sec": "240",
+            |"test_name":"ui-tests/TestSome","path_to_dir_with_xctestrun_file":"/tmp/Build/Product"}""".trimMargin()
+        val actual = fromJson(json)
+
+        assertEquals(XcuiTestExecutionConfig("com.app", "test.xctestrun",
+                "ui-tests/TestSome", Paths.get("/tmp/Build/Product"), 240), actual)
+    }
 }

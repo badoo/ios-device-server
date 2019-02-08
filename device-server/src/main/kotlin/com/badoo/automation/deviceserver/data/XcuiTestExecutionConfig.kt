@@ -14,5 +14,8 @@ data class XcuiTestExecutionConfig(
         val testName: String,
 
         @JsonProperty("path_to_dir_with_xctestrun_file")
-        val pathToDirWithXctestrunFile: Path
+        val pathToDirWithXctestrunFile: Path,
+
+        @JsonProperty("timeout_sec")
+        val timeoutSec: Long = 300
 )
