@@ -19,8 +19,10 @@ interface ISimulatorFactory {
             wdaRunnerXctest: File,
             concurrentBoot: ThreadPoolDispatcher,
             headless: Boolean,
+            useWda: Boolean,
             fbsimctlSubject: String
     ): ISimulator {
-        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaRunnerXctest, concurrentBoot, headless, fbsimctlSubject)
+        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaRunnerXctest, concurrentBoot,
+                headless, useWda, fbsimctlSubject)
     }
 }

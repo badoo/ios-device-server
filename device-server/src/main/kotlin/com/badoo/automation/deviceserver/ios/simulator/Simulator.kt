@@ -29,7 +29,6 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.system.measureTimeMillis
 
-
 class Simulator (
         private val deviceRef: DeviceRef,
         private val remote: IRemote,
@@ -39,6 +38,7 @@ class Simulator (
         wdaRunnerXctest: File,
         private val concurrentBootsPool: ThreadPoolDispatcher,
         headless: Boolean,
+        private val useWda: Boolean,
         override val fbsimctlSubject: String
 ) : ISimulator
 {
@@ -119,7 +119,9 @@ class Simulator (
 
             logTiming("simulator boot") { boot() }
 
-            logTiming("starting WebDriverAgent") { startWdaWithRetry() }
+            if (useWda) {
+                logTiming("starting WebDriverAgent") { startWdaWithRetry() }
+            }
 
             logger.info(logMarker, "Finished preparing $this")
             deviceState = DeviceState.CREATED
@@ -412,7 +414,7 @@ class Simulator (
 
         runBlocking {
             val isFbsimctlHealthyTask = async { fbsimctlProc.isHealthy() }
-            val isWdaHealthyTask = async { wdaProc.isHealthy() }
+            val isWdaHealthyTask = async { if (useWda) wdaProc.isHealthy() else true }
 
             val isFbsimctlHealthy: Boolean = isFbsimctlHealthyTask.await()
             val isWdaHealthy: Boolean = isWdaHealthyTask.await()
