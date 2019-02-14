@@ -32,10 +32,10 @@ module IosDeviceServerClient
     # @return [String]
     attr_reader :device_ref
 
-    def initialize(server_endpoint, device_ref, read_timeout: 120)
+    def initialize(server_endpoint, device_ref)
       raise(ArgumentError, 'device_ref cannot be null') if device_ref.nil?
 
-      @server = DeviceProviderFactory.create(server_endpoint, read_timeout: read_timeout)
+      @server = DeviceProviderFactory.create(server_endpoint)
       @device_ref = device_ref
       @device = nil # fbsimctl client
       device = @server.get(@device_ref)
@@ -51,6 +51,7 @@ module IosDeviceServerClient
     end
 
     # region: device management
+
     def release
       @server.release(@device_ref)
     end
@@ -60,12 +61,6 @@ module IosDeviceServerClient
       @device = nil
       @server.reset(@device_ref)
       await(timeout: timeout)
-    end
-
-    def reset_async()
-      ensure_ready
-      @device = nil
-      @server.reset(@device_ref)
     end
 
     def await(timeout: 60)
@@ -95,15 +90,6 @@ module IosDeviceServerClient
       @server.clear_safari_cookies(@device_ref)
     end
 
-    def set_env(environment_variables)
-      ensure_ready
-      return @server.set_env(@device_ref, environment_variables)
-    end
-
-    def run_xcuitest(test_execution_config)
-      ensure_ready
-      return @server.run_xcuitest(@device_ref, test_execution_config)
-    end
     # endregion
 
     # region: app management

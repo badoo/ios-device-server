@@ -33,7 +33,6 @@ module IosDeviceServerClient
     end
   end
 
-  # @server in RemoteDevice
   class DeviceProvider
     attr_reader :credentials
 
@@ -184,38 +183,6 @@ module IosDeviceServerClient
         request = Net::HTTP::Delete.new('/devices/')
         request['Authorization'] = auth_header_value
         http.request(request)
-      end
-    end
-
-    def set_env(device_ref, environment_variables)
-      raise_if_ref_is_empty(device_ref)
-
-      with_http do |http|
-        headers = { 'Content-Type' => 'application/json' }
- 
-        if credentials
-          headers['Authorization'] = auth_header_value
-        end
-
-        request = Net::HTTP::Post.new("/devices/#{device_ref}/set_env", headers)
-        request.body = JSON.dump(environment_variables)
-        return http.request(request)
-      end
-    end
-
-    def run_xcuitest(device_ref, test_execution_config)
-      raise_if_ref_is_empty(device_ref)
-
-      with_http do |http|
-        headers = { 'Content-Type' => 'application/json' }
- 
-        if credentials
-          headers['Authorization'] = auth_header_value
-        end
-
-        request = Net::HTTP::Post.new("/devices/#{device_ref}/run_xcuitest", headers)
-        request.body = JSON.dump(test_execution_config)
-        return http.request(request)
       end
     end
 
