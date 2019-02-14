@@ -26,8 +26,7 @@ class SimulatorsNode(
         private val wdaRunnerXctest: File,
         private val simulatorProvider: ISimulatorProvider = SimulatorProvider(remote),
         private val portAllocator: PortAllocator = PortAllocator(),
-        private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {},
-        private val initialEnvironmentVariables: Map<String, String>
+        private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
 ) : ISimulatorsNode {
 
     override val remoteAddress: String get() = remote.hostName
@@ -88,9 +87,7 @@ class SimulatorsNode(
 
             logger.debug(simLogMarker, "Will create simulator $ref")
 
-            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath,
-                    wdaRunnerXctest, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, fbSimctlDevice.toString())
-            simulator.initialEnvironmentVariables.putAll(initialEnvironmentVariables)
+            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath, wdaRunnerXctest, concurrentBoot, desiredCaps.headless, fbSimctlDevice.toString())
             simulator.prepareAsync()
             devicePool[ref] = simulator
 
@@ -243,14 +240,6 @@ class SimulatorsNode(
 
     override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
         getDeviceFor(deviceRef).uninstallApplication(bundleId)
-    }
-
-    override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
-        getDeviceFor(deviceRef).setEnvironmentVariables(envs)
-    }
-
-    override fun runXcuiTest(deviceRef: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig) : Map<String, String> {
-        return getDeviceFor(deviceRef).runXcuiTest(xcuiTestExecutionConfig)
     }
 
     override fun toString(): String {

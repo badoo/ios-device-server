@@ -121,13 +121,4 @@ class DevicesController(private val deviceManager: IDeviceManager) {
         deviceManager.uninstallApplication(ref, bundleId)
         return happy
     }
-
-    fun setEnvironmentVariables(ref: DeviceRef, environmentVariables: Map<String, String>): EmptyMap {
-        deviceManager.setEnvironmentVariables(ref, environmentVariables)
-        return happy
-    }
-
-    fun runXcuiTest(ref: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig): Map<String, String> {
-        return deviceManager.runXcuiTest(ref, xcuiTestExecutionConfig)
-    }
 }

@@ -12,7 +12,6 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.whenever
-import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.sameInstance
@@ -21,7 +20,6 @@ import org.mockito.Mockito
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import java.net.URL
-import java.nio.file.Paths
 
 class DeviceManagerTest {
     private var desiredCaps = DesiredCapabilities("udid", "model", "os", true)
@@ -196,35 +194,5 @@ class DeviceManagerTest {
     fun autoReleaseLoopIsCalledByConstructor() {
         deviceManager.launchAutoReleaseLoop()
         verify(autoreleaseLooper).autoreleaseLoop(deviceManager)
-    }
-
-    @Test
-    fun setEnvironmentVariables() {
-        withDeviceOnHost(hostTwo) {
-            deviceManager.setEnvironmentVariables(ref, mapOf())
-            verify(hostTwo).setEnvironmentVariables(ref, mapOf())
-        }
-    }
-
-    @Test
-    fun runXcuiTest() {
-        val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
-                "appName",
-                "file_name",
-                "test name",
-                Paths.get("/some/path")
-        )
-        val expectedResult = mapOf(
-                "command" to "some command",
-                "exitCode" to "0",
-                "stdOut" to "some stdOut",
-                "stdErr" to "some stdErr"
-        )
-        withDeviceOnHost(hostTwo) {
-            whenever(hostTwo.runXcuiTest(ref, xcuiTestExecutionConfig)).thenReturn(expectedResult)
-            val actualResult = deviceManager.runXcuiTest(ref, xcuiTestExecutionConfig)
-            verify(hostTwo).runXcuiTest(ref, xcuiTestExecutionConfig)
-            assertThat(actualResult, CoreMatchers.equalTo(expectedResult))
-        }
     }
 }

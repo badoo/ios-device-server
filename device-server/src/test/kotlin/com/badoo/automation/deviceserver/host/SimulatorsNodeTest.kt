@@ -10,16 +10,13 @@ import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.*
-import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
 import java.net.URI
-import java.nio.file.Paths
 
 class SimulatorsNodeTest {
     private val iRemote: IRemote = mockThis()
@@ -58,7 +55,6 @@ class SimulatorsNodeTest {
     private val configuredSimulatorLimit = 3
 
     private val simulatorFactory: ISimulatorFactory = mockThis()
-    private val initialEnvironmentVariables = mapOf("ENV_NAME" to "ENV_VALUE")
     private val simulatorsNode1 = SimulatorsNode(
             iRemote,
             hostChecker,
@@ -67,8 +63,7 @@ class SimulatorsNodeTest {
             wdaPath,
             iSimulatorProvider,
             portAllocator,
-            simulatorFactory,
-            initialEnvironmentVariables
+            simulatorFactory
     )
     private val simulatorsNode = simulatorsNode1
 
@@ -126,7 +121,6 @@ class SimulatorsNodeTest {
                 eq(File("some/file/from/wdaPathProc")),
                 any(),
                 eq(false),
-                eq(false),
                 eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)")
         )
         verify(simulatorMock).prepareAsync()
@@ -157,7 +151,7 @@ class SimulatorsNodeTest {
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
 
-        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
         simulatorMocks.forEach { pair ->
             simfac = simfac.thenReturn(pair.first)
         }
@@ -391,37 +385,7 @@ class SimulatorsNodeTest {
         simulatorsNode.videoRecordingStop(ref1)
 
         verify(videoRecorderMock).stop()
+
     }
 
-    @Test
-    fun setEnvironmentVariables() {
-        createDeviceForTest()
-
-        simulatorsNode.setEnvironmentVariables(ref1, mapOf())
-
-        verify(simulatorMock).setEnvironmentVariables(mapOf())
-    }
-
-    @Test
-    fun runXcuiTest() {
-        val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
-                "appName",
-                "file_name",
-                "test name",
-                Paths.get("/some/path")
-        )
-        val expectedResult = mapOf(
-                "command" to "some command",
-                "exitCode" to "0",
-                "stdOut" to "some stdOut",
-                "stdErr" to "some stdErr"
-        )
-        createDeviceForTest()
-        whenever(simulatorMock.runXcuiTest(xcuiTestExecutionConfig)).thenReturn(expectedResult)
-
-        val actualResult = simulatorsNode.runXcuiTest(ref1, xcuiTestExecutionConfig)
-
-        verify(simulatorMock).runXcuiTest(xcuiTestExecutionConfig)
-        assertThat(actualResult, CoreMatchers.equalTo(expectedResult))
-    }
 }

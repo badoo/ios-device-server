@@ -38,6 +38,4 @@ interface ISimulatorsNode {
     fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)
-    fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>)
-    fun runXcuiTest(deviceRef: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig) : Map<String, String>
 }
