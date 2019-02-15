@@ -335,4 +335,8 @@ class DevicesNode(
         // single instance of server on node is implied, so we can kill all simulators and fbsimctl processes
         remote.execIgnoringErrors(listOf("pkill", "-9", "/usr/local/bin/fbsimctl"))
     }
+
+    override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
+        throw(NotImplementedError("Setting environment variables is not supported by physical devices"))
+    }
 }
