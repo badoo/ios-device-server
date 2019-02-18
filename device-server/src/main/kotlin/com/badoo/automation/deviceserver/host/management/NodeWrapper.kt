@@ -34,7 +34,7 @@ class NodeWrapper(
 
     var lastError: Exception? = null
 
-    fun isAlive(): Boolean = isStarted && node.isReachable()
+    fun isAlive(): Boolean = isStarted && node.isReachable() && node.isNodePrepared
 
     override fun toString(): String = "NodeWrapper for ${config.host}"
 

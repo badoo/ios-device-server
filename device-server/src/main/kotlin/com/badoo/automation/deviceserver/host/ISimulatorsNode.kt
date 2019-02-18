@@ -29,6 +29,7 @@ interface ISimulatorsNode {
     val remoteAddress: String
     fun isReachable(): Boolean
     fun prepareNode()
+    val isNodePrepared: Boolean
     fun count(): Int
     fun list(): List<DeviceDTO>
     fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean

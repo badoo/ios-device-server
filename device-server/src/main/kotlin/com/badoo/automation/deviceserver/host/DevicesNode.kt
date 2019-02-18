@@ -35,6 +35,11 @@ class DevicesNode(
         )
     )
 
+    private val isWebDriverAgentDeployed = remote.execIgnoringErrors(listOf("test", "-d", remoteWdaBundleRoot.absolutePath)).isSuccess
+
+    override val isNodePrepared: Boolean
+        get() = remote.isLocalhost() || isWebDriverAgentDeployed
+
     private val deviceRegistrationInterval = Duration.ofMinutes(1)
     override val remoteAddress: String get() = remote.hostName
 
