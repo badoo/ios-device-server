@@ -36,6 +36,9 @@ class SimulatorsNode(
             HOSTNAME to remote.hostName
     ))
 
+    override val isNodePrepared: Boolean
+        get() = remote.isLocalhost() || hostChecker.isWdaBundleDeployed
+
     override fun prepareNode() {
         logger.info(logMarker, "Preparing node ${remote.hostName}")
         hostChecker.checkPrerequisites()
