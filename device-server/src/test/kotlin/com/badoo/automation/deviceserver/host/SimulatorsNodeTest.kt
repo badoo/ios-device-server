@@ -13,7 +13,8 @@ import com.nhaarman.mockito_kotlin.*
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
-import org.junit.Assert.*
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.net.URI
@@ -121,6 +122,7 @@ class SimulatorsNodeTest {
                 eq(File("some/file/from/wdaPathProc")),
                 any(),
                 eq(false),
+                eq(false),
                 eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)")
         )
         verify(simulatorMock).prepareAsync()
@@ -151,7 +153,7 @@ class SimulatorsNodeTest {
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
 
-        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         simulatorMocks.forEach { pair ->
             simfac = simfac.thenReturn(pair.first)
         }
@@ -385,7 +387,14 @@ class SimulatorsNodeTest {
         simulatorsNode.videoRecordingStop(ref1)
 
         verify(videoRecorderMock).stop()
-
     }
 
+    @Test
+    fun setEnvironmentVariables() {
+        createDeviceForTest()
+
+        simulatorsNode.setEnvironmentVariables(ref1, mapOf())
+
+        verify(simulatorMock).setEnvironmentVariables(mapOf())
+    }
 }

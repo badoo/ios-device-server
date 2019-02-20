@@ -96,6 +96,10 @@ module IosDeviceServerClient
       @server.clear_safari_cookies(@device_ref)
     end
 
+    def set_env(environment_variables)
+      ensure_ready
+      return @server.set_env(@device_ref, environment_variables)
+    end
     # endregion
 
     # region: app management
