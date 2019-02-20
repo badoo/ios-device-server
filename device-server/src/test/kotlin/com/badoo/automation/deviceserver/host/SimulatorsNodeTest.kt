@@ -398,7 +398,7 @@ class SimulatorsNodeTest {
 
         verify(simulatorMock).setEnvironmentVariables(mapOf())
     }
-    
+
     @Test
     fun runXcuiTest() {
         val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
