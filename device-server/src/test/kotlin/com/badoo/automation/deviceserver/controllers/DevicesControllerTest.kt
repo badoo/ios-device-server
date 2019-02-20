@@ -209,5 +209,16 @@ class DevicesControllerTest {
         val actualResult = deviceServer.getDeviceState(deviceRef)
         assertThat(actualResult, equalTo(expectedState))
     }
-}
 
+    @Test
+    fun setEnvironmentVariables() {
+        val environmentVariables = mapOf(
+                "ENV_NAME1" to "ENV_VALUE1",
+                "ENV_NAME2" to "ENV_VALUE2"
+        )
+        val actualResult = deviceServer.setEnvironmentVariables(deviceRef, environmentVariables)
+
+        verify(deviceManager).setEnvironmentVariables(deviceRef, environmentVariables)
+        assertThat(actualResult, equalTo(happyEmpty))
+    }
+}

@@ -195,4 +195,12 @@ class DeviceManagerTest {
         deviceManager.launchAutoReleaseLoop()
         verify(autoreleaseLooper).autoreleaseLoop(deviceManager)
     }
+
+    @Test
+    fun setEnvironmentVariables() {
+        withDeviceOnHost(hostTwo) {
+            deviceManager.setEnvironmentVariables(ref, mapOf())
+            verify(hostTwo).setEnvironmentVariables(ref, mapOf())
+        }
+    }
 }

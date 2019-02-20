@@ -168,4 +168,8 @@ class DeviceManager(
     override fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
         return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
     }
+
+    override fun setEnvironmentVariables(ref: DeviceRef, envs: Map<String, String>) {
+        nodeRegistry.activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
+    }
 }
