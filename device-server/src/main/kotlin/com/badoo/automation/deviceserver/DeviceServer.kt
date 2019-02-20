@@ -233,6 +233,11 @@ fun Application.module() {
                 get("state") {
                     call.respond(devicesController.getDeviceState(param(call, "ref")))
                 }
+                post("environment") {
+                    val ref = param(call, "ref")
+                    val environmentVariables = jsonContent<Map<String, String>>(call)
+                    call.respond(devicesController.setEnvironmentVariables(ref, environmentVariables))
+                }
             }
         }
     }

@@ -243,6 +243,10 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).uninstallApplication(bundleId)
     }
 
+    override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
+        getDeviceFor(deviceRef).setEnvironmentVariables(envs)
+    }
+
     override fun toString(): String {
         return "${javaClass.simpleName} at $remoteAddress"
     }

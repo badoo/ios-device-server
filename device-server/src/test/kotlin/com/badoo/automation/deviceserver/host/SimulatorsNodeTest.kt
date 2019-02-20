@@ -388,4 +388,13 @@ class SimulatorsNodeTest {
 
         verify(videoRecorderMock).stop()
     }
+
+    @Test
+    fun setEnvironmentVariables() {
+        createDeviceForTest()
+
+        simulatorsNode.setEnvironmentVariables(ref1, mapOf())
+
+        verify(simulatorMock).setEnvironmentVariables(mapOf())
+    }
 }
