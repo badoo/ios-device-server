@@ -198,6 +198,14 @@ class DeviceManagerTest {
     }
 
     @Test
+    fun setEnvironmentVariables() {
+        withDeviceOnHost(hostTwo) {
+            deviceManager.setEnvironmentVariables(ref, mapOf())
+            verify(hostTwo).setEnvironmentVariables(ref, mapOf())
+        }
+    }
+
+    @Test
     fun runXcuiTest() {
         val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
                 "test-scheme/TestName",

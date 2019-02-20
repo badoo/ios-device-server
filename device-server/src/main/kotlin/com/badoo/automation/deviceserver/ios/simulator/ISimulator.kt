@@ -34,5 +34,6 @@ interface ISimulator {
     fun dataContainer(bundleId: String): DataContainer
     fun uninstallApplication(bundleId: String)
     fun deleteCrashLogs(): Boolean
+    fun setEnvironmentVariables(envs: Map<String, String>)
     fun runXcuiTest(xcuiTestExecutionConfig: XcuiTestExecutionConfig): XcuiTestExecutionResult
 }

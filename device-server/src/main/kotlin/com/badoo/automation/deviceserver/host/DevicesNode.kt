@@ -336,6 +336,10 @@ class DevicesNode(
         remote.execIgnoringErrors(listOf("pkill", "-9", "/usr/local/bin/fbsimctl"))
     }
 
+    override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
+        throw(NotImplementedError("Setting environment variables is not supported by physical devices"))
+    }
+
     override fun runXcuiTest(deviceRef: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig): XcuiTestExecutionResult {
         return slotByExternalRef(deviceRef).device.runXcuiTest(xcuiTestExecutionConfig)
     }

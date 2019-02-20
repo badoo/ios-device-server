@@ -87,7 +87,8 @@ class SimulatorsNode(
 
             logger.debug(simLogMarker, "Will create simulator $ref")
 
-            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath, wdaRunnerXctest, concurrentBoot, desiredCaps.headless, fbSimctlDevice.toString())
+            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath,
+                    wdaRunnerXctest, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, fbSimctlDevice.toString())
             simulator.prepareAsync()
             devicePool[ref] = simulator
 
@@ -240,6 +241,10 @@ class SimulatorsNode(
 
     override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
         getDeviceFor(deviceRef).uninstallApplication(bundleId)
+    }
+
+    override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
+        getDeviceFor(deviceRef).setEnvironmentVariables(envs)
     }
 
     override fun runXcuiTest(deviceRef: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig) : XcuiTestExecutionResult {

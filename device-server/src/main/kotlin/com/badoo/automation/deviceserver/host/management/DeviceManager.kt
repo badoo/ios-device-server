@@ -169,6 +169,10 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
     }
 
+    override fun setEnvironmentVariables(ref: DeviceRef, envs: Map<String, String>) {
+        nodeRegistry.activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
+    }
+
     override fun runXcuiTest(ref: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig): XcuiTestExecutionResult {
         return nodeRegistry.activeDevices.getNodeFor(ref).runXcuiTest(ref, xcuiTestExecutionConfig)
     }
