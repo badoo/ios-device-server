@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
+import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
@@ -636,5 +637,19 @@ class Simulator (
     override fun uninstallApplication(bundleId: String) {
         logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")
         remote.execIgnoringErrors(listOf("xcrun", "simctl", "uninstall", udid, bundleId))
+    }
+
+    override fun setEnvironmentVariables(envs: Map<String, String>) {
+        if (envs.isEmpty()) {
+            logger.debug(logMarker, "Passed empty list of environment variables for Simulator $this")
+            return
+        }
+
+        logger.debug(logMarker, "Setting environment variables $envs for Simulator $this")
+        val envsArguments = mutableListOf<String>()
+        envs.keys.forEach {
+            envsArguments.addAll(listOf(it, ShellUtils.escape(envs.getValue(it))))
+        }
+        remote.shell("xcrun simctl spawn $udid launchctl setenv ${envsArguments.joinToString(" ")}")
     }
 }
