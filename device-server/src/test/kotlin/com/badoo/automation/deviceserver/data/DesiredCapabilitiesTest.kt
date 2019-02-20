@@ -60,4 +60,20 @@ class DesiredCapabilitiesTest {
 
         assertEquals(DesiredCapabilities(null, null, null, true, true), actual)
     }
+
+    @Test
+    fun fromJsonParsesUseWdaFalseCapability() {
+        val json = """{"use_wda": false}"""
+        val actual = fromJson(json)
+
+        assertEquals(DesiredCapabilities(null, null, null, true, true, useWda = false), actual)
+    }
+
+    @Test
+    fun fromJsonParsesUseWdaBoolAsTextCapability() {
+        val json = """{"use_wda": "false"}"""
+        val actual = fromJson(json)
+
+        assertEquals(DesiredCapabilities(null, null, null, true, useWda = false), actual)
+    }
 }
