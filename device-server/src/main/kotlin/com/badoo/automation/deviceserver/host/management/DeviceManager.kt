@@ -168,4 +168,8 @@ class DeviceManager(
     override fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
         return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
     }
+
+    override fun runXcuiTest(ref: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig): XcuiTestExecutionResult {
+        return nodeRegistry.activeDevices.getNodeFor(ref).runXcuiTest(ref, xcuiTestExecutionConfig)
+    }
 }

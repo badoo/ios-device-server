@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.ios.device
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
+import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.DeviceStatus
@@ -13,12 +14,12 @@ import com.badoo.automation.deviceserver.util.pollFor
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
+import java.io.File
 import java.net.URI
 import java.net.URL
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import java.io.File
 
 class Device(
     private val remote: IRemote,
@@ -364,6 +365,22 @@ class Device(
 
     fun uninstallApplication(bundleId: String) {
         remote.fbsimctl.uninstallApp(udid, bundleId)
+    }
+
+    fun runXcuiTest(xcuiTestExecutionConfig: XcuiTestExecutionConfig): XcuiTestExecutionResult {
+        logger.debug(logMarker, "Running XCUI test '${xcuiTestExecutionConfig.testName}'" +
+                " using '${xcuiTestExecutionConfig.pathToXctestrunFile}' on device $this")
+
+        val command = "xcodebuild test-without-building -xctestrun ${ShellUtils.escape(xcuiTestExecutionConfig.pathToXctestrunFile)} " +
+                "-destination ${ShellUtils.escape("platform=iOS,id=$udid")} -only-testing:${xcuiTestExecutionConfig.testName}"
+
+        val result = remote.shell(command, timeOutSeconds = xcuiTestExecutionConfig.timeoutSec)
+        return XcuiTestExecutionResult(
+                result.cmd.joinToString(" "),
+                result.exitCode,
+                result.stdOut,
+                result.stdErr
+        )
     }
 
     private companion object {

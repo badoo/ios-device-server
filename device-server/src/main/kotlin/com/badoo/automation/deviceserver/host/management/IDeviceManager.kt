@@ -31,4 +31,5 @@ interface IDeviceManager {
     fun listFiles(ref: DeviceRef, dataPath: DataPath): List<String>
     fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray
     fun uninstallApplication(ref: String, bundleId: String)
+    fun runXcuiTest(ref: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig): XcuiTestExecutionResult
 }

@@ -55,7 +55,7 @@ class SimulatorBackupTest {
 
     @Test fun shouldCreateBackup() {
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultStub)
-        whenever(remote.shell(anyString(), anyBoolean())).thenReturn(resultStub)
+        whenever(remote.shell(anyString(), anyBoolean(), anyLong())).thenReturn(resultStub)
 
         SimulatorBackup(remote, udid, deviceSetPath).create()
 
@@ -66,7 +66,7 @@ class SimulatorBackupTest {
         assertEquals("mkdir -p $deviceSetPath/${udid}_BACKUP/data/device_server", captor.allValues[2].joinToString(" "))
 
         val cmdCaptor = ArgumentCaptor.forClass("".javaClass)
-        verify(remote, times(1)).shell(cmdCaptor.capture() ?: "", anyBoolean())
+        verify(remote, times(1)).shell(cmdCaptor.capture() ?: "", anyBoolean(), anyLong())
         val redirectPath = "$deviceSetPath/${udid}_BACKUP/data/device_server/meta.json"
         val regex = """echo \\\{\\"version\\":1,\\"created\\":\\"[0-9T:-]+\\"\\} > $redirectPath""".toRegex()
         assertThat(cmdCaptor.firstValue,  matchesPattern(regex.pattern))

@@ -10,6 +10,7 @@ import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.*
+import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
@@ -385,7 +386,26 @@ class SimulatorsNodeTest {
         simulatorsNode.videoRecordingStop(ref1)
 
         verify(videoRecorderMock).stop()
-
     }
 
+    @Test
+    fun runXcuiTest() {
+        val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
+                "test-scheme/TestName",
+                "/some/path/Build/Product/file_name.xctestrun"
+        )
+        val expectedResult = XcuiTestExecutionResult(
+                "some command",
+                0,
+                "some stdOut",
+                "some stdErr"
+        )
+        createDeviceForTest()
+        whenever(simulatorMock.runXcuiTest(xcuiTestExecutionConfig)).thenReturn(expectedResult)
+
+        val actualResult = simulatorsNode.runXcuiTest(ref1, xcuiTestExecutionConfig)
+
+        verify(simulatorMock).runXcuiTest(xcuiTestExecutionConfig)
+        assertThat(actualResult, CoreMatchers.equalTo(expectedResult))
+    }
 }

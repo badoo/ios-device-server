@@ -57,13 +57,13 @@ class Remote(
         return remoteExecutor.exec(command, env, returnFailure = returnFailure, timeOut = Duration.ofSeconds(timeOutSeconds))
     }
 
-    override fun shell(command: String, returnOnFailure: Boolean): CommandResult {
+    override fun shell(command: String, returnOnFailure: Boolean, timeOutSeconds: Long): CommandResult {
         val cmd = when {
             isLocalhost() -> listOf("bash", "-c", command)
             else -> listOf("bash", "-c", ShellUtils.escape(command)) // workaround for how ssh executor is designed
         }
 
-        return remoteExecutor.exec(cmd, emptyMap(), returnFailure = returnOnFailure)
+        return remoteExecutor.exec(cmd, emptyMap(), returnFailure = returnOnFailure, timeOut = Duration.ofSeconds(timeOutSeconds))
     }
 
     //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel

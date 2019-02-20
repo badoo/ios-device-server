@@ -12,6 +12,7 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.whenever
+import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.sameInstance
@@ -194,5 +195,25 @@ class DeviceManagerTest {
     fun autoReleaseLoopIsCalledByConstructor() {
         deviceManager.launchAutoReleaseLoop()
         verify(autoreleaseLooper).autoreleaseLoop(deviceManager)
+    }
+
+    @Test
+    fun runXcuiTest() {
+        val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
+                "test-scheme/TestName",
+                "/some/path/Build/Product/file_name.xctestrun"
+        )
+        val expectedResult = XcuiTestExecutionResult(
+                "some command",
+                0,
+                "some stdOut",
+                "some stdErr"
+        )
+        withDeviceOnHost(hostTwo) {
+            whenever(hostTwo.runXcuiTest(ref, xcuiTestExecutionConfig)).thenReturn(expectedResult)
+            val actualResult = deviceManager.runXcuiTest(ref, xcuiTestExecutionConfig)
+            verify(hostTwo).runXcuiTest(ref, xcuiTestExecutionConfig)
+            assertThat(actualResult, CoreMatchers.equalTo(expectedResult))
+        }
     }
 }

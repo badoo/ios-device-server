@@ -242,6 +242,10 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).uninstallApplication(bundleId)
     }
 
+    override fun runXcuiTest(deviceRef: DeviceRef, xcuiTestExecutionConfig: XcuiTestExecutionConfig) : XcuiTestExecutionResult {
+        return getDeviceFor(deviceRef).runXcuiTest(xcuiTestExecutionConfig)
+    }
+
     override fun toString(): String {
         return "${javaClass.simpleName} at $remoteAddress"
     }

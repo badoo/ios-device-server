@@ -209,5 +209,22 @@ class DevicesControllerTest {
         val actualResult = deviceServer.getDeviceState(deviceRef)
         assertThat(actualResult, equalTo(expectedState))
     }
-}
 
+    @Test
+    fun runXcuiTest() {
+        val xcuiTestExecutionConfig = XcuiTestExecutionConfig(
+                "test-scheme/TestName",
+                "/some/path/Build/Product/file_name.xctestrun"
+        )
+        val expectedResult = XcuiTestExecutionResult(
+                "some command",
+                0,
+                "some stdOut",
+                "some stdErr"
+        )
+        whenever(deviceManager.runXcuiTest(deviceRef, xcuiTestExecutionConfig)).thenReturn(expectedResult)
+        val actualResult = deviceServer.runXcuiTest(deviceRef, xcuiTestExecutionConfig)
+        verify(deviceManager).runXcuiTest(deviceRef, xcuiTestExecutionConfig)
+        assertThat(actualResult, equalTo(expectedResult))
+    }
+}

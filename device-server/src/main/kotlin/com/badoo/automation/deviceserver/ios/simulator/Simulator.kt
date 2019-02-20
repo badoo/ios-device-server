@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
+import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
@@ -636,5 +637,21 @@ class Simulator (
     override fun uninstallApplication(bundleId: String) {
         logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")
         remote.execIgnoringErrors(listOf("xcrun", "simctl", "uninstall", udid, bundleId))
+    }
+
+    override fun runXcuiTest(xcuiTestExecutionConfig: XcuiTestExecutionConfig): XcuiTestExecutionResult {
+        logger.debug(logMarker, "Running XCUI test '${xcuiTestExecutionConfig.testName}'" +
+                " using '${xcuiTestExecutionConfig.pathToXctestrunFile}' on Simulator $this")
+
+        val command = "xcodebuild test-without-building -xctestrun ${ShellUtils.escape(xcuiTestExecutionConfig.pathToXctestrunFile)} " +
+                "-destination ${ShellUtils.escape("platform=iOS Simulator,id=$udid")} -only-testing:${xcuiTestExecutionConfig.testName}"
+
+        val result = remote.shell(command, timeOutSeconds = xcuiTestExecutionConfig.timeoutSec)
+        return XcuiTestExecutionResult(
+                result.cmd.joinToString(" "),
+                result.exitCode,
+                result.stdOut,
+                result.stdErr
+        )
     }
 }
