@@ -3,29 +3,37 @@ package com.badoo.automation.deviceserver.data
 import com.fasterxml.jackson.annotation.JsonValue
 
 enum class PermissionType(@JsonValue val value: String) {
+    // region yes/no/unset permissions
     Calendar("calendar"),
 
     Camera("camera"),
 
     Contacts("contacts"),
 
+    Health("health"),
+
     HomeKit("homekit"),
 
+    MediaLibrary("medialibrary"),
+
     Microphone("microphone"),
+
+    Motion("motion"),
+
+    Notifications("notifications"),
 
     Photos("photos"),
 
     Reminders("reminders"),
 
-    MediaLibrary("medialibrary"),
-
-    Motion("motion"),
-
-    Health("health"),
-
     Siri("siri"),
 
-    Speech("speech");
+    Speech("speech"),
+    // endregion
+
+    // region always/inuse/never/unset permissions
+    Location("location"),
+    // endregion
 }
 
 enum class PermissionAllowed(@JsonValue val value: String) {
