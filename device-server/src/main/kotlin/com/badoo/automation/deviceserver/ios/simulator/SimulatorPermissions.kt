@@ -26,7 +26,15 @@ class SimulatorPermissions(
         PermissionType.Speech to "kTCCServiceSpeechRecognition"
     )
 
-    fun setServicePermission(bundleId: String, type: PermissionType, value: PermissionAllowed) {
+    fun setPermission(bundleId: String, type: PermissionType, value: PermissionAllowed) {
+        when (type) {
+            PermissionType.Location -> setLocationPermission(bundleId, value)
+            PermissionType.Notifications -> setNotificationsPermission(bundleId, value)
+            else -> setServicePermission(bundleId, type, value)
+        }
+    }
+
+    fun setServicePermission(bundleId: String, type: PermissionType, allowed: PermissionAllowed) {
         val key = serviceKeys[type]
                 ?: throw(IllegalArgumentException("Permission $type is not a service type"))
 
@@ -39,21 +47,62 @@ class SimulatorPermissions(
             throw(SimulatorError("Failed to unset type $type for $this "))
         }
 
-        if (value == PermissionAllowed.Unset) {
+        if (allowed == PermissionAllowed.Unset) {
             return
         }
 
-        val allowed = when (value) {
+        val value = when (allowed) {
             PermissionAllowed.Yes -> 1
             PermissionAllowed.No -> 0
-            else -> throw(IllegalArgumentException("Unsupported value $value for type $type"))
+            else -> throw IllegalArgumentException("Unsupported value $allowed for type $type")
         }
 
         val replace =
-            "$sqlCmd \"REPLACE INTO access (service, client, client_type, allowed, prompt_count) VALUES ('$key','$bundleId',0,$allowed,1);\""
+            "$sqlCmd \"REPLACE INTO access (service, client, client_type, allowed, prompt_count) VALUES ('$key','$bundleId',0,$value,1);\""
 
         if (!remote.shell(replace).isSuccess) {
             throw(SimulatorError("Failed to update type $type for $this"))
+        }
+    }
+
+
+    private val appleSimUtils = "/usr/local/bin/applesimutils"
+
+    private fun setNotificationsPermission(bundleId: String, allowed: PermissionAllowed) {
+        val value = when (allowed) {
+            PermissionAllowed.Yes -> "YES"
+            PermissionAllowed.No -> "NO"
+            PermissionAllowed.Unset -> "unset"
+            else -> throw IllegalArgumentException("Unsupported value $allowed for type ${PermissionType.Location}")
+        }
+
+        val cmd = listOf(appleSimUtils, "--byId", simulator.udid, "--bundle", bundleId, "--setPermissions", "notifications=$value")
+
+        val rv = remote.execIgnoringErrors(cmd)
+
+        if (!rv.isSuccess){
+            throw RuntimeException("Could not set notifications permission: $rv")
+        }
+    }
+
+    private fun setLocationPermission(bundleId: String, allowed: PermissionAllowed) {
+        // map to applesimutils values
+        val value = when (allowed) {
+            PermissionAllowed.Always -> "always"
+            PermissionAllowed.Inuse -> "inuse"
+            PermissionAllowed.Never -> "never"
+            PermissionAllowed.Unset -> "unset"
+            else -> throw IllegalArgumentException("Unsupported value $allowed for type ${PermissionType.Location}")
+        }
+
+        val cmd = listOf(appleSimUtils, "--byId", simulator.udid, "--bundle", bundleId, "--setPermissions", "location=$value")
+
+        // Without PATH applesimutils will crash with 'NSInvalidArgumentException', reason: 'must provide a launch path'
+        val env = mapOf("PATH" to "/usr/bin")
+        val rv = remote.execIgnoringErrors(cmd, env)
+
+        if (!rv.isSuccess){
+            throw RuntimeException("Could not set location permission: $rv")
         }
     }
 }

@@ -4,13 +4,14 @@ module IosDeviceServerClient
       CALENDAR      = 'calendar'.freeze
       CAMERA        = 'camera'.freeze
       CONTACTS      = 'contacts'.freeze
+      HEALTH        = 'health'.freeze
       HOME_KIT      = 'homekit'.freeze
+      LOCATION      = 'location'.freeze
+      MEDIA_LIBRARY = 'medialibrary'.freeze
       MICROPHONE    = 'microphone'.freeze
+      MOTION        = 'motion'.freeze
       PHOTOS        = 'photos'.freeze
       REMINDERS     = 'reminders'.freeze
-      MEDIA_LIBRARY = 'medialibrary'.freeze
-      MOTION        = 'motion'.freeze
-      HEALTH        = 'health'.freeze
       SIRI          = 'siri'.freeze
       SPEECH        = 'speech'.freeze
     end
