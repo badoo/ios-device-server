@@ -73,6 +73,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
 
         val node: ISimulatorsNode = getAlive()
                 .map { wrapper -> wrapper.node }
+                .shuffled()
                 .maxBy { node -> node.capacityRemaining(desiredCapabilities) }
                 ?: throw NoAliveNodesException("No alive nodes are available to create device at the moment")
 
