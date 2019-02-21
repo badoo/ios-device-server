@@ -483,7 +483,7 @@ class Simulator (
         val manager = SimulatorPermissions(remote, deviceSetPath, this)
 
         permissions.forEach { type, allowed ->
-            manager.setServicePermission(bundleId, type, allowed)
+            manager.setPermission(bundleId, type, allowed)
         }
     }
 
