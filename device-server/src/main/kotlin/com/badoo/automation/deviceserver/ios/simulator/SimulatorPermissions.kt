@@ -65,24 +65,13 @@ class SimulatorPermissions(
         }
     }
 
-
     private val appleSimUtils = "/usr/local/bin/applesimutils"
 
+    @Suppress("UNUSED_PARAMETER")
     private fun setNotificationsPermission(bundleId: String, allowed: PermissionAllowed) {
-        val value = when (allowed) {
-            PermissionAllowed.Yes -> "YES"
-            PermissionAllowed.No -> "NO"
-            PermissionAllowed.Unset -> "unset"
-            else -> throw IllegalArgumentException("Unsupported value $allowed for type ${PermissionType.Location}")
-        }
-
-        val cmd = listOf(appleSimUtils, "--byId", simulator.udid, "--bundle", bundleId, "--setPermissions", "notifications=$value")
-
-        val rv = remote.execIgnoringErrors(cmd)
-
-        if (!rv.isSuccess){
-            throw RuntimeException("Could not set notifications permission: $rv")
-        }
+        // Setting notifications permission is disallowed as it results in SpringBoard restart
+        // which breaks WebDriverAgent. Restarting SpringBoard and WebDriverAgent will take too much time.
+        throw RuntimeException("Setting notifications permission is not supported")
     }
 
     private fun setLocationPermission(bundleId: String, allowed: PermissionAllowed) {
