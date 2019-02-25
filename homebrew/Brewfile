@@ -1,0 +1,16 @@
+tap "homebrew/bundle"
+tap "homebrew/core"
+
+tap "wix/brew"
+tap "facebook/fb"
+
+# Play, record, convert, and stream audio and video
+brew "ffmpeg"
+
+# Apple simulator utilities
+brew "wix/brew/applesimutils"
+
+# TODO: We need a custom formula/tap for fbsimctl as it has to be built from a fork
+# as we have to build it from https://github.com/badoo/FBSimulatorControl head
+# A Powerful Command Line for Managing iOS Simulators
+# brew "facebook/fb/fbsimctl", args: ["HEAD"]
