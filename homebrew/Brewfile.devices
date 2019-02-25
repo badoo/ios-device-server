@@ -1,0 +1,14 @@
+tap "homebrew/bundle"
+tap "homebrew/core"
+
+# Both usbmuxd and libimobiledevice should be installed from the latest HEAD
+# but if they are already installed, brew will not auto-fetch new head
+
+# USB multiplexor daemon for iPhone and iPod Touch devices
+brew "usbmuxd", args: ["HEAD"]
+
+# Library to communicate with iOS devices natively
+brew "libimobiledevice", args: ["HEAD"]
+
+# netcat on steroids
+brew "socat"
