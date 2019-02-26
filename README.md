@@ -16,12 +16,34 @@ A server for managing, booting, and controlling simulators and devices on remote
 export JAVA_HOME=$(/usr/libexec/java_home -v 10 -F)
 ```
 
-### Physical Devices
+### Dependencies
 
-To use physical devices extra dependencies are required:
+Device Server uses fbsimctl, libimobiledevice and other tools under the hood.
+
+To install dependencies run:
+
+```bash
+brew update
+brew bundle
 ```
-brew install libimobiledevice --HEAD
-brew install socat
+
+#### Simulators
+
+It might take some time to build dependencies used for physical devices. You can skip it by running following instead:
+
+```bash
+brew update
+brew bundle --file="homebrew/Brewfile"
+```
+
+#### Devices
+
+Some of the dependencies needed for physical devices have outdated stable releases and have to be installed from the latest head.
+
+After installing Brewfile you might still need to run
+
+```bash
+brew upgrade usbmuxd libimobiledevice --fetch-HEAD
 ```
 
 ## Usage
