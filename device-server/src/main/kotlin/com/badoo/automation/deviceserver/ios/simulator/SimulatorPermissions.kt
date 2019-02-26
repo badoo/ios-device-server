@@ -26,11 +26,11 @@ class SimulatorPermissions(
         PermissionType.Speech to "kTCCServiceSpeechRecognition"
     )
 
-    fun setPermission(bundleId: String, type: PermissionType, value: PermissionAllowed) {
+    fun setPermission(bundleId: String, type: PermissionType, allowed: PermissionAllowed) {
         when (type) {
-            PermissionType.Location -> setLocationPermission(bundleId, value)
-            PermissionType.Notifications -> setNotificationsPermission(bundleId, value)
-            else -> setServicePermission(bundleId, type, value)
+            PermissionType.Location -> setLocationPermission(bundleId, allowed)
+            PermissionType.Notifications -> setNotificationsPermission(bundleId, allowed)
+            else -> setServicePermission(bundleId, type, allowed)
         }
     }
 
