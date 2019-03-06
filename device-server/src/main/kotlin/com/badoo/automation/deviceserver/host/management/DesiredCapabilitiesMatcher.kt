@@ -29,7 +29,12 @@ class DesiredCapabilitiesMatcher : IDesiredCapabilitiesMatcher {
 
     internal fun isRuntimeMatch(desired: String, actual: String): Boolean {
         val desiredRuntime = RuntimeVersion(desired)
-        val actualRuntime = RuntimeVersion(actual)
+
+        val actualRuntime = try {
+            RuntimeVersion(actual)
+        } catch (e: IllegalArgumentException) {
+            return false
+        }
 
         if (desiredRuntime.name != actualRuntime.name) {
             return false
