@@ -259,7 +259,10 @@ class Device(
     private fun uninstallUserApps(whitelistedApps: Set<String>) {
         logger.debug(logMarker, "About to uninstall user apps on $this")
         val listApps = remote.fbsimctl.listApps(udid)
-        val userApps = listApps.filter { it.install_type == "user" }.map { it.bundle.bundle_id }
+        val userApps = listApps
+            .filter { it.install_type != null && it.install_type.startsWith("user") }
+            .map { it.bundle.bundle_id }
+
         val bundlesToUninstall = userApps.toSet() - whitelistedApps
         logger.info(logMarker, "Uninstalling user apps: $bundlesToUninstall")
 
