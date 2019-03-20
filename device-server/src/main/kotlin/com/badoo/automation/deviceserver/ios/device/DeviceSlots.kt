@@ -37,8 +37,27 @@ class DeviceSlots(
         )
     )
 
+    private fun getDevicesWithRetry(): List<DeviceInfo> {
+        val maxAttempts = 3
+        var connectedDevices = emptyList<DeviceInfo>()
+
+        for (attempt in 1..maxAttempts) {
+            connectedDevices = deviceInfoProvider.list()
+
+            if (connectedDevices.isEmpty()) {
+                logger.warn("fbsimctl returned an empty list of devices on attempt $attempt/$maxAttempts")
+                Thread.sleep(500)
+                continue
+            } else {
+                break
+            }
+        }
+
+        return connectedDevices
+    }
+
     fun registerDevices() {
-        val connectedDevices = deviceInfoProvider.list()
+        val connectedDevices = getDevicesWithRetry()
         val knownConnectedDevices = connectedDevices.filter { isWhitelisted(it.udid) }
 
         val diff = diff(knownConnectedDevices)
