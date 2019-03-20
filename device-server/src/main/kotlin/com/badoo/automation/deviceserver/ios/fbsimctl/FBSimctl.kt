@@ -118,20 +118,18 @@ class FBSimctl(
         fbsimctl(listOf("uninstall", bundleId), udid, raiseOnError = true)
     }
 
-    //region private fun
     private fun fbsimctl(cmd: String, udid: UDID? = null, jsonFormat: Boolean = true, timeOut: Duration = Duration.ofSeconds(30),
-                         raiseOnError: Boolean = true, isWarning: (stdOut: String) -> Boolean = { false })
+                         raiseOnError: Boolean = true)
             = fbsimctl(
-            cmd.split(" "),
-            udid,
-            jsonFormat,
-            timeOut = timeOut,
-            raiseOnError = raiseOnError,
-            isWarning = isWarning
+        cmd.split(" "),
+        udid,
+        jsonFormat,
+        timeOut = timeOut,
+        raiseOnError = raiseOnError
     )
 
     private fun fbsimctl(cmd: List<String>, udid: UDID? = null, jsonFormat: Boolean = true, timeOut: Duration = Duration.ofSeconds(30),
-                         raiseOnError: Boolean = false, isWarning: (stdOut: String) -> Boolean = { false }): String {
+                         raiseOnError: Boolean = false): String {
 
         val fbsimctlCommand = buildFbsimctlCommand(jsonFormat, udid, cmd)
 
@@ -141,13 +139,14 @@ class FBSimctl(
             result = executeCommand(fbsimctlCommand, timeOut) //FIXME: NOT a good place and not a good thing to do
         }
 
+        val errors = filterFailures(result.stdOut)
+        errors.forEach { logger.warn("fbsimctl warnings: ${it["subject"]}") }
+
         if (raiseOnError) {
-            val (warnings, errors) = filterWarnings(result.stdOut, isWarning)
-            warnings.forEach { logger.warn("Ignoring fbsimctl errors: ${it["subject"]}") }
             ensure(errors.isEmpty()) { FBSimctlError("fbsimctl failed: $errors", null) }
             if (result.exitCode != 0) {
-                throw FBSimctlError("Error while running command: ≤${fbsimctlCommand.joinToString(" ")}≥ " +
-                        "Exit code:: [${result.exitCode}], stderr:: [${result.stdErr}] stdout:: [${result.stdOut}]", null)
+                throw FBSimctlError("Error while running command: ${fbsimctlCommand.joinToString(" ")} " +
+                        "Exit code: [${result.exitCode}], stdout: [${result.stdOut}], stderr: [${result.stdErr}]", null)
             }
         }
 
@@ -174,9 +173,5 @@ class FBSimctl(
         return cmd
     }
 
-    private fun filterWarnings(out: String, isWarning: (stdOut: String) -> Boolean)
-            = parser.parse(out)
-            .filter { it["event_name"] == "failure" }
-            .partition { isWarning(it["subject"] as String) }
-    //endregion
+    private fun filterFailures(out: String) = parser.parse(out).filter { it["event_name"] == "failure" }
 }
