@@ -17,7 +17,6 @@ class FBSimctl(
         private val SIMULATOR_SHUTDOWN_TIMEOUT: Duration = Duration.ofSeconds(60)
         const val FBSIMCTL_BIN = "/usr/local/bin/fbsimctl"
         const val RESPONSE_FORMAT = "--json"
-        private val NEW_LINE = System.lineSeparator()!!
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -118,9 +117,13 @@ class FBSimctl(
         fbsimctl(listOf("uninstall", bundleId), udid, raiseOnError = true)
     }
 
-    private fun fbsimctl(cmd: String, udid: UDID? = null, jsonFormat: Boolean = true, timeOut: Duration = Duration.ofSeconds(30),
-                         raiseOnError: Boolean = true)
-            = fbsimctl(
+    private fun fbsimctl(
+        cmd: String,
+        udid: UDID? = null,
+        jsonFormat: Boolean = true,
+        timeOut: Duration = Duration.ofSeconds(30),
+        raiseOnError: Boolean = true
+    ) = fbsimctl(
         cmd.split(" "),
         udid,
         jsonFormat,
@@ -128,8 +131,13 @@ class FBSimctl(
         raiseOnError = raiseOnError
     )
 
-    private fun fbsimctl(cmd: List<String>, udid: UDID? = null, jsonFormat: Boolean = true, timeOut: Duration = Duration.ofSeconds(30),
-                         raiseOnError: Boolean = false): String {
+    private fun fbsimctl(
+        cmd: List<String>,
+        udid: UDID? = null,
+        jsonFormat: Boolean = true,
+        timeOut: Duration = Duration.ofSeconds(30),
+        raiseOnError: Boolean = false
+    ): String {
 
         val fbsimctlCommand = buildFbsimctlCommand(jsonFormat, udid, cmd)
 
