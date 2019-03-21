@@ -73,7 +73,6 @@ class Simulator (
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
     private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint)
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
-    private val simulatorStatus = SimulatorStatus()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val commonLogMarkerDetails = mapOf(
             LogMarkers.DEVICE_REF to deviceRef,
@@ -94,9 +93,21 @@ class Simulator (
 
     //region prepareAsync
     override fun prepareAsync() {
+        executeCritical {
+            deviceState = DeviceState.CREATING
+        }
+
         executeCriticalAsync {
             val elapsed = measureTimeMillis {
-                prepare(clean = true)
+                try {
+                    prepare(clean = true)
+                } catch (e: Exception) { // catching most wide exception
+                    executeCritical {
+                        deviceState = DeviceState.FAILED
+                    }
+                    logger.error(logMarker, "Failed to prepare device ${this@Simulator}", e)
+                    throw e
+                }
             }
             logger.info(logMarker, "Device ${this@Simulator} ready in ${elapsed / 1000} seconds")
         }
@@ -311,7 +322,15 @@ class Simulator (
             // FIXME: check for it.isActive to help to cancel long running tasks
             val elapsed = measureTimeMillis {
                 resetFromBackup()
-                prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
+                try {
+                    prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
+                } catch (e: Exception) { // catching most wide exception
+                    executeCritical {
+                        deviceState = DeviceState.FAILED
+                    }
+                    logger.error(logMarker, "Failed to reset and prepare device ${this@Simulator}", e)
+                    throw e
+                }
             }
             logger.info(logMarker, "Device ${this@Simulator} reset and ready in ${elapsed / 1000} seconds")
         }
@@ -382,11 +401,20 @@ class Simulator (
 
     //region simulator status
     override fun status(): SimulatorStatusDTO {
-        refreshStatus()
+        var isFbsimctlReady = false
+        var isWdaReady = false
+
+        if (deviceState == DeviceState.CREATED) {
+            isFbsimctlReady = fbsimctlProc.isHealthy()
+            isWdaReady = (if (useWda) { wdaProc.isHealthy() } else true)
+        }
+
+        val isSimulatorReady = deviceState == DeviceState.CREATED && isFbsimctlReady && isWdaReady
+
         return SimulatorStatusDTO(
-                ready = deviceState == DeviceState.CREATED && simulatorStatus.isReady,
-                wda_status = simulatorStatus.wdaStatus,
-                fbsimctl_status = simulatorStatus.fbsimctlStatus,
+                ready = isSimulatorReady,
+                wda_status = isWdaReady,
+                fbsimctl_status = isFbsimctlReady,
                 state = deviceState.value,
                 last_error = lastException?.toDTO()
         )
@@ -399,68 +427,6 @@ class Simulator (
             message = this.message ?: "",
             stackTrace = stackTrace.map { it.toString() }
         )
-    }
-
-    private fun refreshStatus() {
-        simulatorStatus.isReady = false
-        simulatorStatus.fbsimctlStatus = false
-        simulatorStatus.wdaStatus = false
-
-        if (deviceState != DeviceState.CREATED) {
-            return
-        }
-
-        val device = remote.fbsimctl.listDevice(udid) ?: return
-
-        if (device.state != FBSimctlDeviceState.BOOTED.value) {
-            return
-        }
-
-        runBlocking {
-            val isFbsimctlHealthyTask = async { fbsimctlProc.isHealthy() }
-            val isWdaHealthyTask = async { if (useWda) wdaProc.isHealthy() else true }
-
-            val isFbsimctlHealthy: Boolean = isFbsimctlHealthyTask.await()
-            val isWdaHealthy: Boolean = isWdaHealthyTask.await()
-
-            if (isFbsimctlHealthy) {
-                simulatorStatus.fbsimctlStatusRetries = 0
-            } else {
-                simulatorStatus.fbsimctlStatusRetries += 1
-
-                if (simulatorStatus.fbsimctlStatusRetries > 3) {
-                    executeCritical {
-                        deviceState = DeviceState.FAILED
-                    }
-
-                    val message = "${this@Simulator} Fbsimctl: simulator is not healthy, probably crashed."
-                    logger.error(logMarker, message)
-                    lastException = RuntimeException(message)
-                    return@runBlocking
-                }
-            }
-
-            if (isWdaHealthy) {
-                simulatorStatus.wdaStatusRetries = 0
-            } else {
-                simulatorStatus.wdaStatusRetries += 1
-
-                if (simulatorStatus.wdaStatusRetries > 3) {
-                    executeCritical {
-                        deviceState = DeviceState.FAILED
-                    }
-
-                    val message = "${this@Simulator} WebDriverAgent is not healthy, probably crashed."
-                    logger.error(logMarker, message)
-                    lastException = RuntimeException(message)
-                    return@runBlocking
-                }
-            }
-
-            simulatorStatus.isReady = isWdaHealthy && isFbsimctlHealthy
-            simulatorStatus.fbsimctlStatus = isFbsimctlHealthy
-            simulatorStatus.wdaStatus = isWdaHealthy
-        }
     }
     //endregion
 

@@ -96,7 +96,6 @@ class Device(
     private fun refreshStatus() {
         val previousFbSimctlStatus = status.fbsimctlStatus
 
-        status.isReady = false
         status.fbsimctlStatus = false
         status.wdaStatus = false
 
@@ -138,7 +137,6 @@ class Device(
             lastException = RuntimeException(message)
         }
 
-        status.isReady = isBooted && wdaStatus && fbsimctlStatus
         status.fbsimctlStatus = fbsimctlStatus
         status.wdaStatus = wdaStatus
     }
