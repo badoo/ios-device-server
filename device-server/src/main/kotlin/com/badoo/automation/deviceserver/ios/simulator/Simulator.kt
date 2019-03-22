@@ -196,14 +196,18 @@ class Simulator (
 
     private fun shutdown() {
         logger.info(logMarker, "Shutting down ${this@Simulator}")
-        ignoringErrors({ fbsimctlProc.kill() })
+        remote.fbsimctl.shutdown(udid)
+        ignoringErrors { fbsimctlProc.kill() }
 
-        if (remote.fbsimctl.listDevice(udid)?.state != FBSimctlDeviceState.SHUTDOWN.value) {
-            remote.fbsimctl.shutdown(udid)
-            pollFor(Duration.ofSeconds(50), "${this@Simulator} to shutdown", logger = logger, marker = logMarker) {
-                val fbSimctlDevice = remote.fbsimctl.listDevice(udid)
-                FBSimctlDeviceState.SHUTDOWN.value == fbSimctlDevice?.state
-            }
+        pollFor(
+            timeOut = Duration.ofSeconds(60),
+            reasonName = "${this@Simulator} to shutdown",
+            retryInterval = Duration.ofSeconds(10),
+            logger = logger,
+            marker = logMarker
+        ) {
+            val fbSimctlDevice = remote.fbsimctl.listDevice(udid)
+            FBSimctlDeviceState.SHUTDOWN.value == fbSimctlDevice?.state
         }
 
         logger.info(logMarker, "Successfully shut down ${this@Simulator}")
