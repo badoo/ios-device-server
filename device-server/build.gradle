@@ -129,26 +129,3 @@ test {
 kapt {
     useBuildCache = true
 }
-
-task wrapper(type: Wrapper) {
-    gradleVersion="4.5.1"
-}
-
-// caching dependencies for docker
-task resolveDependencies {
-    doLast {
-        project.buildscript.configurations.each { configuration ->
-            println "Downloading dependencies for project.buildscript.configuration => " + configuration
-            configuration.resolve()
-        }
-
-        println "Downloading dependencies for project.configuration => :compile"
-        project.configurations['compile'].resolve()
-        println "Downloading dependencies for project.configuration => :compileKotlin"
-        project.configurations['compileKotlin'].resolve()
-        println "Downloading dependencies for project.configuration => :testCompile"
-        project.configurations['testCompile'].resolve()
-        println "Downloading dependencies for project.configuration => :compileTestKotlin"
-        project.configurations['compileTestKotlin'].resolve()
-    }
-}
