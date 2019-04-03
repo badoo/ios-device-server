@@ -5,5 +5,8 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 
 fun main(args: Array<String>) {
-    embeddedServer(Netty, commandLineEnvironment(args)).start(wait = true)
+    embeddedServer(Netty, commandLineEnvironment(args)) {
+        workerGroupSize = Integer.getInteger("embedded.netty.workerGroupSize", workerGroupSize)
+        callGroupSize = Integer.getInteger("embedded.netty.callGroupSize", callGroupSize)
+    }.start(wait = true)
 }
