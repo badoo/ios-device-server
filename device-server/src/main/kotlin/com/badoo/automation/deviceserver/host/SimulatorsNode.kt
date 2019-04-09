@@ -46,6 +46,7 @@ class SimulatorsNode(
         if (!remote.isLocalhost()) {
             hostChecker.copyWdaBundleToHost()
         }
+
         hostChecker.cleanup()
         hostChecker.setupHost()
         logger.info(logMarker, "Prepared node ${remote.hostName}")
