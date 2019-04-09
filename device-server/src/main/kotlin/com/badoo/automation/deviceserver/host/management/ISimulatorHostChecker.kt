@@ -25,7 +25,8 @@ class SimulatorHostChecker(
         private val diskCleanupInterval: Duration = Duration.ofMinutes(15),
         private val wdaBundle: File,
         private val remoteWdaBundleRoot: File,
-        private val fbsimctlVersion: String
+        private val fbsimctlVersion: String,
+        private val shutdownSimulators: Boolean
 ) : ISimulatorHostChecker {
     override val isWdaBundleDeployed: Boolean
         get() = remote.execIgnoringErrors(listOf("test", "-d", remoteWdaBundleRoot.absolutePath)).isSuccess
@@ -76,9 +77,14 @@ class SimulatorHostChecker(
     }
 
     override fun cleanup() {
+        if (shutdownSimulators) {
+            cleanupSimulators()
+            cleanupSimulatorServices()
+        }
+
         try {
             logger.info(logMarker, "Will kill abandoned long living fbsimctl processes")
-            remote.pkill("/usr/local/bin/fbsimctl")
+            remote.pkill("/usr/local/bin/fbsimctl", true)
             logger.info(logMarker, "Will shutdown booted simulators")
             remote.fbsimctl.shutdownAllBooted()
             logger.info(logMarker, "Done shutting down booted simulators")
@@ -114,6 +120,18 @@ class SimulatorHostChecker(
                 0,
                 diskCleanupInterval.toMinutes(),
                 TimeUnit.MINUTES)
+    }
+
+    private fun cleanupSimulators() {
+        remote.pkill("Simulator.app", false) // Simulator UI application
+        remote.pkill("launchd_sim", false) // main process for running simulator
+    }
+
+    private fun cleanupSimulatorServices() {
+        val simulatorServices = listOf("CoreSimulatorService", "SimAudioProcessorService", "SimStreamProcessorService")
+        simulatorServices.forEach {
+            remote.pkill(it, true)
+        }
     }
 
     override fun setupHost() {
