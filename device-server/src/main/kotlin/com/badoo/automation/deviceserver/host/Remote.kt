@@ -75,8 +75,18 @@ class Remote(
         )
     }
 
-    override fun pkill(matchString: String) {
-        execIgnoringErrors(listOf("pkill", "-9", "-f", matchString))
+    private enum class Signal(val signal: Int) {
+        SIGKILL(9),
+        SIGTERM(15);
+
+        override fun toString(): String {
+            return signal.toString()
+        }
+    }
+
+    override fun pkill(matchString: String, force: Boolean) {
+        val signal = if (force) { Signal.SIGKILL } else { Signal.SIGTERM }
+        execIgnoringErrors(listOf("pkill", "-$signal", "-f", matchString))
     }
 
     override fun isDirectory(path: String): Boolean {
