@@ -36,7 +36,7 @@ interface IRemote {
      */
     fun captureFile(file: File): CommandResult
 
-    fun pkill(matchString: String)
+    fun pkill(matchString: String, force: Boolean)
 
     /**
      * Sends command to FBSimctl and expects JSON back from FBSimctl,

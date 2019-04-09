@@ -39,7 +39,8 @@ class HostFactory(
                     remote,
                     wdaBundle = wdaSimulatorBundle,
                     remoteWdaBundleRoot = REMOTE_WDA_BUNDLE_ROOT,
-                    fbsimctlVersion = fbsimctlVersion
+                    fbsimctlVersion = fbsimctlVersion,
+                    shutdownSimulators = config.shutdownSimulators
                 ),
                 simulatorLimit = config.simulatorLimit,
                 concurrentBoots = config.concurrentBoots,
