@@ -102,6 +102,22 @@ class SimulatorsNode(
         }
     }
 
+    override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType): Diagnostic {
+        when (type) {
+            DiagnosticType.SystemLog -> return Diagnostic(
+                type = type,
+                content = getDeviceFor(deviceRef).systemLog.content()
+            )
+            else -> throw  RuntimeException("Diagnostic $type is not supported")
+        }
+    }
+
+    override fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType) {
+        when (type) {
+            DiagnosticType.SystemLog -> getDeviceFor(deviceRef).systemLog.truncate()
+        }
+    }
+
     private fun simulatorToDTO(device: ISimulator): DeviceDTO {
         with(device) {
             return DeviceDTO(

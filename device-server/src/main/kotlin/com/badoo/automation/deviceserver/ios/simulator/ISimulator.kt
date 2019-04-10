@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
+import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import java.net.URI
 import java.net.URL
@@ -19,6 +20,7 @@ interface ISimulator {
     val calabashPort: Int
     val videoRecorder: SimulatorVideoRecorder
     val fbsimctlSubject: String
+    val systemLog: SystemLog
 
     fun prepareAsync()
     fun resetAsync()

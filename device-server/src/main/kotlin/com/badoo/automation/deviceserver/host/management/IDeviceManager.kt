@@ -32,4 +32,6 @@ interface IDeviceManager {
     fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray
     fun uninstallApplication(ref: String, bundleId: String)
     fun setEnvironmentVariables(ref: DeviceRef, envs: Map<String, String>)
+    fun getDiagnostic(ref: DeviceRef, type: DiagnosticType): Diagnostic
+    fun resetDiagnostic(ref: DeviceRef, type: DiagnosticType)
 }

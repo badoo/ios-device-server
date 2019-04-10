@@ -172,4 +172,12 @@ class DeviceManager(
     override fun setEnvironmentVariables(ref: DeviceRef, envs: Map<String, String>) {
         nodeRegistry.activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
     }
+
+    override fun getDiagnostic(ref: DeviceRef, type: DiagnosticType): Diagnostic {
+        return nodeRegistry.activeDevices.getNodeFor(ref).getDiagnostic(ref, type)
+    }
+
+    override fun resetDiagnostic(ref: DeviceRef, type: DiagnosticType) {
+        nodeRegistry.activeDevices.getNodeFor(ref).resetDiagnostic(ref, type)
+    }
 }
