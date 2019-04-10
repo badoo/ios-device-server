@@ -12,6 +12,7 @@ import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.FileSystem
+import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.pollFor
@@ -60,6 +61,8 @@ class Simulator (
     private val recordingLocation = Paths.get(deviceSetPath, udid, "video.mp4").toFile()
 
     override val videoRecorder: SimulatorVideoRecorder = SimulatorVideoRecorder(deviceInfo, remote, location = recordingLocation)
+
+    override val systemLog = SystemLog(remote, udid)
 
     //region instance state variables
     private val deviceLock = ReentrantLock()

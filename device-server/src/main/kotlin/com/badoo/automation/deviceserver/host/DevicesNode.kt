@@ -41,6 +41,15 @@ class DevicesNode(
         get() = remote.isLocalhost() || isWebDriverAgentDeployed
 
     private val deviceRegistrationInterval = Duration.ofMinutes(1)
+
+    override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType): Diagnostic {
+        throw(NotImplementedError("Diagnostic is not supported by physical devices"))
+    }
+
+    override fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType) {
+        throw(NotImplementedError("Diagnostic is not supported by physical devices"))
+    }
+
     override val remoteAddress: String get() = remote.hostName
 
     private val deviceInfoProvider = DeviceInfoProvider(remote)

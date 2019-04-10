@@ -101,6 +101,16 @@ class DevicesController(private val deviceManager: IDeviceManager) {
         return happy
     }
 
+    fun getDiagnostic(ref: DeviceRef, type: String): Diagnostic {
+        val diagnosticType = DiagnosticType.fromString(type)
+        return deviceManager.getDiagnostic(ref, diagnosticType)
+    }
+
+    fun resetDiagnostic(ref: DeviceRef, type: String) {
+        val diagnosticType = DiagnosticType.fromString(type)
+        deviceManager.resetDiagnostic(ref, diagnosticType)
+    }
+
     fun getDeviceState(ref: DeviceRef): SimulatorStatusDTO {
         return deviceManager.getDeviceState(ref)
     }

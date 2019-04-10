@@ -217,6 +217,18 @@ fun Application.module() {
                         call.respond(devicesController.uninstallApplication(ref, bundleId))
                     }
                 }
+                route("diagnose/{type}") {
+                    get {
+                        val ref = param(call, "ref")
+                        val type = param(call, "type")
+                        call.respond(devicesController.getDiagnostic(ref, type))
+                    }
+                    delete {
+                        val ref = param(call, "ref")
+                        val type = param(call, "type")
+                        call.respond(devicesController.resetDiagnostic(ref, type))
+                    }
+                }
                 route("video") {
                     get {
                         //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
