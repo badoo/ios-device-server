@@ -76,7 +76,7 @@ private fun serverConfig(): DeviceServerConfig {
     if (appConfiguration.deviceServerConfigPath.isEmpty()) {
         val defaultNodeConfig = NodeConfig()
         logger.info("Using default config: $defaultNodeConfig")
-        return DeviceServerConfig(nodes = listOf(defaultNodeConfig), timeouts = emptyMap())
+        return DeviceServerConfig(nodes = setOf(defaultNodeConfig), timeouts = emptyMap())
     }
 
     val configFile = File(appConfiguration.deviceServerConfigPath)

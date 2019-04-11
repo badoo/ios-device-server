@@ -56,8 +56,10 @@ class SimulatorsNodeTest {
     private val configuredSimulatorLimit = 3
 
     private val simulatorFactory: ISimulatorFactory = mockThis()
+    private val publicHostName = "hostname"
     private val simulatorsNode1 = SimulatorsNode(
             iRemote,
+            publicHostName,
             hostChecker,
             configuredSimulatorLimit,
             2,
