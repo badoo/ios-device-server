@@ -24,6 +24,11 @@ class SystemLog(
     fun truncate(): Boolean {
         val path = remote.fbsimctl.diagnose(udid).sysLogLocation ?: return false
 
+        // Following command can be used to correctly rotate syslog.
+        // newsyslog -R "Log file rotated" $path
+        // But it requires privilege and we don't actually care about correct rotation
+        // (as we consider simulators and their logs to be ephemeral).
+        // All we want is to truncate log.
         val rv = remote.shell("echo > ${ShellUtils.escape(path)}", returnOnFailure = true)
 
         return rv.isSuccess
