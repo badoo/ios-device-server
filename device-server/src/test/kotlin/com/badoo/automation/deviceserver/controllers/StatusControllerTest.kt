@@ -1,13 +1,13 @@
 package com.badoo.automation.deviceserver.controllers
 
-import com.badoo.automation.deviceserver.host.management.IDeviceManager
+import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.mockThis
 import org.hamcrest.CoreMatchers
 import org.junit.Assert
 import org.junit.Test
 
 class StatusControllerTest {
-    private var deviceManager: IDeviceManager = mockThis()
+    private var deviceManager: DeviceManager = mockThis()
     private var statusController = StatusController(deviceManager)
     @Test
     fun getServerStatus() {

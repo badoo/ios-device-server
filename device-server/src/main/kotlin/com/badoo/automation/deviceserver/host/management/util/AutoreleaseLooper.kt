@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.host.management.util
 
 import com.badoo.automation.deviceserver.host.management.IAutoreleaseLooper
-import com.badoo.automation.deviceserver.host.management.IDeviceManager
+import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.launch
@@ -16,7 +16,7 @@ class AutoreleaseLooper : IAutoreleaseLooper {
     private val autoreleaseThreadPool = newFixedThreadPoolContext(1, "AutoreleaseLoop")
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
-    override fun autoreleaseLoop(deviceManager: IDeviceManager) {
+    override fun autoreleaseLoop(deviceManager: DeviceManager) {
         launch(autoreleaseThreadPool) {
             while (isActive) {
                 try {
@@ -33,7 +33,7 @@ class AutoreleaseLooper : IAutoreleaseLooper {
 
     private fun currentTimeSeconds() = System.currentTimeMillis() / 1000
 
-    private fun autoRelease(deviceManager: IDeviceManager) {
+    private fun autoRelease(deviceManager: DeviceManager) {
         val jobs = deviceManager.readyForRelease().map { deviceRef ->
             launch {
                 val message = "Failed to release device $deviceRef"
