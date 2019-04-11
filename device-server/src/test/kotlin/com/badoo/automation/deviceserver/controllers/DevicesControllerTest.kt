@@ -2,7 +2,7 @@ package com.badoo.automation.deviceserver.controllers
 
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.deviceDTOStub
-import com.badoo.automation.deviceserver.host.management.IDeviceManager
+import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.json
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.whenever
@@ -17,7 +17,7 @@ import java.net.URL
 private val happyEmpty: Map<Unit, Unit> = mapOf()
 
 class DevicesControllerTest {
-    private var deviceManager: IDeviceManager = mockThis()
+    private var deviceManager: DeviceManager = mockThis()
     private var expectedArray = ByteArray(3)
 
     private var deviceServer = DevicesController(deviceManager)
