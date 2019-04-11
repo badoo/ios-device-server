@@ -58,7 +58,7 @@ class DeviceManagerTest {
     private val deviceManager = DeviceManager(
             DeviceServerConfig(
                     emptyMap(),
-                    listOf()
+                    setOf()
             ),
             hostFactory,
             activeDevices,
