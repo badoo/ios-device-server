@@ -44,4 +44,19 @@ data class NodeConfig(
         @JsonProperty("devices")
         Devices
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as NodeConfig
+
+        if (publicHost != other.publicHost) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return publicHost.hashCode()
+    }
 }

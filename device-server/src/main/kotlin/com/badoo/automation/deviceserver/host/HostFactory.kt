@@ -35,6 +35,7 @@ class HostFactory(
         return if (config.type == NodeConfig.NodeType.Simulators) {
             SimulatorsNode(
                 remote = remote,
+                publicHostName = publicHostName,
                 hostChecker = SimulatorHostChecker(
                     remote,
                     wdaBundle = wdaSimulatorBundle,
@@ -48,7 +49,8 @@ class HostFactory(
             )
         } else {
             DevicesNode(
-                remote,
+                remote = remote,
+                publicHostName = publicHostName,
                 whitelistedApps = config.whitelistApps,
                 knownDevices = config.knownDevices,
                 uninstallApps = config.uninstallApps,

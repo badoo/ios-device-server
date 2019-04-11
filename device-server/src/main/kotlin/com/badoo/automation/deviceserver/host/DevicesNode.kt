@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit
 
 class DevicesNode(
     private val remote: IRemote,
+    private val publicHostName: String,
     portAllocator: PortAllocator = PortAllocator(),
     wdaRunnerXctest: File,
     knownDevices: List<KnownDevice>,
@@ -352,5 +353,20 @@ class DevicesNode(
 
     override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
         throw(NotImplementedError("Setting environment variables is not supported by physical devices"))
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as DevicesNode
+
+        if (publicHostName != other.publicHostName) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return publicHostName.hashCode()
     }
 }
