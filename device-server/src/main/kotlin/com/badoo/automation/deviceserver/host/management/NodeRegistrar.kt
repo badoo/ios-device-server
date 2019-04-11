@@ -7,7 +7,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
 class NodeRegistrar(
-    nodesConfig: List<NodeConfig>,
+    nodesConfig: Set<NodeConfig>,
     nodeFactory: IHostFactory,
     private val nodeRegistry: NodeRegistry,
     private val registrationInterval: Duration = DEFAULT_REGISTRATION_INTERVAL

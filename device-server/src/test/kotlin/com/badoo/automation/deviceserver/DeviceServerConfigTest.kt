@@ -20,4 +20,21 @@ class DeviceServerConfigTest {
         Assert.assertEquals(600, config.timeouts["device"]?.toInt())
         Assert.assertEquals(NodeConfig(), config.nodes.first())
     }
+
+    @Test
+    fun shouldIgnoreDuplicatingNodes() {
+        val configWithDuplicatingNodes = """
+        {
+            "timeouts": {
+                "device": 600
+            },
+            "nodes": [
+                {"user":"zz","host":"node1.co.uk","simulator_limit":1},
+                {"user":"zz","host":"node1.co.uk","simulator_limit":1}
+            ]
+        }
+        """.trimMargin()
+        val config = JsonMapper().fromJson<DeviceServerConfig>(configWithDuplicatingNodes)
+        Assert.assertEquals(1, config.nodes.size)
+    }
 }

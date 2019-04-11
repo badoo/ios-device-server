@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class SimulatorsNode(
         val remote: IRemote,
+        private val publicHostName: String,
         private val hostChecker: ISimulatorHostChecker,
         private val simulatorLimit: Int,
         concurrentBoots: Int,
@@ -29,7 +30,7 @@ class SimulatorsNode(
         private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
 ) : ISimulatorsNode {
 
-    override val remoteAddress: String get() = remote.hostName
+    override val remoteAddress: String get() = publicHostName
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
@@ -269,5 +270,20 @@ class SimulatorsNode(
 
     override fun toString(): String {
         return "${javaClass.simpleName} at $remoteAddress"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as SimulatorsNode
+
+        if (publicHostName != other.publicHostName) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return publicHostName.hashCode()
     }
 }
