@@ -17,7 +17,7 @@ class DeviceManager(
         nodeFactory: IHostFactory,
         activeDevices: ActiveDevices = ActiveDevices(),
         private val autoreleaseLooper: IAutoreleaseLooper = AutoreleaseLooper()
-) : IDeviceManager {
+) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val deviceTimeoutInSecs: Duration
     private val nodeRegistry = NodeRegistry(activeDevices)
@@ -46,90 +46,90 @@ class DeviceManager(
         autoreleaseLooper.autoreleaseLoop(this)
     }
 
-    override fun getStatus(): Map<String, Any> {
+    fun getStatus(): Map<String, Any> {
         return mapOf(
             "initialized" to nodeRegistry.getInitialRegistrationComplete(),
             "sessions" to listOf(nodeRegistry.activeDevices.getStatus()).toString()
         )
     }
 
-    override fun readyForRelease(): List<DeviceRef> {
+    fun readyForRelease(): List<DeviceRef> {
         return nodeRegistry.activeDevices.readyForRelease()
     }
 
-    override fun nextReleaseAtSeconds(): Long {
+    fun nextReleaseAtSeconds(): Long {
         return nodeRegistry.activeDevices.nextReleaseAtSeconds()
     }
 
-    override fun getTotalCapacity(desiredCaps: DesiredCapabilities): Map<String, Int> {
+    fun getTotalCapacity(desiredCaps: DesiredCapabilities): Map<String, Int> {
         return nodeRegistry.capacitiesTotal(desiredCaps)
     }
 
-    override fun getGetDeviceDTO(ref: DeviceRef): DeviceDTO {
+    fun getGetDeviceDTO(ref: DeviceRef): DeviceDTO {
         return nodeRegistry.activeDevices.getNodeFor(ref).getDeviceDTO(ref)
     }
 
-    override fun clearSafariCookies(ref: DeviceRef) {
+    fun clearSafariCookies(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).clearSafariCookies(ref)
     }
 
-    override fun resetAsyncDevice(ref: DeviceRef) {
+    fun resetAsyncDevice(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).resetAsync(ref)
     }
 
-    override fun  approveAccess(ref: DeviceRef, bundleId: String) {
+    fun  approveAccess(ref: DeviceRef, bundleId: String) {
         nodeRegistry.activeDevices.getNodeFor(ref).approveAccess(ref, bundleId)
     }
 
-    override fun setPermissions(ref: DeviceRef, permissions: AppPermissionsDto) {
+    fun setPermissions(ref: DeviceRef, permissions: AppPermissionsDto) {
         nodeRegistry.activeDevices.getNodeFor(ref).setPermissions(ref, permissions)
     }
 
-    override fun getEndpointFor(ref: DeviceRef, port: Int): URL {
+    fun getEndpointFor(ref: DeviceRef, port: Int): URL {
         return nodeRegistry.activeDevices.getNodeFor(ref).endpointFor(ref, port)
     }
 
-    override fun crashLogs(ref: DeviceRef, pastMinutes: Long?): List<CrashLog> {
+    fun crashLogs(ref: DeviceRef, pastMinutes: Long?): List<CrashLog> {
         return nodeRegistry.activeDevices.getNodeFor(ref).crashLogs(ref, pastMinutes)
     }
 
-    override fun deleteCrashLogs(ref: DeviceRef): Boolean {
+    fun deleteCrashLogs(ref: DeviceRef): Boolean {
         return nodeRegistry.activeDevices.getNodeFor(ref).deleteCrashLogs(ref)
     }
 
-    override fun getLastCrashLog(ref: DeviceRef): CrashLog {
+    fun getLastCrashLog(ref: DeviceRef): CrashLog {
         return nodeRegistry.activeDevices.getNodeFor(ref).lastCrashLog(ref)
     }
 
-    override fun shake(ref: DeviceRef) {
+    fun shake(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).shake(ref)
     }
 
-    override fun startVideo(ref: DeviceRef) {
+    fun startVideo(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingStart(ref)
     }
 
-    override fun stopVideo(ref: DeviceRef) {
+    fun stopVideo(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingStop(ref)
     }
 
-    override fun getVideo(ref: DeviceRef): ByteArray {
+    fun getVideo(ref: DeviceRef): ByteArray {
         return nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingGet(ref)
     }
 
-    override fun deleteVideo(ref: DeviceRef) {
+    fun deleteVideo(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingDelete(ref)
     }
 
-    override fun uninstallApplication(ref: DeviceRef, bundleId: String) {
+    fun uninstallApplication(ref: DeviceRef, bundleId: String) {
         nodeRegistry.activeDevices.getNodeFor(ref).uninstallApplication(ref, bundleId)
     }
 
-    override fun getDeviceState(ref: DeviceRef): SimulatorStatusDTO {
+    fun getDeviceState(ref: DeviceRef): SimulatorStatusDTO {
         return nodeRegistry.activeDevices.getNodeFor(ref).state(ref)
     }
 
-    override fun createDeviceAsync(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
+    fun createDeviceAsync(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
         try {
             return nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, userId)
         } catch(e: NoNodesRegisteredException) {
@@ -139,7 +139,7 @@ class DeviceManager(
         }
     }
 
-    override fun deleteReleaseDevice(ref: DeviceRef, reason: String) {
+    fun deleteReleaseDevice(ref: DeviceRef, reason: String) {
         try { // using try-catch here not to expose tryGetNodeFor
             nodeRegistry.activeDevices.releaseDevice(ref, reason)
         } catch (e: DeviceNotFoundException) {
@@ -148,36 +148,36 @@ class DeviceManager(
         }
     }
 
-    override fun getDeviceRefs() : List<DeviceDTO> {
+    fun getDeviceRefs() : List<DeviceDTO> {
         return nodeRegistry.activeDevices.deviceList()
     }
 
-    override fun releaseUserDevices(userId: String, reason: String) {
+    fun releaseUserDevices(userId: String, reason: String) {
         val devices = nodeRegistry.activeDevices.getUserDeviceRefs(userId)
         nodeRegistry.activeDevices.releaseDevices(devices, reason)
     }
 
-    override fun isReady(): Boolean {
+    fun isReady(): Boolean {
         return nodeRegistry.getInitialRegistrationComplete()
     }
 
-    override fun listFiles(ref: DeviceRef, dataPath: DataPath): List<String> {
+    fun listFiles(ref: DeviceRef, dataPath: DataPath): List<String> {
         return nodeRegistry.activeDevices.getNodeFor(ref).listFiles(ref, dataPath)
     }
 
-    override fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
+    fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
         return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
     }
 
-    override fun setEnvironmentVariables(ref: DeviceRef, envs: Map<String, String>) {
+    fun setEnvironmentVariables(ref: DeviceRef, envs: Map<String, String>) {
         nodeRegistry.activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
     }
 
-    override fun getDiagnostic(ref: DeviceRef, type: DiagnosticType): Diagnostic {
+    fun getDiagnostic(ref: DeviceRef, type: DiagnosticType): Diagnostic {
         return nodeRegistry.activeDevices.getNodeFor(ref).getDiagnostic(ref, type)
     }
 
-    override fun resetDiagnostic(ref: DeviceRef, type: DiagnosticType) {
+    fun resetDiagnostic(ref: DeviceRef, type: DiagnosticType) {
         nodeRegistry.activeDevices.getNodeFor(ref).resetDiagnostic(ref, type)
     }
 }

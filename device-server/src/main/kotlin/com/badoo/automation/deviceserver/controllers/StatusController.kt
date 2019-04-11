@@ -1,9 +1,9 @@
 package com.badoo.automation.deviceserver.controllers
 
-import com.badoo.automation.deviceserver.host.management.IDeviceManager
+import com.badoo.automation.deviceserver.host.management.DeviceManager
 import io.ktor.routing.Route
 
-class StatusController(private val deviceManager: IDeviceManager) {
+class StatusController(private val deviceManager: DeviceManager) {
     fun welcomeMessage(route: Route?): String {
         return "<html><body>Welcome to the device server.<pre>\n" +
                 (if (route == null) "No routes set yet!?" else childHierarchy(route)) + "\n" +
