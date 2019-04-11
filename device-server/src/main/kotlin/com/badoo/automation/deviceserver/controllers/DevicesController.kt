@@ -3,11 +3,11 @@ package com.badoo.automation.deviceserver.controllers
 import com.badoo.automation.deviceserver.EmptyMap
 import com.badoo.automation.deviceserver.JsonMapper
 import com.badoo.automation.deviceserver.data.*
-import com.badoo.automation.deviceserver.host.management.IDeviceManager
+import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.auth.UserIdPrincipal
 
-class DevicesController(private val deviceManager: IDeviceManager) {
+class DevicesController(private val deviceManager: DeviceManager) {
     private val happy = emptyMap<Unit, Unit>()
 
     fun getDeviceRefs(): List<DeviceDTO> {
