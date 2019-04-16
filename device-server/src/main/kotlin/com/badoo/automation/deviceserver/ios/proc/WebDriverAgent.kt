@@ -36,7 +36,7 @@ open class WebDriverAgent(
             "--",
             "listen"
     )
-    private val uri: URI = uriWithPath(wdaEndpoint, "wda/healthcheck")
+    private val uri: URI = uriWithPath(wdaEndpoint, "status")
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
 
