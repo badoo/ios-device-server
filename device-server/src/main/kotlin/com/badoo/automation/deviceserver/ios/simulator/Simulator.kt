@@ -82,6 +82,7 @@ class Simulator (
     private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
     private val simulatorProcess = SimulatorProcess(remote, udid)
+    @Volatile private var healthChecker: Job? = null
     //endregion
 
     //region properties from ruby with backing mutable field
@@ -93,6 +94,7 @@ class Simulator (
 
     //region prepareAsync
     override fun prepareAsync() {
+        stopPeriodicHealthCheck()
         executeCritical {
             deviceState = DeviceState.CREATING
         }
@@ -140,7 +142,53 @@ class Simulator (
 
             logger.info(logMarker, "Finished preparing $this")
             deviceState = DeviceState.CREATED
+            startPeriodicHealthCheck()
         }
+    }
+
+    private fun startPeriodicHealthCheck() {
+        stopPeriodicHealthCheck()
+
+        var fbsimctlFailCount = 0
+        var wdaFailCount = 0
+        val maxFailCount = 3
+        val healthCheckInterval = Duration.ofSeconds(10).toMillis()
+
+        healthChecker = launch {
+            while (isActive) {
+                if (fbsimctlProc.isHealthy()) {
+                    fbsimctlFailCount = 0
+                } else {
+                    fbsimctlFailCount += 1
+
+                    if (fbsimctlFailCount >= maxFailCount) {
+                        deviceState = DeviceState.FAILED
+                        val message = "Fbsimctl health check failed $fbsimctlFailCount times. Setting device state to $deviceState"
+                        logger.error(logMarker, message)
+                        throw RuntimeException("${this@Simulator} $message. Stopping health check")
+                    }
+                }
+
+                if (wdaProc.isHealthy()) {
+                    wdaFailCount = 0
+                } else {
+                    wdaFailCount += 1
+
+                    if (wdaFailCount >= maxFailCount) {
+                        deviceState = DeviceState.FAILED
+                        val message = "WebDriverAgent health check failed $wdaFailCount times. Setting device state to $deviceState"
+                        logger.error(logMarker, message)
+                        throw RuntimeException("${this@Simulator} $message. Stopping health check")
+                    }
+                }
+
+                delay(healthCheckInterval)
+            }
+        }
+    }
+
+    private fun stopPeriodicHealthCheck() {
+        healthChecker?.cancel()
     }
 
     private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(30), retryInterval: Duration = Duration.ofSeconds(3)) {
@@ -318,6 +366,7 @@ class Simulator (
 
     //region reset async
     override fun resetAsync() {
+        stopPeriodicHealthCheck()
         executeCritical {
             deviceState = DeviceState.RESETTING
         }
@@ -464,6 +513,7 @@ class Simulator (
 
     //region release
     override fun release(reason: String) {
+        stopPeriodicHealthCheck()
         logger.info(logMarker, "Releasing device $this because $reason")
 
         // FIXME: add background thread to clear up junk we failed to delete
