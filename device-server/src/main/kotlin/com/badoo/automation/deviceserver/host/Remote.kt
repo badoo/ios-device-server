@@ -57,6 +57,8 @@ class Remote(
         return remoteExecutor.exec(command, env, returnFailure = returnFailure, timeOut = Duration.ofSeconds(timeOutSeconds))
     }
 
+    override fun escape(value: String) = remoteExecutor.escape(value)
+
     override fun shell(command: String, returnOnFailure: Boolean): CommandResult {
         val cmd = when {
             isLocalhost() -> listOf("bash", "-c", command)

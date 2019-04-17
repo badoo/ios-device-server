@@ -30,6 +30,8 @@ interface IRemote {
 
     fun shell(command: String, returnOnFailure: Boolean = true) : CommandResult
 
+    fun escape(value: String) : String
+
     /**
      * Returns [CommandResult] file contents would be in [CommandResult.stdOutBytes]
      * //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigate ByteReadChannel
