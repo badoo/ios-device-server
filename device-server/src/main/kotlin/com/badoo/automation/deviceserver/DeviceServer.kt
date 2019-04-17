@@ -221,7 +221,13 @@ fun Application.module() {
                     get {
                         val ref = param(call, "ref")
                         val type = param(call, "type")
-                        call.respond(devicesController.getDiagnostic(ref, type))
+                        call.respond(devicesController.getDiagnostic(ref, type, DiagnosticQuery()))
+                    }
+                    post {
+                        val ref = param(call, "ref")
+                        val type = param(call, "type")
+                        val query = jsonContent<DiagnosticQuery>(call)
+                        call.respond(devicesController.getDiagnostic(ref, type, query))
                     }
                     delete {
                         val ref = param(call, "ref")
