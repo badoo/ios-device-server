@@ -103,19 +103,23 @@ class SimulatorsNode(
         }
     }
 
-    override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType): Diagnostic {
-        when (type) {
-            DiagnosticType.SystemLog -> return Diagnostic(
+    override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
+        return when (type) {
+            DiagnosticType.SystemLog -> Diagnostic(
                 type = type,
                 content = getDeviceFor(deviceRef).systemLog.content()
             )
-            else -> throw  RuntimeException("Diagnostic $type is not supported")
+            DiagnosticType.OsLog -> Diagnostic(
+                type = type,
+                content = getDeviceFor(deviceRef).osLog.content(query.process)
+            )
         }
     }
 
     override fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType) {
         when (type) {
             DiagnosticType.SystemLog -> getDeviceFor(deviceRef).systemLog.truncate()
+            DiagnosticType.OsLog -> getDeviceFor(deviceRef).osLog.truncate()
         }
     }
 

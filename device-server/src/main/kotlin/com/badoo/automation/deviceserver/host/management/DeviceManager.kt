@@ -173,8 +173,8 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
     }
 
-    fun getDiagnostic(ref: DeviceRef, type: DiagnosticType): Diagnostic {
-        return nodeRegistry.activeDevices.getNodeFor(ref).getDiagnostic(ref, type)
+    fun getDiagnostic(ref: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
+        return nodeRegistry.activeDevices.getNodeFor(ref).getDiagnostic(ref, type, query)
     }
 
     fun resetDiagnostic(ref: DeviceRef, type: DiagnosticType) {

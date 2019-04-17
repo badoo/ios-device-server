@@ -26,7 +26,7 @@ interface ISimulatorsNode {
     fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String>
     fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray
 
-    fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType): Diagnostic
+    fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic
     fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType)
 
     val remoteAddress: String
