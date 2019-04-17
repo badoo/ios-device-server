@@ -42,7 +42,7 @@ class OsLog(
         }
 
         if (process != null) {
-            cmd.addAll(listOf("--predicate", "process==\"$process\""))
+            cmd.addAll(listOf("--predicate", remote.escape("process==\"$process\"")))
         }
 
         val result = remote.execIgnoringErrors(cmd)
