@@ -12,7 +12,8 @@ enum class DiagnosticType(@JsonValue val value: String) {
             val rv = DiagnosticType.values().find { it.value == type }
 
             if (rv == null) {
-                val msg = "Diagnostic type $type is not one of ${DiagnosticType.values().joinToString(", ")}"
+                val availableTypes = DiagnosticType.values().map { it.value }.sorted()
+                val msg = "Diagnostic type $type is not one of ${availableTypes.joinToString(", ")}"
                 throw IllegalArgumentException(msg)
             }
 
