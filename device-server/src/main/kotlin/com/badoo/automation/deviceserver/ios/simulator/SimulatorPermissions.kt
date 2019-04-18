@@ -43,8 +43,9 @@ class SimulatorPermissions(
 
         val delete = "$sqlCmd \"DELETE FROM access WHERE service = '$key' AND client = '$bundleId' AND client_type = 0;\""
 
-        if (!remote.shell(delete).isSuccess) {
-            throw(SimulatorError("Failed to unset type $type for $this "))
+        val deleteResult = remote.shell(delete)
+        if (!deleteResult.isSuccess) {
+            throw(SimulatorError("Could not unset $type permission: $deleteResult"))
         }
 
         if (allowed == PermissionAllowed.Unset) {
@@ -60,8 +61,9 @@ class SimulatorPermissions(
         val replace =
             "$sqlCmd \"REPLACE INTO access (service, client, client_type, allowed, prompt_count) VALUES ('$key','$bundleId',0,$value,1);\""
 
-        if (!remote.shell(replace).isSuccess) {
-            throw(SimulatorError("Failed to update type $type for $this"))
+        val replaceResult = remote.shell(replace)
+        if (!replaceResult.isSuccess) {
+            throw(SimulatorError("Could not update $type permission: $replaceResult"))
         }
     }
 
