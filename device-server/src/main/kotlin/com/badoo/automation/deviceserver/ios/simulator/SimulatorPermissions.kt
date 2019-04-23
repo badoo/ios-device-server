@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.data.PermissionAllowed
+import com.badoo.automation.deviceserver.data.PermissionSet
 import com.badoo.automation.deviceserver.data.PermissionType
 import com.badoo.automation.deviceserver.host.IRemote
 import java.io.File
@@ -26,30 +27,47 @@ class SimulatorPermissions(
         PermissionType.Speech to "kTCCServiceSpeechRecognition"
     )
 
-    fun setPermission(bundleId: String, type: PermissionType, allowed: PermissionAllowed) {
-        when (type) {
-            PermissionType.Location -> setLocationPermission(bundleId, allowed)
-            PermissionType.Notifications -> setNotificationsPermission(bundleId, allowed)
-            else -> setServicePermission(bundleId, type, allowed)
+    fun setPermissions(bundleId: String, permissions: PermissionSet) {
+        val servicePermissions = PermissionSet()
+
+        permissions.forEach { type, allowed ->
+            when (type) {
+                PermissionType.Location -> setLocationPermission(bundleId, allowed)
+                PermissionType.Notifications -> setNotificationsPermission(bundleId, allowed)
+                else -> servicePermissions[type] = allowed
+            }
+        }
+
+        setServicePermissions(bundleId, servicePermissions)
+    }
+
+    private fun setServicePermissions(bundleId: String, servicePermissions: PermissionSet) {
+        val sql = StringBuilder()
+
+        servicePermissions.forEach { type, allowed ->
+            sql.append(sqlForPermission(bundleId, type, allowed))
+        }
+
+        val path = File(deviceSetPath, simulator.udid)
+        val sqlCmd = "sqlite3 ${path.absolutePath}/data/Library/TCC/TCC.db \"$sql\""
+
+        val result = remote.shell(sqlCmd)
+
+        if (!result.isSuccess) {
+            throw(SimulatorError("Could not set permissions: $result"))
         }
     }
 
-    fun setServicePermission(bundleId: String, type: PermissionType, allowed: PermissionAllowed) {
+    private fun sqlForPermission(bundleId: String, type: PermissionType, allowed: PermissionAllowed): String? {
+        val sql = StringBuilder()
+
         val key = serviceKeys[type]
                 ?: throw(IllegalArgumentException("Permission $type is not a service type"))
 
-        val path = File(deviceSetPath, simulator.udid)
-        val sqlCmd = "sqlite3 ${path.absolutePath}/data/Library/TCC/TCC.db"
-
-        val delete = "$sqlCmd \"DELETE FROM access WHERE service = '$key' AND client = '$bundleId' AND client_type = 0;\""
-
-        val deleteResult = remote.shell(delete)
-        if (!deleteResult.isSuccess) {
-            throw(SimulatorError("Could not unset $type permission: $deleteResult"))
-        }
+        sql.append("DELETE FROM access WHERE service = '$key' AND client = '$bundleId' AND client_type = 0;")
 
         if (allowed == PermissionAllowed.Unset) {
-            return
+            return sql.toString()
         }
 
         val value = when (allowed) {
@@ -58,13 +76,9 @@ class SimulatorPermissions(
             else -> throw IllegalArgumentException("Unsupported value $allowed for type $type")
         }
 
-        val replace =
-            "$sqlCmd \"REPLACE INTO access (service, client, client_type, allowed, prompt_count) VALUES ('$key','$bundleId',0,$value,1);\""
+        sql.append("REPLACE INTO access (service, client, client_type, allowed, prompt_count) VALUES ('$key','$bundleId',0,$value,1);")
 
-        val replaceResult = remote.shell(replace)
-        if (!replaceResult.isSuccess) {
-            throw(SimulatorError("Could not update $type permission: $replaceResult"))
-        }
+        return sql.toString()
     }
 
     private val appleSimUtils = "/usr/local/bin/applesimutils"
