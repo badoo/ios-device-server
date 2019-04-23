@@ -497,18 +497,22 @@ class Simulator (
     override fun approveAccess(bundleId: String) {
         val permissions = SimulatorPermissions(remote, deviceSetPath, this)
 
-        permissions.setServicePermission(bundleId, PermissionType.Camera, PermissionAllowed.Yes)
-        permissions.setServicePermission(bundleId, PermissionType.Microphone, PermissionAllowed.Yes)
-        permissions.setServicePermission(bundleId, PermissionType.Photos, PermissionAllowed.Yes)
-        permissions.setServicePermission(bundleId, PermissionType.Contacts, PermissionAllowed.Yes)
+        val set = PermissionSet()
+
+        set.putAll(mapOf(
+            PermissionType.Camera to PermissionAllowed.Yes,
+            PermissionType.Microphone to PermissionAllowed.Yes,
+            PermissionType.Photos to PermissionAllowed.Yes,
+            PermissionType.Contacts to PermissionAllowed.Yes
+        ))
+
+        permissions.setPermissions(bundleId, set)
     }
 
     override fun setPermissions(bundleId: String, permissions: PermissionSet) {
         val manager = SimulatorPermissions(remote, deviceSetPath, this)
 
-        permissions.forEach { type, allowed ->
-            manager.setPermission(bundleId, type, allowed)
-        }
+        manager.setPermissions(bundleId, permissions)
     }
 
     //endregion
