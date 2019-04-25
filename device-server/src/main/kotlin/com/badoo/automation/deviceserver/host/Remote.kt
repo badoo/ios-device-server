@@ -115,7 +115,7 @@ class Remote(
         }
 
         ensure(result.isSuccess) {
-            logger.error(logMarker, "Executing rsync command failed. Result: [$result]")
+            logger.error(logMarker, "Executing rsync command failed. Result: $result")
             RuntimeException("Remote $cmd failed with $result")
         }
     }

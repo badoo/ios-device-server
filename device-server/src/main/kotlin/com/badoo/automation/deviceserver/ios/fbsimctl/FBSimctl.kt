@@ -153,8 +153,7 @@ class FBSimctl(
         if (raiseOnError) {
             ensure(errors.isEmpty()) { FBSimctlError("fbsimctl failed: $errors", null) }
             if (result.exitCode != 0) {
-                throw FBSimctlError("Error while running command: ${fbsimctlCommand.joinToString(" ")} " +
-                        "Exit code: [${result.exitCode}], stdout: [${result.stdOut}], stderr: [${result.stdErr}]", null)
+                throw FBSimctlError("Error while running command. Result: $result", null)
             }
         }
 

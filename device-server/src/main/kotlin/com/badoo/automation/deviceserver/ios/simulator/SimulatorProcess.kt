@@ -13,8 +13,7 @@ class SimulatorProcess(
             val result = remote.execIgnoringErrors(command)
 
             check(result.isSuccess) {
-                "No launchd_sim process is found for simulator with udid: $udid. " +
-                        "Found: stdout: [${result.stdOut}], stderr: [${result.stdErr}]."
+                "No launchd_sim process is found for simulator with udid: $udid. Result: $result"
             }
 
             val processList = result
@@ -23,8 +22,7 @@ class SimulatorProcess(
                 .filter { it.contains(udid) }
 
             check(processList.isNotEmpty()) {
-                "No launchd_sim process is found for simulator with udid: $udid. " +
-                        "Found: stdout: [${result.stdOut}], stderr: [${result.stdErr}]."
+                "No launchd_sim process is found for simulator with udid: $udid. Result: $result"
             }
 
             return processList

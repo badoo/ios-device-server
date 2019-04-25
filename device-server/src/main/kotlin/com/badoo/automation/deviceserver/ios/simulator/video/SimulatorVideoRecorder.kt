@@ -118,7 +118,7 @@ class SimulatorVideoRecorder(
         // once we have proper deployment solution for our macOS machines
         val result = remote.captureFile(videoFile)
         if (!result.isSuccess) {
-            val message = "Could not read video file $result"
+            val message = "Could not read video file. Result stdErr: ${result.stdErr}"
             logger.error(message)
             throw SimulatorVideoRecordingException(message)
         }
