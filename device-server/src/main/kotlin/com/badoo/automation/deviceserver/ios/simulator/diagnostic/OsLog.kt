@@ -48,7 +48,7 @@ class OsLog(
         val result = remote.execIgnoringErrors(cmd)
 
         if (!result.isSuccess) {
-            val message = "Could not read OS Log: $result"
+            val message = "Could not read OS Log. Result stdErr: ${result.stdErr}"
             logger.error(logMarker, message)
             throw RuntimeException(message)
         }
