@@ -72,7 +72,7 @@ class RemoteShellCommand(
 
         if (result.exitCode == SSH_ERROR) {
             // FIXME: Check stdout and stderr, if they are empty – ssh timeout, otherwise, it is likely to be command error
-            val message = "Probably SSH could not connect to node $remoteHost while running command [$command]. See stdout: <${result.stdOut}> stderr: <${result.stdErr}>"
+            val message = "Probably SSH could not connect to node $remoteHost. Result: $result"
             logger.error(logMarker, message)
             throw SshConnectionException(message)
         }

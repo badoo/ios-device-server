@@ -48,7 +48,7 @@ open class FbsimctlProc(
             return if (result.isSuccess) {
                 true
             } else {
-                logger.debug(logMarker, "Failed fbsimctl health check. Response: $result")
+                logger.debug(logMarker, "Failed fbsimctl health check. Result: $result")
                 false
             }
         } catch (e: RuntimeException) {

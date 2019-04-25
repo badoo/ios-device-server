@@ -107,7 +107,7 @@ class SimulatorHostChecker(
                     try {
                         val r = remote.shell("find $it -maxdepth 0 -mmin +60 -exec rm -rf {} \\;", returnOnFailure = true) // find returns non zero if nothing found
                         if (!r.isSuccess || r.stdErr.isNotEmpty() || r.stdOut.isNotEmpty()) {
-                            logger.debug(logMarker, "[disc cleaner] $this returned non-empty. ERR: [${r.stdErr}], OUT: [${r.stdOut}]")
+                            logger.debug(logMarker, "[disc cleaner] $this returned non-empty. Result stdErr: ${r.stdErr}")
                         }
                     } catch (e: RuntimeException) {
                         logger.debug(logMarker, "[disc cleaner] $this got exception while cleaning caches: ${e.message}", e)
