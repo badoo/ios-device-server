@@ -223,8 +223,8 @@ class Simulator (
 
                 break
             }
-            catch (e: WaitTimeoutError) {
-                logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for ${this@Simulator} timed out: $e")
+            catch (e: RuntimeException) {
+                logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for ${this@Simulator} failed: $e")
                 if (attempt == maxRetries) {
                     throw e
                 }
