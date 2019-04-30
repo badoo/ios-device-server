@@ -25,7 +25,13 @@ class SimulatorWebDriverAgent(
     }
 
     private fun installHostApp() {
-        remote.fbsimctl.installApp(udid, File(hostApp))
+        val result = remote.execIgnoringErrors(listOf("xcrun", "simctl", "install", udid, hostApp))
+
+        if (!result.isSuccess) {
+            val errorMessage = "Failed to install WebDriverAgent $hostApp to simulator $udid. Result: $result"
+            logger.error(logMarker, errorMessage)
+            throw RuntimeException(errorMessage)
+        }
 
         pollFor(
             Duration.ofSeconds(20),
