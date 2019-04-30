@@ -173,6 +173,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
     }
 
+    fun resetMedia(ref: DeviceRef) {
+        nodeRegistry.activeDevices.getNodeFor(ref).resetMedia(ref)
+    }
+
     fun getDiagnostic(ref: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
         return nodeRegistry.activeDevices.getNodeFor(ref).getDiagnostic(ref, type, query)
     }

@@ -12,6 +12,7 @@ import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.FileSystem
+import com.badoo.automation.deviceserver.ios.simulator.data.Media
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
@@ -86,6 +87,8 @@ class Simulator (
     private val simulatorProcess = SimulatorProcess(remote, udid)
     @Volatile private var healthChecker: Job? = null
     //endregion
+
+    override val media: Media = Media(remote, udid, deviceSetPath)
 
     //region properties from ruby with backing mutable field
     override val state get() = deviceState

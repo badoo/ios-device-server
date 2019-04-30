@@ -103,6 +103,10 @@ class SimulatorsNode(
         }
     }
 
+    override fun resetMedia(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).media.reset()
+    }
+
     override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
         return when (type) {
             DiagnosticType.SystemLog -> Diagnostic(
