@@ -43,6 +43,10 @@ class DevicesNode(
 
     private val deviceRegistrationInterval = Duration.ofMinutes(1)
 
+    override fun resetMedia(deviceRef: DeviceRef) {
+        throw(NotImplementedError("Resetting media is not supported by physical devices"))
+    }
+
     override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
         throw(NotImplementedError("Diagnostic is not supported by physical devices"))
     }

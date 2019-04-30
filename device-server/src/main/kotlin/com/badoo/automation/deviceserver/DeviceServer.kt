@@ -217,6 +217,12 @@ fun Application.module() {
                         call.respond(devicesController.uninstallApplication(ref, bundleId))
                     }
                 }
+                route("media") {
+                    delete {
+                        val ref = param(call, "ref")
+                        call.respond(devicesController.resetMedia(ref))
+                    }
+                }
                 route("diagnose/{type}") {
                     get {
                         val ref = param(call, "ref")
