@@ -5,10 +5,7 @@ import com.badoo.automation.deviceserver.controllers.StatusController
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.DeviceManager
-import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
-import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
-import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
-import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
+import com.badoo.automation.deviceserver.host.management.errors.*
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -35,6 +32,7 @@ import io.ktor.server.engine.ApplicationEngineEnvironmentReloading
 import io.ktor.server.engine.ShutDownUrl
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.lang.IllegalStateException
 import java.net.NetworkInterface
 import java.util.*
 
@@ -151,6 +149,21 @@ fun Application.module() {
                 call.respond(config)
             }
         }
+
+        route("nodes") {
+            post("restart_gracefully") {
+                val params = jsonContent(call)
+                val isParallelRestart = params["parallel"]?.asBoolean() ?: false
+                val restartScheduled = deviceManager.restartNodesGracefully(isParallelRestart)
+
+                if (restartScheduled) {
+                    call.respond(HttpStatusCode.Accepted, mapOf("status" to "Scheduled graceful restart of nodes"))
+                } else {
+                    call.respond(HttpStatusCode.TooManyRequests, mapOf("status" to "Nodes restart is already in progress"))
+                }
+            }
+        }
+
         route("devices") {
             get {
                 call.respond(devicesController.getDeviceRefs())
@@ -280,6 +293,7 @@ fun Application.module() {
         exception { exception: Throwable ->
             val statusCode = when (exception) {
                 is IllegalArgumentException -> HttpStatusCode(422, "Unprocessable Entity")
+                is IllegalStateException -> HttpStatusCode.Conflict
                 is DeviceNotFoundException -> HttpStatusCode.NotFound
                 is NoAliveNodesException -> HttpStatusCode.TooManyRequests
                 is OverCapacityException -> HttpStatusCode.TooManyRequests

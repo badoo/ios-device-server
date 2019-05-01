@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 
 class DevicesNode(
     private val remote: IRemote,
-    private val publicHostName: String,
+    override val publicHostName: String,
     portAllocator: PortAllocator = PortAllocator(),
     wdaRunnerXctest: File,
     knownDevices: List<KnownDevice>,

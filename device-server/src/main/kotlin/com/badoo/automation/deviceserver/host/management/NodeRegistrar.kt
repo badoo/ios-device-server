@@ -18,6 +18,10 @@ class NodeRegistrar(
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private var autoRegisteringJob: Future<*>? = null
+    @Volatile
+    private var restartingJob: Future<*>? = null
+    private val nodeRestarter = NodeRestarter(nodeRegistry)
+
     val nodeWrappers: List<NodeWrapper> = nodesConfig.map {
         NodeWrapper(it, nodeFactory, nodeRegistry)
     }
@@ -49,22 +53,44 @@ class NodeRegistrar(
         logger.debug("Going to auto register ${unregistered.map(NodeWrapper::toString)}")
         val executor = Executors.newFixedThreadPool(unregistered.size)
         val results: List<Future<*>> = unregistered.map { nodeWrapper ->
-            executor.submit({
+            executor.submit {
                 nodeWrapper.stop()
                 if (nodeWrapper.start()) {
                     nodeRegistry.add(nodeWrapper)
+                    nodeWrapper.enable()
                     nodeWrapper.startPeriodicHealthCheck()
                 }
-            })
+            }
         }
         executor.shutdown()
         results.forEach { result ->
             try {
                 result.get()
             } catch (e: Throwable) {
-                logger.debug("Error while starting node", e)
+                logger.error("Error while starting node", e)
             }
         }
         nodeRegistry.setInitialRegistrationComplete()
+    }
+
+    @Synchronized
+    fun restartNodesGracefully(isParallel: Boolean, infiniteDeviceTimeout: Duration): Boolean {
+        val job = restartingJob
+
+        if (job == null || job.isDone) {
+            val executor = Executors.newSingleThreadExecutor()
+            restartingJob = executor.submit {
+                nodeRestarter.restartNodeWrappers(
+                    nodeRegistry.getAll(),
+                    isParallel,
+                    infiniteDeviceTimeout
+                )
+            }
+            executor.shutdown()
+
+            return true
+        } else {
+            return false
+        }
     }
 }
