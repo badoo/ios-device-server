@@ -33,10 +33,12 @@ class NodeWrapper(
     val node: ISimulatorsNode = hostFactory.getHostFromConfig(config)
 
     var lastError: Exception? = null
+    @Volatile var isEnabled: Boolean = true
+        private set
 
     fun isAlive(): Boolean = isStarted && node.isReachable() && node.isNodePrepared
 
-    override fun toString(): String = "NodeWrapper for ${config.host}"
+    override fun toString(): String = "NodeWrapper for ${config.publicHost}"
 
     fun start(): Boolean {
         lock.withLock {
@@ -77,6 +79,16 @@ class NodeWrapper(
             isStarted = false
             logger.info(logMarker, "Successfully stopped the node from config: $config")
         }
+    }
+
+    fun disable() {
+        isEnabled = false
+        logger.info(logMarker, "Disabled $this")
+    }
+
+    fun enable() {
+        isEnabled = true
+        logger.info(logMarker, "Enabled $this")
     }
 
     fun startPeriodicHealthCheck() {

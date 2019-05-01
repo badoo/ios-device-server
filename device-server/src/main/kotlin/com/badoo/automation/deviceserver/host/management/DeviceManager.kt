@@ -42,6 +42,10 @@ class DeviceManager(
         autoRegistrar.startAutoRegistering()
     }
 
+    fun restartNodesGracefully(isParallelRestart: Boolean): Boolean {
+        return autoRegistrar.restartNodesGracefully(isParallelRestart, INFINITE_DEVICE_TIMEOUT)
+    }
+
     fun launchAutoReleaseLoop() {
         autoreleaseLooper.autoreleaseLoop(this)
     }

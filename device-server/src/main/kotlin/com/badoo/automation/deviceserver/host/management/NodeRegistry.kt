@@ -51,6 +51,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
 
     private fun getAlive(): Set<NodeWrapper> {
         val filteredStream: Stream<NodeWrapper> = nodeWrappers
+            .filter { it.isEnabled }
             .parallelStream()
             .filter { it.isAlive() }
         return filteredStream.collect(toSet())
