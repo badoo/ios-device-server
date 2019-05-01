@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class SimulatorsNode(
         val remote: IRemote,
-        private val publicHostName: String,
+        override val publicHostName: String,
         private val hostChecker: ISimulatorHostChecker,
         private val simulatorLimit: Int,
         concurrentBoots: Int,
