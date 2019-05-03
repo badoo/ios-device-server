@@ -670,7 +670,22 @@ class Simulator (
     //endregion
     override fun uninstallApplication(bundleId: String) {
         logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")
-        remote.execIgnoringErrors(listOf("xcrun", "simctl", "uninstall", udid, bundleId))
+
+        terminateApplication(bundleId)
+
+        val uninstallResult = remote.execIgnoringErrors(listOf("xcrun", "simctl", "uninstall", udid, bundleId))
+
+        if (!uninstallResult.isSuccess) {
+            logger.error(logMarker, "Uninstall application $bundleId was unsuccessful. Result $uninstallResult")
+        }
+    }
+
+    private fun terminateApplication(bundleId: String) {
+        val terminateResult = remote.execIgnoringErrors(listOf("xcrun", "simctl", "terminate", udid, bundleId))
+
+        if (!terminateResult.isSuccess) {
+            logger.error(logMarker, "Terminating application $bundleId was unsuccessful. Result $terminateResult")
+        }
     }
 
     override fun setEnvironmentVariables(envs: Map<String, String>) {
