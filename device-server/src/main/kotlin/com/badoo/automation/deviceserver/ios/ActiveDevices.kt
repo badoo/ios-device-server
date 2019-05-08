@@ -7,6 +7,7 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 data class SessionEntry(
         val ref: DeviceRef,
@@ -25,7 +26,7 @@ class ActiveDevices(
 
     companion object {
         private val DEFAULT_RELEASE_TIMEOUT: Duration = Duration.ofSeconds(600)
-        fun currentTimeSecondsProvider(): Long = System.currentTimeMillis() / 1000
+        fun currentTimeSecondsProvider(): Long = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime())
     }
 
     fun deviceRefs(): Set<DeviceRef> {
@@ -94,21 +95,20 @@ class ActiveDevices(
 
     fun readyForRelease(): List<DeviceRef> {
         val secondsNow = currentTimeSeconds()
-        return devices.filter { with(it.value) { releaseTimeout.seconds + updatedAtSeconds <= secondsNow } }
-                .map { it.key }
+        return devices.filter { (_, session) -> secondsNow - session.updatedAtSeconds >= session.releaseTimeout.seconds }
+                .map { (deviceRef, _) -> deviceRef }
                 .also { logger.info("Ready to release $it"); }
     }
 
     fun nextReleaseAtSeconds(): Long {
-        val sessionEntry = devices.minBy {
-            it.value.updatedAtSeconds + it.value.releaseTimeout.seconds
-        }
+        val sessionEntry = devices
+            .map { it.value }
+            .minBy { it.updatedAtSeconds + it.releaseTimeout.seconds }
 
-        val nextReleaseAtSeconds: Long
-        if (sessionEntry != null) {
-            nextReleaseAtSeconds = sessionEntry.value.updatedAtSeconds + sessionEntry.value.releaseTimeout.seconds
+        val nextReleaseAtSeconds = if (sessionEntry == null) {
+            currentTimeSeconds() + DEFAULT_RELEASE_TIMEOUT.seconds
         } else {
-            nextReleaseAtSeconds = currentTimeSeconds() + DEFAULT_RELEASE_TIMEOUT.seconds
+            sessionEntry.updatedAtSeconds + sessionEntry.releaseTimeout.seconds
         }
 
         logger.info("nextReleaseAtSeconds = $nextReleaseAtSeconds seconds")
@@ -138,5 +138,4 @@ class ActiveDevices(
     private fun sessionByRef(ref: String): SessionEntry {
         return devices[ref] ?: throw DeviceNotFoundException("Device [$ref] not found in active devices")
     }
-
 }

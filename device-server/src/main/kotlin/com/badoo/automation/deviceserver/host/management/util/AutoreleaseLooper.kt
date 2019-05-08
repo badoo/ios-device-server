@@ -25,13 +25,11 @@ class AutoreleaseLooper : IAutoreleaseLooper {
                     logger.warn("Autorelease thread ignored: $t")
                 }
 
-                val seconds = max(1, (deviceManager.nextReleaseAtSeconds() - currentTimeSeconds()))
+                val seconds = max(1, (deviceManager.nextReleaseAtSeconds() - TimeUnit.NANOSECONDS.toSeconds(System.nanoTime())))
                 delay(seconds, TimeUnit.SECONDS)
             }
         }
     }
-
-    private fun currentTimeSeconds() = System.currentTimeMillis() / 1000
 
     private fun autoRelease(deviceManager: DeviceManager) {
         val jobs = deviceManager.readyForRelease().map { deviceRef ->

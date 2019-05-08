@@ -36,8 +36,8 @@ fun <T> executeWithTimeout(timeout: Duration, name: String, action: () -> T): T 
 fun pollFor(timeOut: Duration, reasonName: String, shouldReturnOnTimeout: Boolean = false,
             retryInterval: Duration = Duration.ofSeconds(2), logger: Logger, marker: Marker, action: () -> Boolean) {
     var isSuccess: Boolean
-    val startMillis = System.currentTimeMillis()
-    val stopMillis = startMillis + timeOut.toMillis()
+    val timeOutNanos = timeOut.toNanos()
+    val startTime = System.nanoTime()
 
     logger.trace(marker, "Awaiting for: $reasonName...")
     do {
@@ -49,7 +49,7 @@ fun pollFor(timeOut: Duration, reasonName: String, shouldReturnOnTimeout: Boolea
         } else {
             Thread.sleep(retryInterval.toMillis())
         }
-    } while (!isSuccess && stopMillis > System.currentTimeMillis())
+    } while (!isSuccess && System.nanoTime() - startTime < timeOutNanos)
 
     if (!isSuccess && !shouldReturnOnTimeout) {
         val message = "$reasonName failed after waiting ${timeOut.seconds} seconds"

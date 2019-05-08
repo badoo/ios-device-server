@@ -6,6 +6,7 @@ import com.zaxxer.nuprocess.NuProcessBuilder
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Marker
 import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 class RemoteShellCommand(
     private val remoteHost: String,
@@ -58,17 +59,18 @@ class RemoteShellCommand(
                       returnFailure: Boolean, logMarker: Marker?,
                       processListener: IShellCommandListener): CommandResult {
         val cmd = getCommandWithSSHPrefix(command)
-        val start = System.currentTimeMillis()
+        val startTime = System.nanoTime()
         val result = super.exec(cmd, getEnvironmentForSSH(), timeOut, returnFailure, logMarker, processListener)
-        val elapsed = System.currentTimeMillis() - start
+        val elapsedTime = System.nanoTime() - startTime
+        val elapsedMillis = TimeUnit.NANOSECONDS.toMillis(elapsedTime)
         val marker = MapEntriesAppendingMarker(
             mapOf(
                 LogMarkers.HOSTNAME to remoteHost,
-                LogMarkers.SSH_PROFILING_MS to elapsed
+                LogMarkers.SSH_PROFILING_MS to elapsedMillis
             )
         )
         logger.debug(
-            marker, "Execution of SSH command took $elapsed ms. Command: $cmd")
+            marker, "Execution of SSH command took $elapsedMillis ms. Command: $cmd")
 
         if (result.exitCode == SSH_ERROR) {
             // FIXME: Check stdout and stderr, if they are empty – ssh timeout, otherwise, it is likely to be command error
