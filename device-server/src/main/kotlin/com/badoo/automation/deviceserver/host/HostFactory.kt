@@ -9,13 +9,13 @@ import java.io.File
 class HostFactory(
     private val remoteProvider: (hostName: String, userName: String, publicHost: String) -> IRemote = { hostName, userName, publicHostName -> Remote(hostName, userName, publicHostName) },
     private val wdaSimulatorBundle: File,
+    private val remoteWdaSimulatorBundleRoot: File,
     private val wdaDeviceBundle: File,
+    private val remoteWdaDeviceBundleRoot: File,
     private val fbsimctlVersion: String
 ) : IHostFactory {
     companion object {
         val WDA_XCTEST = File("PlugIns/WebDriverAgentRunner.xctest")
-        private val REMOTE_WDA_BUNDLE_ROOT = File("/tmp/web_driver_agent/")
-        private val REMOTE_WDA_DEVICE_BUNDLE_ROOT = File("/tmp/web_driver_agent_devices/")
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -39,13 +39,13 @@ class HostFactory(
                 hostChecker = SimulatorHostChecker(
                     remote,
                     wdaBundle = wdaSimulatorBundle,
-                    remoteWdaBundleRoot = REMOTE_WDA_BUNDLE_ROOT,
+                    remoteWdaBundleRoot = remoteWdaSimulatorBundleRoot,
                     fbsimctlVersion = fbsimctlVersion,
                     shutdownSimulators = config.shutdownSimulators
                 ),
                 simulatorLimit = config.simulatorLimit,
                 concurrentBoots = config.concurrentBoots,
-                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaSimulatorBundle, REMOTE_WDA_BUNDLE_ROOT)
+                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaSimulatorBundle, remoteWdaSimulatorBundleRoot)
             )
         } else {
             DevicesNode(
@@ -55,8 +55,8 @@ class HostFactory(
                 knownDevices = config.knownDevices,
                 uninstallApps = config.uninstallApps,
                 wdaBundlePath = wdaDeviceBundle,
-                remoteWdaBundleRoot = REMOTE_WDA_DEVICE_BUNDLE_ROOT,
-                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaDeviceBundle, REMOTE_WDA_DEVICE_BUNDLE_ROOT),
+                remoteWdaBundleRoot = remoteWdaDeviceBundleRoot,
+                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaDeviceBundle, remoteWdaDeviceBundleRoot),
                 fbsimctlVersion = fbsimctlVersion
             )
         }

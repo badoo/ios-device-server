@@ -16,4 +16,8 @@ class ApplicationConfiguration {
             ?: throw RuntimeException("Must set system property: -D$deviceServerConfigPathProperty=./config/.device_config")
 
     val fbsimctlVersion: String = System.getProperty("fbsimctl.version", "HEAD-d30c2a73")
+
+    val remoteWdaSimulatorBundleRoot = System.getProperty("remote.wda.simulator.bundle.path", "/usr/local/opt/web_driver_agent_simulator")
+
+    val remoteWdaDeviceBundleRoot = System.getProperty("remote.wda.device.bundle.path", "/usr/local/opt/web_driver_agent_device")
 }
