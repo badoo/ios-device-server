@@ -100,7 +100,9 @@ fun Application.module() {
     val config = serverConfig()
     val hostFactory = HostFactory(
         wdaSimulatorBundle = File(appConfiguration.wdaSimulatorBundlePath).canonicalFile,
+        remoteWdaSimulatorBundleRoot = File(appConfiguration.remoteWdaSimulatorBundleRoot).canonicalFile,
         wdaDeviceBundle = File(appConfiguration.wdaDeviceBundlePath).canonicalFile,
+        remoteWdaDeviceBundleRoot = File(appConfiguration.remoteWdaDeviceBundleRoot).canonicalFile,
         fbsimctlVersion = appConfiguration.fbsimctlVersion
     )
     val deviceManager = DeviceManager(config, hostFactory)
