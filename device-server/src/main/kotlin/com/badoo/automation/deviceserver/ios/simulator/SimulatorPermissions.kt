@@ -49,7 +49,7 @@ class SimulatorPermissions(
         }
 
         val path = File(deviceSetPath, simulator.udid)
-        val sqlCmd = "sqlite3 ${path.absolutePath}/data/Library/TCC/TCC.db \"$sql\""
+        val sqlCmd = "sqlite3 ${path.absolutePath}/data/Library/TCC/TCC.db \"pragma busy_timeout=1000; $sql\""
 
         val result = remote.shell(sqlCmd)
 
