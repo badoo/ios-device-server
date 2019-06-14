@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.simulator
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.command.ShellUtils
@@ -43,7 +44,8 @@ class Simulator (
         private val concurrentBootsPool: ThreadPoolDispatcher,
         headless: Boolean,
         private val useWda: Boolean,
-        override val fbsimctlSubject: String
+        override val fbsimctlSubject: String,
+        private val trustStoreFile: String = ApplicationConfiguration().trustStorePath
 ) : ISimulator
 {
     private companion object {
@@ -238,6 +240,10 @@ class Simulator (
         logger.info(logMarker, "Erasing simulator ${this@Simulator} before creating a backup")
         remote.fbsimctl.eraseSimulator(udid)
 
+        if (trustStoreFile.isNotEmpty()) {
+            copyTrustStore()
+        }
+
         logger.info(logMarker, "Booting ${this@Simulator} before creating a backup")
         logTiming("initial boot") { boot() }
 
@@ -245,6 +251,20 @@ class Simulator (
         shutdown()
 
         backup.create()
+    }
+
+    private fun copyTrustStore() {
+        logger.debug(logMarker, "Copying trust store to ${this@Simulator}")
+        val keyChainLocation = Paths.get(deviceSetPath, udid, "data", "Library", "Keychains").toFile().absolutePath
+        remote.shell("mkdir -p $keyChainLocation", returnOnFailure = false)
+
+        if (remote.isLocalhost()) {
+            remote.shell("cp $trustStoreFile $keyChainLocation", returnOnFailure = false)
+        } else {
+            remote.rsync(trustStoreFile, keyChainLocation, setOf("--delete"))
+        }
+
+        logger.info(logMarker, "Copied trust store to ${this@Simulator}")
     }
 
     private fun shutdown() {
