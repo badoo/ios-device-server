@@ -107,6 +107,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
+    fun addMedia(ref: DeviceRef, fileName: String, data: ByteArray): EmptyMap {
+        deviceManager.addMedia(ref, fileName, data)
+        return happy
+    }
+
     fun getDiagnostic(ref: DeviceRef, type: String, query: DiagnosticQuery): Diagnostic {
         val diagnosticType = DiagnosticType.fromString(type)
         return deviceManager.getDiagnostic(ref, diagnosticType, query)
