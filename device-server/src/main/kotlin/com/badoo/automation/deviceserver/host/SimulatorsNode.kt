@@ -107,6 +107,10 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).media.reset()
     }
 
+    override fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray) {
+        getDeviceFor(deviceRef).media.addMedia(File(fileName), data)
+    }
+
     override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
         return when (type) {
             DiagnosticType.SystemLog -> Diagnostic(
