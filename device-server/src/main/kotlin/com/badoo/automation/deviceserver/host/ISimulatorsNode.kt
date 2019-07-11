@@ -12,6 +12,7 @@ interface ISimulatorsNode {
     fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto)
     fun clearSafariCookies(deviceRef: DeviceRef)
     fun shake(deviceRef: DeviceRef)
+    fun openUrl(deviceRef: DeviceRef, url: String)
     fun endpointFor(deviceRef: DeviceRef, port: Int): URL
     fun lastCrashLog(deviceRef: DeviceRef): CrashLog
     fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog>
