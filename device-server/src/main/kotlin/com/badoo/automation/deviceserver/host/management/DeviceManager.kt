@@ -109,6 +109,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).shake(ref)
     }
 
+    fun openUrl(ref: DeviceRef, url: String) {
+        nodeRegistry.activeDevices.getNodeFor(ref).openUrl(ref, url)
+    }
+
     fun startVideo(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingStart(ref)
     }

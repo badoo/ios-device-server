@@ -35,6 +35,7 @@ interface ISimulator {
     fun release(reason: String)
     fun clearSafariCookies(): Map<String, String>
     fun shake(): Boolean
+    fun openUrl(url: String): Boolean
     fun lastCrashLog(): CrashLog
     fun crashLogs(pastMinutes: Long?): List<CrashLog>
     fun dataContainer(bundleId: String): DataContainer
