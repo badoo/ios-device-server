@@ -615,6 +615,14 @@ class Simulator (
         return result.isSuccess
     }
 
+    override fun openUrl(url: String) : Boolean {
+        val urlString = if (remote.isLocalhost()) { url } else { "\"$url\"" }
+
+        val command = listOf("xcrun", "simctl", "openurl", udid, urlString)
+        val result = remote.execIgnoringErrors(command)
+        return result.isSuccess
+    }
+
     //region last crash log
 
     @Deprecated("Will be removed in favor of crashLogs. Note that crashLogs does not delete old crashes")

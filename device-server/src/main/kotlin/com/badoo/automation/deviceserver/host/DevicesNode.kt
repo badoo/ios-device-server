@@ -95,6 +95,10 @@ class DevicesNode(
         throw(NotImplementedError("Shake gesture is not supported by physical devices"))
     }
 
+    override fun openUrl(deviceRef: DeviceRef, url: String) {
+        throw(NotImplementedError("Opening URL is not supported by physical devices"))
+    }
+
     override fun endpointFor(deviceRef: DeviceRef, port: Int): URL {
         val device = slotByExternalRef(deviceRef).device
         return device.endpointFor(port)

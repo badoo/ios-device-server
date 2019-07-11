@@ -133,6 +133,10 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.pullFile(ref, dataPath)
     }
 
+    fun openUrl(ref: DeviceRef, url: String) {
+        return deviceManager.openUrl(ref, url)
+    }
+
     fun uninstallApplication(ref: DeviceRef, bundleId: String): EmptyMap {
         deviceManager.uninstallApplication(ref, bundleId)
         return happy
