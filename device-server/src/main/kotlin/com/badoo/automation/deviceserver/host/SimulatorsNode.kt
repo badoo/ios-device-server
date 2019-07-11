@@ -268,6 +268,10 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).dataContainer(dataPath.bundleId).readFile(dataPath.path)
     }
 
+    override fun openUrl(deviceRef: DeviceRef, url: String) {
+        getDeviceFor(deviceRef).openUrl(url)
+    }
+
     override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
         getDeviceFor(deviceRef).uninstallApplication(bundleId)
     }
