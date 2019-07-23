@@ -22,4 +22,5 @@ class ApplicationConfiguration {
     val remoteWdaDeviceBundleRoot = System.getProperty("remote.wda.device.bundle.path", "/usr/local/opt/web_driver_agent_device")
 
     val trustStorePath: String = System.getProperty("trust.store.path", "")
+    val assetsPath: String = System.getProperty("media.assets.path", "")
 }

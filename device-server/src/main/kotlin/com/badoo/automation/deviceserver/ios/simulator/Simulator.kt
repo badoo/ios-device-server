@@ -28,6 +28,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URI
 import java.net.URL
+import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
@@ -45,7 +46,8 @@ class Simulator (
         headless: Boolean,
         private val useWda: Boolean,
         override val fbsimctlSubject: String,
-        private val trustStoreFile: String = ApplicationConfiguration().trustStorePath
+        private val trustStoreFile: String = ApplicationConfiguration().trustStorePath,
+        private val assetsPath: String = ApplicationConfiguration().assetsPath
 ) : ISimulator
 {
     private companion object {
@@ -247,6 +249,10 @@ class Simulator (
         logger.info(logMarker, "Booting ${this@Simulator} before creating a backup")
         logTiming("initial boot") { boot() }
 
+        if (assetsPath.isNotEmpty()) {
+            copyMediaAssets()
+        }
+
         logger.info(logMarker, "Shutting down ${this@Simulator} before creating a backup")
         shutdown()
 
@@ -265,6 +271,16 @@ class Simulator (
         }
 
         logger.info(logMarker, "Copied trust store to ${this@Simulator}")
+    }
+
+    private fun copyMediaAssets() {
+        logger.debug(logMarker, "Copying assets to ${this@Simulator}")
+        media.reset()
+        File(assetsPath).walk().filter { it.isFile }.forEach {
+           media.addMedia(it, it.readBytes())
+        }
+
+        logger.info(logMarker, "Copied assets to ${this@Simulator}")
     }
 
     private fun shutdown() {
