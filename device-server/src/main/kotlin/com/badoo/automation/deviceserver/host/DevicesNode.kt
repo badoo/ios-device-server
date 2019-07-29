@@ -260,6 +260,11 @@ class DevicesNode(
         throw NotImplementedError()
     }
 
+    override fun crashLogs(deviceRef: DeviceRef, appName: String?): List<CrashLog> {
+        val device = slotByExternalRef(deviceRef).device
+        return device.crashLogs(appName)
+    }
+
     override fun deleteCrashLogs(deviceRef: DeviceRef): Boolean {
         return false // crash logs are not supported on devices yet
     }

@@ -63,7 +63,15 @@ class DevicesController(private val deviceManager: DeviceManager) {
     }
 
     fun crashLogs(ref: DeviceRef, pastMinutes: Long?): List<Map<String, String>> {
-        var logs = deviceManager.crashLogs(ref, pastMinutes)
+        val logs = deviceManager.crashLogs(ref, pastMinutes)
+
+        return logs.map {
+            mapOf("filename" to it.filename, "content" to it.content)
+        }
+    }
+
+    fun crashLogs(ref: DeviceRef, appName: String?): List<Map<String, String>> {
+        val logs = deviceManager.crashLogs(ref, appName)
 
         return logs.map {
             mapOf("filename" to it.filename, "content" to it.content)

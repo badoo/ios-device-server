@@ -202,8 +202,11 @@ fun Application.module() {
                 route("crashes") {
                     get {
                         val pastMinutes = call.request.queryParameters["pastMinutes"]?.toLong()
-
                         call.respond(devicesController.crashLogs(param(call, "ref"), pastMinutes))
+                    }
+                    get("app") {
+                        val appName: String? = call.request.queryParameters["appName"]
+                        call.respond(devicesController.crashLogs(param(call, "ref"), appName))
                     }
                     delete {
                         val rv = devicesController.deleteCrashLogs(param(call, "ref"))

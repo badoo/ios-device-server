@@ -16,6 +16,7 @@ interface ISimulatorsNode {
     fun endpointFor(deviceRef: DeviceRef, port: Int): URL
     fun lastCrashLog(deviceRef: DeviceRef): CrashLog
     fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog>
+    fun crashLogs(deviceRef: DeviceRef, appName: String?): List<CrashLog>
     fun deleteCrashLogs(deviceRef: DeviceRef): Boolean
     fun state(deviceRef: DeviceRef): SimulatorStatusDTO
 

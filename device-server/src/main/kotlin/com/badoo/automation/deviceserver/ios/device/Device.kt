@@ -13,12 +13,13 @@ import com.badoo.automation.deviceserver.util.pollFor
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
+import java.io.File
 import java.net.URI
 import java.net.URL
+import java.nio.file.Files
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import java.io.File
 
 class Device(
     private val remote: IRemote,
@@ -174,6 +175,32 @@ class Device(
     fun lastCrashLog(): CrashLog? {
         // TODO unlike for simulators, crash logs for physical devices are not at $HOME/Library/Logs/DiagnosticReports
         return null
+    }
+
+    fun crashLogs(appName: String?): List<CrashLog> {
+        val crashReportsPath = Files.createTempDirectory("crashReports")
+        val filter = appName?.let { "--filter \"$appName\"" } ?: ""
+        val command = "/usr/local/bin/idevicecrashreport --udid $udid $filter ${crashReportsPath.toAbsolutePath()}"
+
+        try {
+            val result = remote.shell(command, returnOnFailure = true)
+
+            if (!result.isSuccess) {
+                logger.error(logMarker, "Failed to collect crash reports. Result stdErr: ${result.stdErr}")
+            }
+
+            return File(crashReportsPath.toUri())
+                .walk()
+                .filter { it.isFile }
+                .map { CrashLog(it.name, String(Files.readAllBytes(it.toPath()))) }
+                .toList()
+
+        } finally {
+            Files.walk(crashReportsPath)
+                .sorted(Comparator.reverseOrder())
+                .map { it.toFile() }
+                .forEach { it.delete() }
+        }
     }
 
     private fun executeAsync(action: () -> Unit?): Future<*>? {
