@@ -97,6 +97,11 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).crashLogs(ref, pastMinutes)
     }
 
+    fun crashLogs(ref: DeviceRef, appName: String?): List<CrashLog> {
+        val node = nodeRegistry.activeDevices.getNodeFor(ref)
+        return node.crashLogs(ref, appName)
+    }
+
     fun deleteCrashLogs(ref: DeviceRef): Boolean {
         return nodeRegistry.activeDevices.getNodeFor(ref).deleteCrashLogs(ref)
     }
