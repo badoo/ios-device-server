@@ -213,6 +213,10 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).crashLogs(pastMinutes)
     }
 
+    override fun crashLogs(deviceRef: DeviceRef, appName: String?): List<CrashLog> {
+        throw NotImplementedError()
+    }
+
     override fun deleteCrashLogs(deviceRef: DeviceRef): Boolean {
         return getDeviceFor(deviceRef).deleteCrashLogs()
     }
