@@ -12,12 +12,12 @@ class PortAllocator(min: Int = PORT_RANGE_START, max: Int = PORT_RANGE_END) {
     private var ports: Set<Int> = IntRange(min, max).toSet()
 
     fun allocateDAP(): DeviceAllocatedPorts {
-        val take = allocate(3)
-        return DeviceAllocatedPorts(take[0], take[1], take[2])
+        val take = allocate(4)
+        return DeviceAllocatedPorts(take[0], take[1], take[2], take[3])
     }
 
     fun deallocateDAP(dap: DeviceAllocatedPorts) {
-        deallocate(listOf(dap.calabashPort, dap.fbsimctlPort, dap.wdaPort))
+        deallocate(listOf(dap.calabashPort, dap.fbsimctlPort, dap.wdaPort, dap.videoPort))
     }
 
     fun available(): Int {
