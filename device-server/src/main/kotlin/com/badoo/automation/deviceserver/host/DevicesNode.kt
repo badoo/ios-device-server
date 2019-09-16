@@ -294,6 +294,7 @@ class DevicesNode(
             fbsimctl_endpoint = device.fbsimctlEndpoint,
             wda_endpoint = device.wdaEndpoint,
             calabash_port = device.calabashPort,
+            mjpeg_server_port = device.mjpegServerPort,
             user_ports = emptySet(),
             info = device.deviceInfo,
             last_error = device.lastException?.toDto(),

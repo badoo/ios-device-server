@@ -16,6 +16,7 @@ open class WebDriverAgent(
     protected val udid: UDID,
     private val wdaEndpoint: URI,
     port: Int = wdaEndpoint.port,
+    mjpegServerPort: Int,
     private val childFactory: (
                 remoteHost: String,
                 userName: String,
@@ -33,6 +34,8 @@ open class WebDriverAgent(
             hostApp,
             "--port",
             port.toString(),
+            "--mjpeg-server-port",
+            mjpegServerPort.toString(),
             "--",
             "listen"
     )

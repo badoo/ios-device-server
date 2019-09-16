@@ -31,7 +31,7 @@ fun deviceDTOStub(ref: DeviceRef): DeviceDTO {
     ref, DeviceState.NONE,
     URI("http://fbsimctl/endpoint/for/testing"),
     URI("http://wda/endpoint/for/testing"),
-    0, setOf(0),
+    0, 1, setOf(0, 1),
     DeviceInfo("", "", "", "", ""),
     Exception().toDto(),
     capabilities = null)

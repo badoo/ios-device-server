@@ -17,7 +17,7 @@ class PortAllocator(min: Int = PORT_RANGE_START, max: Int = PORT_RANGE_END) {
     }
 
     fun deallocateDAP(dap: DeviceAllocatedPorts) {
-        deallocate(listOf(dap.calabashPort, dap.fbsimctlPort, dap.wdaPort, dap.videoPort))
+        deallocate(listOf(dap.calabashPort, dap.fbsimctlPort, dap.wdaPort, dap.mjpegServerPort))
     }
 
     fun available(): Int {

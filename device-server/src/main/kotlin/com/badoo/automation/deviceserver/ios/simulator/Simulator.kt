@@ -28,7 +28,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URI
 import java.net.URL
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
@@ -63,6 +62,7 @@ class Simulator (
     override val userPorts = allocatedPorts
     override val info = deviceInfo
     override val calabashPort: Int = allocatedPorts.calabashPort
+    override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
 
     private val recordingLocation = Paths.get(deviceSetPath, udid, "video.mp4").toFile()
 
@@ -78,7 +78,7 @@ class Simulator (
 
     private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
-    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint)
+    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, mjpegServerPort)
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val commonLogMarkerDetails = mapOf(
@@ -651,9 +651,9 @@ class Simulator (
     }
 
     override fun crashLogs(pastMinutes: Long?): List<CrashLog> {
-        var crashLogFiles = listCrashLogs(pastMinutes)
+        val crashLogFiles = listCrashLogs(pastMinutes)
 
-        var crashLogs = crashLogFiles.map {
+        val crashLogs = crashLogFiles.map {
             val rv = remote.execIgnoringErrors(listOf("cat", it))
 
             if (rv.isSuccess) {

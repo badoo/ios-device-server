@@ -11,13 +11,15 @@ class SimulatorWebDriverAgent(
         remote: IRemote,
         wdaRunnerXctest: File,
         udid: UDID,
-        wdaEndpoint: URI
+        wdaEndpoint: URI,
+        mjpegServerPort: Int
 ) : WebDriverAgent(
         remote = remote,
         wdaRunnerXctest = wdaRunnerXctest,
         hostApp = wdaRunnerXctest.parentFile.parentFile.absolutePath,
         udid = udid,
-        wdaEndpoint = wdaEndpoint
+        wdaEndpoint = wdaEndpoint,
+        mjpegServerPort = mjpegServerPort
 ) {
     override fun start() {
         installHostApp()

@@ -12,6 +12,7 @@ class DeviceWebDriverAgent(
     udid: UDID,
     wdaEndpoint: URI,
     port: Int,
+    mjpegServerPort: Int,
     hostApp: String = wdaRunnerXctest.parentFile.parentFile.absolutePath
 ) : WebDriverAgent(
     remote = remote,
@@ -19,7 +20,8 @@ class DeviceWebDriverAgent(
     hostApp = hostApp,
     udid = udid,
     wdaEndpoint = wdaEndpoint,
-    port = port
+    port = port,
+    mjpegServerPort = mjpegServerPort
 ) {
     override fun terminateHostApp() {
         remote.fbsimctl.uninstallApp(udid, hostApp)

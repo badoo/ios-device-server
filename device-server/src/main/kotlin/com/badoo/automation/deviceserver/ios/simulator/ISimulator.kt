@@ -20,6 +20,7 @@ interface ISimulator {
     val info: DeviceInfo
     val lastError: Exception?
     val calabashPort: Int
+    val mjpegServerPort: Int
     val videoRecorder: SimulatorVideoRecorder
     val fbsimctlSubject: String
     val systemLog: SystemLog
