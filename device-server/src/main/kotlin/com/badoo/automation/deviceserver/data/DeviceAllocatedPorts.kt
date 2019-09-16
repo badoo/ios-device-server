@@ -4,6 +4,7 @@ data class DeviceAllocatedPorts(
     val fbsimctlPort: Int,
     val wdaPort: Int,
     val calabashPort: Int,
+    val videoPort: Int,
     private val defaultCalabashPort: Int = 37265
 ) {
     fun toSet(): Set<Int> {
