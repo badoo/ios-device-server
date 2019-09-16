@@ -45,6 +45,7 @@ class Device(
     val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     val calabashPort = calabashProxy.localPort
+    val mjpegServerPort = allocatedPorts.mjpegServerPort
 
     @Volatile
     var lastException: Exception? = null
@@ -59,7 +60,7 @@ class Device(
         }
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
-    private val wdaProc = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort)
+    private val wdaProc = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort, mjpegServerPort)
 
     private val status = SimulatorStatus()
 
