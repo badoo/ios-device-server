@@ -98,6 +98,8 @@ class SimulatorHostChecker(
         val caches = listOf(
                 "/private/var/folders/*/*/*/*-*-*/*.app",
                 "/private/var/folders/*/*/*/fbsimctl-*",
+                "/var/folders/*/*/*/videoRecording_*",
+                "/private/var/folders/*/*/*/videoRecording_*",
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )
 

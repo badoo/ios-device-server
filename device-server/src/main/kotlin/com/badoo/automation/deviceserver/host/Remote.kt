@@ -15,7 +15,7 @@ class Remote(
     override val hostName: String,
     override val userName: String,
     override val publicHostName: String,
-    private val localExecutor: IShellCommand = ShellCommand(),
+    override val localExecutor: IShellCommand = ShellCommand(commonEnvironment = mapOf("HOME" to System.getProperty("user.home"))),
     private val remoteExecutor: IShellCommand = getRemoteCommandExecutor(hostName, userName),
     override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, FBSimctlResponseParser())
 ) : IRemote {

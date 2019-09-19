@@ -15,12 +15,12 @@ import kotlin.concurrent.withLock
 class SimulatorVideoRecorder(
     private val deviceInfo: DeviceInfo,
     private val remote: IRemote,
-    private val childFactory: (remoteHost: String, username: String, cmd: List<String>, isInteractiveShell: Boolean,
+    private val childFactory: (remoteHost: String, username: String, cmd: List<String>, commandEnvironment: Map<String, String>, isInteractiveShell: Boolean,
                                    out_reader: (line: String) -> Unit, err_reader: (line: String) -> Unit
         ) -> ChildProcess? = ChildProcess.Companion::fromCommand,
     private val recorderStopTimeout: Duration = RECORDER_STOP_TIMEOUT,
     location: File
-) : LongRunningProc(deviceInfo.udid, remote.hostName) {
+) : LongRunningProc(deviceInfo.udid, remote.hostName), VideoRecorder {
 
     private val udid = deviceInfo.udid
 
@@ -37,7 +37,7 @@ class SimulatorVideoRecorder(
 
     private val uniqueTag = "video-recording-$udid"
 
-    fun delete() {
+    override fun delete() {
         logger.debug(logMarker, "Deleting video recording")
 
         val result = remote.execIgnoringErrors(listOf("rm", "-f", recordingLocation.toString()))
@@ -68,7 +68,7 @@ class SimulatorVideoRecorder(
 
             val cmd = shell(videoRecordingCmd(fps = 5, frameWidth = frameWidth, frameHeight = frameHeight))
 
-            childProcess = childFactory(remote.hostName, remote.userName, cmd, true,
+            childProcess = childFactory(remote.hostName, remote.userName, cmd, mapOf(), true,
                 { logger.debug(logMarker, "$udid: VideoRecorder <o>: ${it.trim()}") },
                 { logger.debug(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
             )
@@ -78,7 +78,7 @@ class SimulatorVideoRecorder(
         }
     }
 
-    fun stop() {
+    override fun stop() {
         lock.withLock {
             if (!isStarted) {
                 val message = "Video recording has not yet started"
@@ -108,7 +108,7 @@ class SimulatorVideoRecorder(
         }
     }
 
-    fun getRecording(): ByteArray {
+    override fun getRecording(): ByteArray {
         logger.info(logMarker, "Getting video recording")
 
         val videoFile = recordingLocation
@@ -126,7 +126,7 @@ class SimulatorVideoRecorder(
         return result.stdOutBytes
     }
 
-    fun dispose() {
+    override fun dispose() {
         if (childProcess?.isAlive() != true) {
             return
         }
