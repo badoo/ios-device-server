@@ -24,8 +24,8 @@ class CustomHttpClient {
             val result = client.newCall(request).execute()
 
             return HttpResult(
-                    responseBody = result.body()?.string() ?: "",
-                    httpCode = result.code()
+                    responseBody = result.body?.string() ?: "",
+                    httpCode = result.code
             )
         } catch (e: SocketTimeoutException) {
             return HttpResult(ConnectionTimedOut.code)

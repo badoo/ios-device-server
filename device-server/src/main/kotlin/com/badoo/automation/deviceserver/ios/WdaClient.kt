@@ -3,6 +3,8 @@ package com.badoo.automation.deviceserver.ios
 import com.badoo.automation.deviceserver.JsonMapper
 import com.fasterxml.jackson.databind.JsonNode
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URL
 import java.time.Duration
 import java.util.concurrent.TimeUnit
@@ -69,7 +71,7 @@ class WdaClient(
 
         raiseForHttpStatus(response)
 
-        return JsonMapper().readTree(response.body()!!.byteStream())
+        return JsonMapper().readTree(response.body!!.byteStream())
     }
 
     private fun post(path: String, params: Map<Any, Any>): JsonNode {
@@ -78,7 +80,7 @@ class WdaClient(
 
         val request = Request.Builder()
             .addHeader("Content-Type", "application/json")
-            .post(RequestBody.create(mediaType, payload))
+            .post(payload.toRequestBody(mediaType))
             .url(url)
             .build()
 
@@ -86,11 +88,11 @@ class WdaClient(
 
         raiseForHttpStatus(response)
 
-        return JsonMapper().readTree(response.body()!!.byteStream())
+        return JsonMapper().readTree(response.body!!.byteStream())
 
     }
 
-    private val mediaType = MediaType.parse("application/json; charset=utf-8")
+    private val mediaType: MediaType? = "application/json; charset=utf-8".toMediaTypeOrNull()
 
     private fun raiseIfNoSession() {
         if (sessionId == null) {
@@ -102,7 +104,7 @@ class WdaClient(
     private fun raiseForHttpStatus(response: Response) {
         if (response.isSuccessful) return
 
-        throw WdaException("WDA error ${response.code()}: ${response.body()!!.string()}")
+        throw WdaException("WDA error ${response.code}: ${response.body!!.string()}")
     }
 
     private fun raiseForWdStatus(json: JsonNode) {

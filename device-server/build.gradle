@@ -34,7 +34,7 @@ dependencies {
     compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-io', version: kotlinx_version
     compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-jdk8', version: kotlinx_version
 
-    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.9.1'
+    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.2.0'
 
     //region ktor dependencies
     compile("io.ktor:ktor-server-netty:$ktor_version") {
