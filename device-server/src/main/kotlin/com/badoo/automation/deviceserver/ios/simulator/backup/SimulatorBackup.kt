@@ -106,8 +106,17 @@ class SimulatorBackup(
     //endregion
 
     override fun restore() {
-        remote.execIgnoringErrors(listOf("rm", "-rf", srcPath))
-        val result = remote.execIgnoringErrors(listOf("cp", "-R", backupPath, srcPath))
+        val deleteResult = remote.execIgnoringErrors(listOf("rm", "-rf", srcPath), timeOutSeconds = 60L)
+        if (!deleteResult.isSuccess) {
+            logger.error(logMarker, "Failed to delete at path: [$backupPath]")
+            val killResult = remote.shell("lsof -a -l -n -M -R -P -t +D $srcPath | xargs -n 1 kill -HUP", true)
+            logger.debug(logMarker, "Trying to kill processes holding $backupPath. Exit code: ${killResult.exitCode}")
+            val secondDeleteResult = remote.execIgnoringErrors(listOf("rm", "-rf", srcPath), timeOutSeconds = 60L)
+            logger.error(logMarker, "Trying to delete $srcPath second time. Exit code: ${secondDeleteResult.exitCode}")
+            remote.shell("lsof -a -l -n -M -R -P -t +D $srcPath | xargs -n 1 kill -HUP", true)
+        }
+
+        val result = remote.execIgnoringErrors(listOf("cp", "-R", backupPath, srcPath), timeOutSeconds = 120L)
 
         ensureSuccess(result, "$this failed to restore from backup $backupPath: $result")
         logger.debug(logMarker, "Restored simulator $udid from backup at path: [$backupPath]")

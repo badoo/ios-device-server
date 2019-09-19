@@ -52,8 +52,8 @@ class Simulator (
 ) : ISimulator
 {
     private companion object {
-        private val PREPARE_TIMEOUT: Duration = Duration.ofMinutes(4)
-        private val RESET_TIMEOUT: Duration = Duration.ofMinutes(3)
+        private val PREPARE_TIMEOUT: Duration = Duration.ofMinutes(10)
+        private val RESET_TIMEOUT: Duration = Duration.ofMinutes(5)
         private const val SAFARI_BUNDLE_ID = "com.apple.mobilesafari"
     }
 
@@ -124,7 +124,10 @@ class Simulator (
 
     //region prepareAsync
     override fun prepareAsync() {
-        stopPeriodicHealthCheck()
+        if (deviceState == DeviceState.CREATING || deviceState == DeviceState.RESETTING) {
+            throw java.lang.IllegalStateException("Simulator $udid is already in state $deviceState")
+        }
+
         executeCritical {
             deviceState = DeviceState.CREATING
         }
@@ -132,11 +135,16 @@ class Simulator (
         executeCriticalAsync {
             val elapsed = measureTimeMillis {
                 try {
-                    prepare(clean = true)
-                } catch (e: Exception) { // catching most wide exception
-                    executeCritical {
-                        deviceState = DeviceState.FAILED
+                    stopPeriodicHealthCheck()
+                    val prepareJob = async(context = concurrentBootsPool) {
+                        prepare(clean = true)
                     }
+                    runBlocking {
+                        prepareJob.await()
+                    }
+
+                } catch (e: Exception) { // catching most wide exception
+                    deviceState = DeviceState.FAILED
                     logger.error(logMarker, "Failed to prepare device ${this@Simulator}", e)
                     throw e
                 }
@@ -304,20 +312,32 @@ class Simulator (
         logger.info(logMarker, "Copied assets to ${this@Simulator}")
     }
 
+    private fun listDevices(): String {
+        return remote.shell("/usr/bin/xcrun simctl list devices", returnOnFailure = true).stdOut
+    }
+
+    private fun isSimulatorShutdown(): Boolean {
+        return listDevices().lines().filter { it.contains(udid) && it.contains("(Shutdown)") }.any()
+    }
+
     private fun shutdown() {
         logger.info(logMarker, "Shutting down ${this@Simulator}")
-        remote.fbsimctl.shutdown(udid)
+        val result = remote.fbsimctl.shutdown(udid)
+
+        if (!result.isSuccess) {
+            logger.debug(logMarker, "Error occured while shutting down simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
+        }
+
         ignoringErrors { fbsimctlProc.kill() }
 
         pollFor(
             timeOut = Duration.ofSeconds(60),
-            reasonName = "${this@Simulator} to shutdown",
             retryInterval = Duration.ofSeconds(10),
+            reasonName = "${this@Simulator} to shutdown",
             logger = logger,
             marker = logMarker
         ) {
-            val fbSimctlDevice = remote.fbsimctl.listDevice(udid)
-            FBSimctlDeviceState.SHUTDOWN.value == fbSimctlDevice?.state
+            isSimulatorShutdown()
         }
 
         logger.info(logMarker, "Successfully shut down ${this@Simulator}")
@@ -325,71 +345,124 @@ class Simulator (
 
     private fun boot() {
         logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
-        val bootJob = async(context = concurrentBootsPool) {
-            truncateSystemLogIfExists()
+        truncateSystemLogIfExists()
 
-            logger.info(logMarker, "Starting fbsimctl on ${this@Simulator}")
-            fbsimctlProc.start() // boots simulator
+        logger.info(logMarker, "Starting fbsimctl on ${this@Simulator}")
+        fbsimctlProc.start() // boots simulator
 
-            var lastState: String? = null
+        var lastState: String? = null
 
-            try {
-                pollFor(
-                    Duration.ofSeconds(60),
-                    reasonName = "${this@Simulator} initial boot",
-                    shouldReturnOnTimeout = false,
-                    logger = logger,
-                    marker = logMarker
-                ) {
-                    val simulatorInfo = remote.fbsimctl.listDevice(udid)
-                    lastState = simulatorInfo?.state
-                    lastState == FBSimctlDeviceState.BOOTED.value
-                }
-            } catch (e: WaitTimeoutError) {
-                throw WaitTimeoutError("${e.message}. Simulator is in wrong state of $lastState", e)
-            }
-
-            var systemLogPath = ""
-
-            pollFor(Duration.ofSeconds(20), "${this@Simulator} system log appeared",
-                    shouldReturnOnTimeout = true, logger = logger, marker = logMarker) {
-                val diagnosticInfo = remote.fbsimctl.diagnose(udid)
-                val location = diagnosticInfo.sysLogLocation
-                if (location != null) {
-                    systemLogPath = location
-                    logger.info(logMarker, "Device ${this@Simulator} system log appeared")
-                    true
-                } else {
-                    logger.warn(logMarker, "Device ${this@Simulator} system log NOT appeared")
-                    false
-                }
-            }
-
-            pollFor(Duration.ofSeconds(30), "${this@Simulator} to be sufficiently booted",
-                    shouldReturnOnTimeout = true, logger = logger, marker = logMarker) {
-                if (!systemLogPath.isBlank()) {
-                    remote.execIgnoringErrors(listOf("grep", "-m1", "SpringBoard", systemLogPath)).isSuccess
-                } else {
-                    false
-                }
-            }
-
+        try {
             pollFor(
-                Duration.ofSeconds(60),
-                reasonName = "${this@Simulator} FbSimCtl health check",
-                retryInterval = Duration.ofSeconds(3),
+                Duration.ofSeconds(90),
+                retryInterval = Duration.ofSeconds(10),
+                reasonName = "${this@Simulator} initial boot",
+                shouldReturnOnTimeout = false,
                 logger = logger,
                 marker = logMarker
             ) {
-                fbsimctlProc.isHealthy()
+                val simulatorInfo = remote.fbsimctl.listDevice(udid)
+                lastState = simulatorInfo?.state
+                lastState == FBSimctlDeviceState.BOOTED.value
+            }
+        } catch (e: WaitTimeoutError) {
+            throw WaitTimeoutError("${e.message}. Simulator is in wrong state of $lastState", e)
+        }
+
+        var systemLogPath = ""
+
+        pollFor(Duration.ofSeconds(60),
+            retryInterval = Duration.ofSeconds(10),
+            reasonName = "${this@Simulator} system log appeared",
+            shouldReturnOnTimeout = true,
+            logger = logger,
+            marker = logMarker
+        ) {
+            val diagnosticInfo = remote.fbsimctl.diagnose(udid)
+            val location = diagnosticInfo.sysLogLocation
+            if (location != null) {
+                systemLogPath = location
+                logger.info(logMarker, "Device ${this@Simulator} system log appeared")
+                true
+            } else {
+                logger.warn(logMarker, "Device ${this@Simulator} system log NOT appeared")
+                false
+            }
+        }
+
+        pollFor(Duration.ofSeconds(60),
+            retryInterval = Duration.ofSeconds(10),
+            reasonName = "${this@Simulator} to be sufficiently booted",
+            shouldReturnOnTimeout = true,
+            logger = logger,
+            marker = logMarker
+        ) {
+            if (!systemLogPath.isBlank()) {
+                remote.execIgnoringErrors(listOf("grep", "-m1", "SpringBoard", systemLogPath)).isSuccess
+            } else {
+                false
+            }
+        }
+
+        val requiredRecords = listOf(
+            "GDRRequestMadeForRelayRepair",
+            "com.apple.fileproviderd"
+        )
+
+        pollFor(Duration.ofMinutes(2),
+            retryInterval = Duration.ofSeconds(15),
+            reasonName = "${this@Simulator} to load required services",
+            shouldReturnOnTimeout = true,
+            logger = logger,
+            marker = logMarker
+        ) {
+            logger.debug(logMarker, "Checking that defaults contain values $requiredRecords")
+            val simulatorDefaults = readSimulatorDefaults()
+            requiredRecords.all { simulatorDefaults.contains(it) }
+        }
+
+        val osVersion = Regex("[0-9.]+").find(deviceInfo.os)?.value?.toFloat()
+
+        if (osVersion != null && osVersion >= 13) {
+            val requiredRecordsIos13 = listOf(
+                "com.apple.parsecd",
+                "PredictiveGenerationLastRun"
+            )
+            pollFor(Duration.ofMinutes(2),
+                retryInterval = Duration.ofSeconds(15),
+                reasonName = "${this@Simulator} to load required services for iOS 13",
+                shouldReturnOnTimeout = true,
+                logger = logger,
+                marker = logMarker
+            ) {
+                logger.debug(logMarker, "Checking that defaults contain values $requiredRecordsIos13")
+                val simulatorDefaults = readSimulatorDefaults()
+                requiredRecordsIos13.all { simulatorDefaults.contains(it) }
             }
 
-            logger.info(logMarker, "Device ${this@Simulator} is sufficiently booted")
+            logger.info(logMarker, "Saving Preference that Continuous Path Introduction was shown")
+            writeSimulatorDefaults("com.apple.Preferences DidShowContinuousPathIntroduction -bool true")
         }
 
-        runBlocking {
-            bootJob.await()
+        pollFor(
+            Duration.ofSeconds(60),
+            retryInterval = Duration.ofSeconds(10),
+            reasonName = "${this@Simulator} FbSimCtl health check",
+            logger = logger,
+            marker = logMarker
+        ) {
+            fbsimctlProc.isHealthy()
         }
+
+        logger.info(logMarker, "Device ${this@Simulator} is sufficiently booted")
+    }
+
+    private fun writeSimulatorDefaults(setting: String) {
+        remote.shell("/usr/bin/xcrun simctl spawn $udid defaults write $setting", true)
+    }
+
+    private fun readSimulatorDefaults(): String {
+        return remote.execIgnoringErrors("/usr/bin/xcrun simctl spawn $udid defaults read".split(" ")).stdOut
     }
 
     private fun truncateSystemLogIfExists() {
@@ -428,7 +501,10 @@ class Simulator (
 
     //region reset async
     override fun resetAsync() {
-        stopPeriodicHealthCheck()
+        if (deviceState == DeviceState.CREATING || deviceState == DeviceState.RESETTING) {
+            throw java.lang.IllegalStateException("Simulator $udid is already in state $deviceState")
+        }
+
         executeCritical {
             deviceState = DeviceState.RESETTING
         }
@@ -438,11 +514,15 @@ class Simulator (
             val elapsed = measureTimeMillis {
                 resetFromBackup()
                 try {
-                    prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
-                } catch (e: Exception) { // catching most wide exception
-                    executeCritical {
-                        deviceState = DeviceState.FAILED
+                    stopPeriodicHealthCheck()
+                    val resetAsyncAndPrepareJob = async(context = concurrentBootsPool) {
+                        prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
                     }
+                    runBlocking {
+                        resetAsyncAndPrepareJob.await()
+                    }
+                } catch (e: Exception) { // catching most wide exception
+                    deviceState = DeviceState.FAILED
                     logger.error(logMarker, "Failed to reset and prepare device ${this@Simulator}", e)
                     throw e
                 }
@@ -554,7 +634,7 @@ class Simulator (
 
     //region approveAccess
 
-    override fun approveAccess(bundleId: String) {
+    override fun approveAccess(bundleId: String, locationPermissionsLock: ReentrantLock) {
         val permissions = SimulatorPermissions(remote, deviceSetPath, this)
 
         val set = PermissionSet()
@@ -566,13 +646,13 @@ class Simulator (
             PermissionType.Contacts to PermissionAllowed.Yes
         ))
 
-        permissions.setPermissions(bundleId, set)
+        permissions.setPermissions(bundleId, set, locationPermissionsLock)
     }
 
-    override fun setPermissions(bundleId: String, permissions: PermissionSet) {
+    override fun setPermissions(bundleId: String, permissions: PermissionSet, locationPermissionsLock: ReentrantLock) {
         val manager = SimulatorPermissions(remote, deviceSetPath, this)
 
-        manager.setPermissions(bundleId, permissions)
+        manager.setPermissions(bundleId, permissions, locationPermissionsLock)
     }
 
     //endregion
@@ -592,10 +672,8 @@ class Simulator (
             criticalAsyncPromise.cancel(CancellationException("Killing previous $criticalAsyncPromise running on $this due to release of the device"))
         }
 
-        executeCritical {
-            disposeResources()
-            shutdown()
-        }
+        disposeResources()
+        shutdown()
         logger.info(logMarker, "Released device $this")
     }
 

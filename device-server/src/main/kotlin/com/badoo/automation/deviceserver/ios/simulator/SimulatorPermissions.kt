@@ -5,6 +5,8 @@ import com.badoo.automation.deviceserver.data.PermissionSet
 import com.badoo.automation.deviceserver.data.PermissionType
 import com.badoo.automation.deviceserver.host.IRemote
 import java.io.File
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 class SimulatorPermissions(
     private val remote: IRemote,
@@ -27,12 +29,16 @@ class SimulatorPermissions(
         PermissionType.Speech to "kTCCServiceSpeechRecognition"
     )
 
-    fun setPermissions(bundleId: String, permissions: PermissionSet) {
+    fun setPermissions(
+        bundleId: String,
+        permissions: PermissionSet,
+        locationPermissionsLock: ReentrantLock
+    ) {
         val servicePermissions = PermissionSet()
 
         permissions.forEach { type, allowed ->
             when (type) {
-                PermissionType.Location -> setLocationPermission(bundleId, allowed)
+                PermissionType.Location -> locationPermissionsLock.withLock { setLocationPermission(bundleId, allowed) }
                 PermissionType.Notifications -> setNotificationsPermission(bundleId, allowed)
                 else -> servicePermissions[type] = allowed
             }
@@ -42,6 +48,10 @@ class SimulatorPermissions(
     }
 
     private fun setServicePermissions(bundleId: String, servicePermissions: PermissionSet) {
+        if (servicePermissions.isEmpty()) {
+            return
+        }
+
         val sql = StringBuilder()
 
         servicePermissions.forEach { type, allowed ->
@@ -104,7 +114,7 @@ class SimulatorPermissions(
 
         // Without PATH applesimutils will crash with 'NSInvalidArgumentException', reason: 'must provide a launch path'
         val env = mapOf("PATH" to "/usr/bin")
-        val rv = remote.execIgnoringErrors(cmd, env)
+        val rv = remote.execIgnoringErrors(cmd, env, timeOutSeconds = 60)
 
         if (!rv.isSuccess){
             throw RuntimeException("Could not set location permission: $rv")

@@ -18,10 +18,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.net.URI
+import java.util.concurrent.locks.ReentrantLock
 
 class SimulatorsNodeTest {
     private val iRemote: IRemote = mockThis()
     private val fbSimctl: FBSimctl = mockThis()
+    private val locationPermissionsLock: ReentrantLock = mockThis()
 
     init {
         whenever(iRemote.fbsimctl).thenReturn(fbSimctl)
@@ -66,7 +68,8 @@ class SimulatorsNodeTest {
             wdaPath,
             iSimulatorProvider,
             portAllocator,
-            simulatorFactory
+            simulatorFactory,
+            locationPermissionsLock
     )
     private val simulatorsNode = simulatorsNode1
 
@@ -244,7 +247,7 @@ class SimulatorsNodeTest {
 
         simulatorsNode.approveAccess(ref1, bundleId)
 
-        verify(simulatorMock).approveAccess(bundleId)
+        verify(simulatorMock).approveAccess(bundleId, locationPermissionsLock)
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.ios.fbsimctl
 import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.IShellCommand
 import com.badoo.automation.deviceserver.command.RemoteShellCommand
+import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.util.ensure
 import org.slf4j.LoggerFactory
@@ -102,11 +103,11 @@ class FBSimctl(
         return parser.parseDiagnosticInfo(fbsimctl(cmd = "diagnose", udid = udid))
     }
 
-    override fun shutdown(udid: UDID) {
-        fbsimctl("shutdown", udid, timeOut = SIMULATOR_SHUTDOWN_TIMEOUT, raiseOnError = false)
+    override fun shutdown(udid: UDID): CommandResult {
+        return shellCommand.exec("/usr/bin/xcrun simctl shutdown $udid".split(" "), timeOut = SIMULATOR_SHUTDOWN_TIMEOUT, returnFailure = true)
     }
 
-    override fun shutdownAllBooted() = fbsimctl("--simulators --state=booted shutdown")
+    override fun shutdownAllBooted() = shellCommand.exec("/usr/bin/xcrun simctl shutdown all".split(" "), timeOut = Duration.ofMinutes(3), returnFailure = true).stdOut
 
     override fun delete(udid: UDID) = fbsimctl("delete", udid)
 
@@ -138,13 +139,12 @@ class FBSimctl(
         timeOut: Duration = Duration.ofSeconds(30),
         raiseOnError: Boolean = false
     ): String {
-
         val fbsimctlCommand = buildFbsimctlCommand(jsonFormat, udid, cmd)
 
-        var result = executeCommand(fbsimctlCommand, timeOut)
-
-        if (result.exitCode == 255 && shellCommand is RemoteShellCommand) { // SSH_CONNECT_ERROR, but not necessary
-            result = executeCommand(fbsimctlCommand, timeOut) //FIXME: NOT a good place and not a good thing to do
+        val result = try {
+            shellCommand.exec(fbsimctlCommand, timeOut = timeOut, returnFailure = true)
+        } catch (e: SshConnectionException) {
+            shellCommand.exec(fbsimctlCommand, timeOut = timeOut, returnFailure = true)
         }
 
         val errors = filterFailures(result.stdOut)
@@ -158,10 +158,6 @@ class FBSimctl(
         }
 
         return result.stdOut.trim() // remove last new_line
-    }
-
-    private fun executeCommand(fbsimctlCommand: ArrayList<String>, timeOut: Duration): CommandResult {
-        return shellCommand.exec(fbsimctlCommand, timeOut = timeOut)
     }
 
     private fun buildFbsimctlCommand(jsonFormat: Boolean, udid: UDID?, command: List<String>): ArrayList<String> {
