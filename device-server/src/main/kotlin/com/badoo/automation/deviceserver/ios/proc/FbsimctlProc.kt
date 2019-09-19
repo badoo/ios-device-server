@@ -16,6 +16,7 @@ open class FbsimctlProc(
         remoteHost: String,
         username: String,
         cmd: List<String>,
+        commandEnvironment: Map<String, String>,
         isInteractiveShell: Boolean,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
@@ -33,6 +34,7 @@ open class FbsimctlProc(
                 remote.hostName,
                 remote.userName,
                 getFbsimctlCommand(headless),
+                mapOf(),
                 true,
                 { logger.trace(logMarker, "${this@FbsimctlProc}: FbSimCtl <o>: ${it.trim()}") },
                 { logger.debug(logMarker, "${this@FbsimctlProc}: FbSimCtl <e>: ${it.trim()}") }

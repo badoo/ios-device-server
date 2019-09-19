@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.command.CommandResult
+import com.badoo.automation.deviceserver.command.IShellCommand
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import java.io.File
 
@@ -20,6 +21,7 @@ interface IRemote {
     val hostName: String
     val userName: String
     val publicHostName: String
+    val localExecutor: IShellCommand
     fun isReachable(): Boolean
     fun isLocalhost(): Boolean = isLocalhost(hostName, userName)
 

@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 
 class CustomHttpClient {
     companion object {
-        private val client: OkHttpClient = OkHttpClient.Builder()
+        val client: OkHttpClient = OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)

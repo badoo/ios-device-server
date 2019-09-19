@@ -21,6 +21,7 @@ open class WebDriverAgent(
                 remoteHost: String,
                 userName: String,
                 cmd: List<String>,
+                commandEnvironment: Map<String, String>,
                 isInteractiveShell: Boolean,
                 out_reader: ((line: String) -> Unit)?,
                 err_reader: ((line: String) -> Unit)?
@@ -54,6 +55,7 @@ open class WebDriverAgent(
                 remote.hostName,
                 remote.userName,
                 launchXctestCommand,
+                mapOf("MJPEG_SERVER_FRAMERATE" to "4"),
                 false,
                 null,
                 { message -> logger.debug(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
