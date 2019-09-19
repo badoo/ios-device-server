@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
 
 class SimulatorsNode(
         val remote: IRemote,
@@ -27,7 +28,8 @@ class SimulatorsNode(
         private val wdaRunnerXctest: File,
         private val simulatorProvider: ISimulatorProvider = SimulatorProvider(remote),
         private val portAllocator: PortAllocator = PortAllocator(),
-        private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
+        private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {},
+        private val locationPermissionsLock: ReentrantLock = ReentrantLock(true)
 ) : ISimulatorsNode {
 
     override val remoteAddress: String get() = publicHostName
@@ -155,11 +157,11 @@ class SimulatorsNode(
     private fun newRef(udid: String): DeviceRef = "$udid-${remote.publicHostName}".replace(Regex("[^-\\w]"), "-")
 
     override fun approveAccess(deviceRef: DeviceRef, bundleId: String) {
-        getDeviceFor(deviceRef).approveAccess(bundleId)
+        getDeviceFor(deviceRef).approveAccess(bundleId, locationPermissionsLock)
     }
 
     override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
-        getDeviceFor(deviceRef).setPermissions(appPermissions.bundleId, appPermissions.permissions)
+        getDeviceFor(deviceRef).setPermissions(appPermissions.bundleId, appPermissions.permissions, locationPermissionsLock)
     }
 
     override fun capacityRemaining(desiredCaps: DesiredCapabilities): Float {
