@@ -11,14 +11,15 @@ class ChildProcess private constructor(
     command: List<String>,
     executor: IShellCommand,
     remoteHostname: String,
-    private val processListener: LongRunningProcessListener
-) {
+    private val processListener: LongRunningProcessListener,
+    commandEnvironment: Map<String, String> = mapOf()
+    ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHostname))
 
     init {
         logger.debug(logMarker, "Starting long living process from command [$command]")
-        executor.startProcess(command, mapOf(), processListener = processListener)
+        executor.startProcess(command, commandEnvironment, processListener = processListener)
         logger.debug(logMarker, "Started long living process $this from command [$command]")
     }
 
@@ -41,12 +42,39 @@ class ChildProcess private constructor(
 
     companion object {
         fun fromCommand(
-            remoteHost: String, userName: String, cmd: List<String>, isInteractiveShell: Boolean,
+            remoteHost: String,
+            userName: String,
+            cmd: List<String>,
+            commandEnvironment: Map<String, String>,
+            isInteractiveShell: Boolean,
             out_reader: ((line: String) -> Unit)?,
             err_reader: ((line: String) -> Unit)?
         ): ChildProcess {
             val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName, isInteractiveShell = isInteractiveShell)
-            return ChildProcess(cmd, executor, remoteHost, LongRunningProcessListener(out_reader, err_reader))
+            return ChildProcess(
+                command = cmd,
+                commandEnvironment = commandEnvironment,
+                executor = executor,
+                remoteHostname = remoteHost,
+                processListener = LongRunningProcessListener(out_reader, err_reader)
+            )
+        }
+
+        fun fromLocalCommand(
+            remoteHost: String,
+            executor: IShellCommand,
+            cmd: List<String>,
+            commandEnvironment: Map<String, String>,
+            out_reader: ((line: String) -> Unit)?,
+            err_reader: ((line: String) -> Unit)?
+        ): ChildProcess {
+            return ChildProcess(
+                command = cmd,
+                commandEnvironment = commandEnvironment,
+                executor = executor,
+                remoteHostname = remoteHost,
+                processListener = LongRunningProcessListener(out_reader, err_reader)
+            )
         }
     }
 }

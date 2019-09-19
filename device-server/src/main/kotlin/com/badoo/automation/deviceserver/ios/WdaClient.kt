@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.ios
 
 import com.badoo.automation.deviceserver.JsonMapper
+import com.badoo.automation.deviceserver.util.CustomHttpClient
 import com.fasterxml.jackson.databind.JsonNode
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -18,7 +19,7 @@ class WdaClient(
 ) {
     class WdaException(message: String): RuntimeException(message)
 
-    private val client: OkHttpClient = OkHttpClient.Builder()
+    private val client: OkHttpClient = CustomHttpClient.client.newBuilder()
         .connectTimeout(openTimeout.toMillis(), TimeUnit.MILLISECONDS)
         .readTimeout(readTimeout.toMillis(), TimeUnit.MILLISECONDS)
         .build()
@@ -111,5 +112,9 @@ class WdaClient(
         if (json["status"].intValue() != 0) {
             throw WdaException("WebDriver returned non zero status ${json["status"]}: ${json["value"]}")
         }
+    }
+
+    fun updateAppiumSettings(settings: Map<Any, Any>): JsonNode {
+        return post("/session/$sessionId/appium/settings", settings)
     }
 }

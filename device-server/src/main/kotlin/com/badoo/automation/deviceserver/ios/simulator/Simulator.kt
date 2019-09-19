@@ -16,7 +16,9 @@ import com.badoo.automation.deviceserver.ios.simulator.data.FileSystem
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
+import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
+import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.pollFor
 import kotlinx.coroutines.experimental.*
@@ -37,7 +39,7 @@ import kotlin.system.measureTimeMillis
 class Simulator (
         private val deviceRef: DeviceRef,
         private val remote: IRemote,
-        deviceInfo: DeviceInfo,
+        private val deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
         wdaRunnerXctest: File,
@@ -58,15 +60,34 @@ class Simulator (
     override val ref = deviceRef
     override val udid = deviceInfo.udid
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
-    override val wdaEndpoint= URI("http://${remote.publicHostName}:${allocatedPorts.wdaPort}/")
+    override val wdaEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.wdaPort}/")
     override val userPorts = allocatedPorts
     override val info = deviceInfo
     override val calabashPort: Int = allocatedPorts.calabashPort
     override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
 
-    private val recordingLocation = Paths.get(deviceSetPath, udid, "video.mp4").toFile()
+    private fun createVideoRecorder(): VideoRecorder {
+        val recorderClassName = ApplicationConfiguration().videoRecorderClassName
 
-    override val videoRecorder: SimulatorVideoRecorder = SimulatorVideoRecorder(deviceInfo, remote, location = recordingLocation)
+        return when (ApplicationConfiguration().videoRecorderClassName) {
+            SimulatorVideoRecorder::class.qualifiedName -> SimulatorVideoRecorder(
+                deviceInfo,
+                remote,
+                location = Paths.get(deviceSetPath, udid, "video.mp4").toFile()
+            )
+            MJPEGVideoRecorder::class.qualifiedName -> MJPEGVideoRecorder(
+                deviceInfo,
+                remote,
+                wdaEndpoint,
+                mjpegServerPort
+            )
+            else -> throw IllegalArgumentException(
+                "Wrong class specified as video recorder: $recorderClassName. " +
+                        "Available are: [${SimulatorVideoRecorder::class.qualifiedName}, ${MJPEGVideoRecorder::class.qualifiedName}]"
+            )
+        }
+    }
+    override val videoRecorder: VideoRecorder = createVideoRecorder()
 
     override val systemLog = SystemLog(remote, udid)
     override val osLog = OsLog(remote, udid)

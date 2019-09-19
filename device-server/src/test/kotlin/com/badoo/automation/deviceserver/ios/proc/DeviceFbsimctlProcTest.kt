@@ -55,6 +55,7 @@ class DeviceFbsimctlProcTest {
         remoteHost: String,
         username: String,
         cmd: List<String>,
+        commandEnvironment: Map<String, String>,
         isInteractiveShell: Boolean,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
