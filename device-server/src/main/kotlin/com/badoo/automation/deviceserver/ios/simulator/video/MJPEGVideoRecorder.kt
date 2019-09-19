@@ -9,9 +9,9 @@ import com.badoo.automation.deviceserver.ios.proc.LongRunningProc
 import com.badoo.automation.deviceserver.util.pollFor
 import java.awt.Rectangle
 import java.io.File
+import java.lang.RuntimeException
 import java.net.URI
 import java.nio.file.Files
-import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -50,10 +50,14 @@ class MJPEGVideoRecorder(
     }
 
     private fun deleteVideoFile(file: File) {
-        Files.deleteIfExists(file.toPath())
+        try {
+            Files.deleteIfExists(file.toPath())
 
-        if (file.exists()) {
-            logger.error(logMarker, "Video file still exists: ${file.absolutePath}")
+            if (file.exists()) {
+                logger.error(logMarker, "Video file still exists: ${file.absolutePath}")
+            }
+        } catch (e: RuntimeException) {
+            logger.error(logMarker, "Error while deleting Video file ${file.absolutePath}", e)
         }
     }
 
@@ -68,14 +72,11 @@ class MJPEGVideoRecorder(
 
             delete()
 
-            wdaClient.attachToSession()
-
-            val response = wdaClient.updateAppiumSettings(mapOf("settings" to mapOf("mjpegServerFramerate" to 4, "mjpegServerScreenshotQuality" to 40)))
-            logger.debug(logMarker, "Updated MJPEG server settings: $response")
-
+            adjustVideoStreamSettings()
 
             val cmd = listOf(
                 "/usr/bin/curl",
+                "-s",
                 "-o",
                 videoFile.toString(),
                 "http://${remote.publicHostName}:${mjpegServerPort}"
@@ -91,6 +92,19 @@ class MJPEGVideoRecorder(
         }
     }
 
+    private fun adjustVideoStreamSettings() {
+        wdaClient.attachToSession()
+        val response = wdaClient.updateAppiumSettings(
+            mapOf(
+                "settings" to mapOf(
+                    "mjpegServerFramerate" to 4,
+                    "mjpegServerScreenshotQuality" to 40
+                )
+            )
+        )
+        logger.debug(logMarker, "Updated MJPEG server settings: $response")
+    }
+
     override fun stop() {
         lock.withLock {
             if (!isStarted) {
@@ -104,7 +118,7 @@ class MJPEGVideoRecorder(
                 childProcess?.kill(Duration.ofSeconds(5))
 
                 pollFor(recorderStopTimeout, "Stop video recording", false, Duration.ofMillis(500), logger, logMarker) {
-                    logger.warn("${childProcess?.isAlive()}")
+                    logger.warn("Stream recorder is still running: ${childProcess?.isAlive()}")
 
                     childProcess?.isAlive() == false
                 }
@@ -160,12 +174,15 @@ class MJPEGVideoRecorder(
     }
 
     override fun dispose() {
-        if (childProcess?.isAlive() != true) {
-            return
+        logger.info(logMarker, "Terminating video recording process")
+        try {
+            if (childProcess?.isAlive() == true) {
+                childProcess?.kill(Duration.ofSeconds(1))
+            }
+        } catch (e: RuntimeException) {
+            logger.error(logMarker, "Error while terminating video recording process", e)
         }
 
-        logger.info(logMarker, "Terminating video recording process")
-        childProcess?.kill(Duration.ofSeconds(1))
         delete()
         logger.info(logMarker, "Disposed video recording")
     }

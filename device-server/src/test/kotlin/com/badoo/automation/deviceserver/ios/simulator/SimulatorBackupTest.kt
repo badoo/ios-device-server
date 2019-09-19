@@ -87,6 +87,7 @@ class SimulatorBackupTest {
     @Test(expected = SimulatorBackupError::class)
     fun shouldRestoreThrow() {
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultFailureStub)
+        whenever(remote.shell(anyString(), anyBoolean())).thenReturn(resultFailureStub)
         SimulatorBackup(remote, udid, deviceSetPath).restore()
     }
 }

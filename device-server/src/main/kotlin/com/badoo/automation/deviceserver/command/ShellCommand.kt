@@ -38,9 +38,14 @@ open class ShellCommand(
 
         if (exitCode == Int.MIN_VALUE) { // waiting timed out
             try {
-                process.destroy(true)
+                process.destroy(false)
             } catch (e: RuntimeException) {
                 logger.warn(logMarker, "Error while terminating command: ${command.joinToString(" ")}", e)
+            }
+            try {
+                process.destroy(true)
+            } catch (e: RuntimeException) {
+                logger.warn(logMarker, "Error while terminating command forcibly: ${command.joinToString(" ")}", e)
             }
         }
 
