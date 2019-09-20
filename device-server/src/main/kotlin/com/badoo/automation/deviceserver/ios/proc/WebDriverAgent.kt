@@ -37,6 +37,8 @@ open class WebDriverAgent(
             port.toString(),
             "--mjpeg-server-port",
             mjpegServerPort.toString(),
+            "--mjpeg-server-frame-rate",
+            "4",
             "--",
             "listen"
     )
