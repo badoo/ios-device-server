@@ -8,6 +8,8 @@ import com.badoo.automation.deviceserver.ios.DeviceStatus
 import com.badoo.automation.deviceserver.ios.WdaClient
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
+import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
+import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.pollFor
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -42,10 +44,17 @@ class Device(
         devicePort = WDA_PORT
     )
 
+    val mjpegServerPort = allocatedPorts.mjpegServerPort
+    private val mjpegProxy = usbProxy.create(
+        udid = deviceInfo.udid,
+        localPort = mjpegServerPort,
+        devicePort = mjpegServerPort
+    )
+
     val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     val calabashPort = calabashProxy.localPort
-    val mjpegServerPort = allocatedPorts.mjpegServerPort
+    val videoRecorder: VideoRecorder = MJPEGVideoRecorder(deviceInfo, remote, wdaEndpoint, mjpegServerPort)
 
     @Volatile
     var lastException: Exception? = null
@@ -163,6 +172,7 @@ class Device(
         ignoringDisposeErrors { wdaProc.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
+        ignoringDisposeErrors { mjpegProxy.stop() }
     }
 
     private fun ignoringDisposeErrors(action: () -> Unit?) {
@@ -309,6 +319,7 @@ class Device(
         wdaProc.kill()
 
         wdaProxy.stop()
+        mjpegProxy.stop()
         calabashProxy.stop()
 
         executeWithTimeout(timeout, name = "Preparing devices") {
@@ -316,6 +327,12 @@ class Device(
 
             if (!wdaProxy.isHealthy()) {
                 throw DeviceException("Failed to start $wdaProxy")
+            }
+
+            mjpegProxy.start()
+
+            if (!mjpegProxy.isHealthy()) {
+                throw DeviceException("Failed to start $mjpegProxy")
             }
 
             calabashProxy.start()
