@@ -222,6 +222,16 @@ fun Application.module() {
                         val dataPath = jsonContent<DataPath>(call)
                         call.respond(devicesController.pullFile(ref, dataPath))
                     }
+                    post("push_file") {
+                        val ref = param(call, "ref")
+                        val dataPath = jsonContent<FileDto>(call)
+
+                        if (dataPath.bundleId == null) {
+                            throw IllegalArgumentException("Bundle id is not set. Have to set 'bundle_id' to aprropriate value.")
+                        }
+
+                        call.respond(devicesController.pushFile(ref, dataPath.file_name, dataPath.data, dataPath.bundleId))
+                    }
                     post("list_files") {
                         val ref = param(call, "ref")
                         val dataPath = jsonContent<DataPath>(call)

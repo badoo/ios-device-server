@@ -150,6 +150,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.pullFile(ref, dataPath)
     }
 
+    fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String): EmptyMap {
+        deviceManager.pushFile(ref, fileName, data, bundleId)
+        return happy
+    }
+
     fun openUrl(ref: DeviceRef, url: String) {
         return deviceManager.openUrl(ref, url)
     }

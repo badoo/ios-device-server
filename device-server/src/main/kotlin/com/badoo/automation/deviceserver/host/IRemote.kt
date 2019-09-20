@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.IShellCommand
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import java.io.File
+import java.time.Duration
 
 interface IRemote {
     companion object {
@@ -50,4 +51,5 @@ interface IRemote {
     val fbsimctl: FBSimctl
     fun isDirectory(path: String): Boolean
     fun rsync(from: String, to: String, flags: Set<String>)
+    fun scp(from: String, to: String, timout: Duration = Duration.ofMinutes(1))
 }

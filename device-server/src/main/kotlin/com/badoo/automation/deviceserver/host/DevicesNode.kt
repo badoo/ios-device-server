@@ -63,6 +63,10 @@ class DevicesNode(
         throw(NotImplementedError("Diagnostic is not supported by physical devices"))
     }
 
+    override fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
+        throw(NotImplementedError("Push files is not supported by physical devices"))
+    }
+
     override val remoteAddress: String get() = remote.hostName
 
     private val deviceInfoProvider = DeviceInfoProvider(remote)
