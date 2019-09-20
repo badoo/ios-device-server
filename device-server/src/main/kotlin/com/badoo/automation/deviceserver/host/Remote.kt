@@ -120,6 +120,16 @@ class Remote(
         }
     }
 
+    override fun scp(from: String, to: String, timeOut: Duration) {
+        val result = localExecutor.exec(listOf("/usr/bin/scp", "-r", from, "$userAtHost:$to"), timeOut = timeOut, returnFailure = true)
+
+        ensure(result.isSuccess) {
+            val message = "Copying files to remote host failed with ${result.stdErr}"
+            logger.error(logMarker, message)
+            RuntimeException(message)
+        }
+    }
+
     private fun environmentForRsync(): MutableMap<String, String> {
         val env = mutableMapOf<String, String>()
         val sshAuthSocket = System.getenv(SSH_AUTH_SOCK)
