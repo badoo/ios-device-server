@@ -30,6 +30,7 @@ interface ISimulatorsNode {
 
     fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray)
     fun resetMedia(deviceRef: DeviceRef)
+    fun listMedia(deviceRef: DeviceRef): String
 
     fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic
     fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType)

@@ -236,6 +236,10 @@ fun Application.module() {
                     }
                 }
                 route("media") {
+                    get {
+                        val ref = param(call, "ref")
+                        call.respond(JsonMapper().toJson(MediaDto(devicesController.listMedia(ref))))
+                    }
                     delete {
                         val ref = param(call, "ref")
                         call.respond(devicesController.resetMedia(ref))

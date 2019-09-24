@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.simulator.data
 
+import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.util.withDefers
@@ -26,6 +27,11 @@ class Media(
 
         // restart assetsd to prevent fbsimctl upload failing with Error Domain=NSCocoaErrorDomain Code=-1 \"(null)\"
         restartAssetsd()
+    }
+
+    fun list() : String {
+        val listCmd = listOf("ls", "$mediaPath/DCIM/100APPLE")
+        return remote.execIgnoringErrors(listCmd).stdOut
     }
 
     fun addMedia(file: File, data: ByteArray) {
