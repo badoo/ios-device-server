@@ -190,6 +190,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).resetMedia(ref)
     }
 
+    fun listMedia(ref: DeviceRef): List<String> {
+        return nodeRegistry.activeDevices.getNodeFor(ref).listMedia(ref)
+    }
+
     fun addMedia(ref: DeviceRef, fileName: String, data: ByteArray) {
         nodeRegistry.activeDevices.getNodeFor(ref).addMedia(ref, fileName, data)
     }
