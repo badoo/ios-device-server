@@ -26,7 +26,7 @@ open class WebDriverAgent(
                 out_reader: ((line: String) -> Unit)?,
                 err_reader: ((line: String) -> Unit)?
         ) -> ChildProcess = ChildProcess.Companion::fromCommand
-) : LongRunningProc(udid, remote.hostName) {
+) : LongRunningProc(udid, remote.hostName), IWebDriverAgent {
     private val launchXctestCommand: List<String> = listOf(
             FBSimctl.FBSIMCTL_BIN,
             udid,
@@ -45,6 +45,10 @@ open class WebDriverAgent(
     private val uri: URI = uriWithPath(wdaEndpoint, "status")
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
+
+    override fun installHostApp() {
+        remote.fbsimctl.installApp(udid, wdaRunnerXctest)
+    }
 
     override fun start() {
         ensure(childProcess == null) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }

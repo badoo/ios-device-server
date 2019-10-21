@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver
 
+import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 
 class ApplicationConfiguration {
@@ -26,4 +27,5 @@ class ApplicationConfiguration {
     val trustStorePath: String = System.getProperty("trust.store.path", "")
     val assetsPath: String = System.getProperty("media.assets.path", "")
     val videoRecorderClassName = System.getProperty("video.recorder", SimulatorVideoRecorder::class.qualifiedName)
+    val simulatorWdaClassName = System.getProperty("simulator.wda", SimulatorWebDriverAgent::class.qualifiedName)
 }
