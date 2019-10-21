@@ -15,7 +15,7 @@ class HostFactory(
     private val fbsimctlVersion: String
 ) : IHostFactory {
     companion object {
-        val WDA_XCTEST = File("PlugIns/WebDriverAgentRunner.xctest")
+        val WDA_XCTEST = File("PlugIns/DeviceAgent.xctest")
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
