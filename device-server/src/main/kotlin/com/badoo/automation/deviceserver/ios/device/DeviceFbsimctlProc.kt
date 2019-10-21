@@ -17,8 +17,8 @@ class DeviceFbsimctlProc(
         cmd: List<String>,
         commandEnvironment: Map<String, String>,
         isInteractiveShell: Boolean,
-        out_reader: (line: String) -> Unit,
-        err_reader: (line: String) -> Unit
+        out_reader: ((line: String) -> Unit)?,
+        err_reader: ((line: String) -> Unit)?
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : FbsimctlProc(remote, udid, fbsimctlEndpoint, headless, childFactory) {
 

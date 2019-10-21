@@ -7,8 +7,7 @@ import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
-import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
-import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
+import com.badoo.automation.deviceserver.ios.proc.*
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
@@ -32,9 +31,10 @@ import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
 import java.time.Duration
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlin.system.measureTimeMillis
+import kotlin.system.measureNanoTime
 
 class Simulator (
         private val deviceRef: DeviceRef,
@@ -69,7 +69,7 @@ class Simulator (
     private fun createVideoRecorder(): VideoRecorder {
         val recorderClassName = ApplicationConfiguration().videoRecorderClassName
 
-        return when (ApplicationConfiguration().videoRecorderClassName) {
+        return when (recorderClassName) {
             SimulatorVideoRecorder::class.qualifiedName -> SimulatorVideoRecorder(
                 deviceInfo,
                 remote,
@@ -99,7 +99,38 @@ class Simulator (
 
     private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
-    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, mjpegServerPort)
+    private val simulatorProcess = SimulatorProcess(remote, udid)
+
+    private val webDriverAgent: IWebDriverAgent
+
+    init {
+        val wdaClassName = ApplicationConfiguration().simulatorWdaClassName
+
+        webDriverAgent = when (wdaClassName) {
+            SimulatorWebDriverAgent::class.qualifiedName -> SimulatorWebDriverAgent(
+                remote,
+                wdaRunnerXctest,
+                deviceInfo.udid,
+                wdaEndpoint,
+                mjpegServerPort,
+                deviceRef
+            )
+            SimulatorXcrunWebDriverAgent::class.qualifiedName -> SimulatorXcrunWebDriverAgent(
+                remote,
+                wdaRunnerXctest,
+                deviceInfo.udid,
+                wdaEndpoint,
+                mjpegServerPort,
+                simulatorProcess,
+                deviceRef
+            )
+            else -> throw IllegalArgumentException(
+                "Wrong class specified as WDA for Simulator: $wdaClassName. " +
+                        "Available are: [${SimulatorWebDriverAgent::class.qualifiedName}, ${SimulatorXcrunWebDriverAgent::class.qualifiedName}]"
+            )
+        }
+    }
+
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val commonLogMarkerDetails = mapOf(
@@ -109,7 +140,6 @@ class Simulator (
     )
     private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
-    private val simulatorProcess = SimulatorProcess(remote, udid)
     @Volatile private var healthChecker: Job? = null
     //endregion
 
@@ -133,7 +163,7 @@ class Simulator (
         }
 
         executeCriticalAsync {
-            val elapsed = measureTimeMillis {
+            val nanos = measureNanoTime {
                 try {
                     stopPeriodicHealthCheck()
                     val prepareJob = async(context = concurrentBootsPool) {
@@ -149,14 +179,22 @@ class Simulator (
                     throw e
                 }
             }
-            logger.info(logMarker, "Device ${this@Simulator} ready in ${elapsed / 1000} seconds")
+
+            val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+            val measurement = mutableMapOf(
+                "action_name" to "prepareAsync",
+                "duration" to seconds
+            )
+            measurement.putAll(commonLogMarkerDetails)
+
+            logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} ready in $seconds seconds")
         }
     }
 
     private fun prepare(timeout: Duration = PREPARE_TIMEOUT, clean: Boolean) {
         logger.info(logMarker, "Starting to prepare ${this@Simulator}. Will wait for ${timeout.seconds} seconds")
         lastException = null
-        wdaProc.kill()
+        webDriverAgent.kill()
         shutdown()
 
         //FIXME: add checks for cancellation of criticalAsyncPromise
@@ -189,8 +227,8 @@ class Simulator (
 
         var fbsimctlFailCount = 0
         var wdaFailCount = 0
-        val maxFailCount = 3
-        val healthCheckInterval = Duration.ofSeconds(10).toMillis()
+        val maxFailCount = 4
+        val healthCheckInterval = Duration.ofSeconds(15).toMillis()
 
         healthChecker = launch {
             while (isActive) {
@@ -207,7 +245,7 @@ class Simulator (
                     }
                 }
 
-                if (wdaProc.isHealthy()) {
+                if (webDriverAgent.isHealthy()) {
                     wdaFailCount = 0
                 } else {
                     wdaFailCount += 1
@@ -229,15 +267,15 @@ class Simulator (
         healthChecker?.cancel()
     }
 
-    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(30), retryInterval: Duration = Duration.ofSeconds(3)) {
+    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(20), retryInterval: Duration = Duration.ofSeconds(5)) {
         val maxRetries = 3
 
         for (attempt in 1..maxRetries) {
             try {
                 logger.info(logMarker, "Starting WebDriverAgent on ${this@Simulator}")
 
-                wdaProc.kill()
-                wdaProc.start()
+                webDriverAgent.kill()
+                webDriverAgent.start()
 
                 pollFor(
                     pollTimeout,
@@ -246,15 +284,12 @@ class Simulator (
                     logger = logger,
                     marker = logMarker
                 ) {
-                    //FIXME: add short_circuit: and throw if wdaProc.childProcess is dead
-                    if (wdaProc.isProcessAlive) {
-                        wdaProc.isHealthy()
-                    } else {
-                        throw WaitTimeoutError("WebDriverAgent process is not alive")
-                    }
+                    webDriverAgent.isHealthy()
                 }
 
-                break
+                logger.info(logMarker, "Started WebDriverAgent on ${this@Simulator}")
+
+                return
             }
             catch (e: RuntimeException) {
                 logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for ${this@Simulator} failed: $e")
@@ -263,8 +298,6 @@ class Simulator (
                 }
             }
         }
-
-        logger.info(logMarker, "Started WebDriverAgent on ${this@Simulator}")
     }
 
     private fun eraseSimulatorAndCreateBackup() {
@@ -280,6 +313,10 @@ class Simulator (
 
         if (assetsPath.isNotEmpty()) {
             copyMediaAssets()
+        }
+
+        if (useWda) {
+            webDriverAgent.installHostApp()
         }
 
         logger.info(logMarker, "Shutting down ${this@Simulator} before creating a backup")
@@ -488,8 +525,8 @@ class Simulator (
 
     private fun logTiming(actionName: String, action: () -> Unit) {
         logger.info(logMarker, "Device ${this@Simulator} starting action <$actionName>")
-        val millis = measureTimeMillis(action)
-        val seconds = millis / 1000
+        val nanos = measureNanoTime(action)
+        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
         val measurement = mutableMapOf(
                 "action_name" to actionName,
                 "duration" to seconds
@@ -511,7 +548,8 @@ class Simulator (
 
         executeCriticalAsync {
             // FIXME: check for it.isActive to help to cancel long running tasks
-            val elapsed = measureTimeMillis {
+
+            val nanos = measureNanoTime {
                 resetFromBackup()
                 try {
                     stopPeriodicHealthCheck()
@@ -527,7 +565,16 @@ class Simulator (
                     throw e
                 }
             }
-            logger.info(logMarker, "Device ${this@Simulator} reset and ready in ${elapsed / 1000} seconds")
+
+            val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+
+            val measurement = mutableMapOf(
+                "action_name" to "resetAsync",
+                "duration" to seconds
+            )
+            measurement.putAll(commonLogMarkerDetails)
+
+            logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} reset and ready in $seconds seconds")
         }
     }
 
@@ -574,23 +621,8 @@ class Simulator (
                 lastException = e
                 // FIXME: force shutdown failed sim
                 logger.error(logMarker, "Execute critical block finished with exception. Message: [${e.message}]", e)
-                logger.warn(logMarker, "Host stats on ${this@Simulator} are:\n${getSystemStats()}")
             }
         }
-    }
-
-    private fun getSystemStats(): String {
-        val uptime = remote.execIgnoringErrors(listOf("/usr/bin/uptime"))
-        val message = mutableListOf("uptime", uptime.stdOut)
-
-        val istats = remote.execIgnoringErrors(listOf("istats", "--no-graphs"), env = mapOf("RUBYOPT" to ""))
-
-        if (istats.isSuccess) {
-            message.add("istats")
-            message.add(istats.stdOut)
-        }
-
-        return message.joinToString("\n")
     }
     //endregion
 
@@ -601,7 +633,7 @@ class Simulator (
 
         if (deviceState == DeviceState.CREATED) {
             isFbsimctlReady = fbsimctlProc.isHealthy()
-            isWdaReady = (if (useWda) { wdaProc.isHealthy() } else true)
+            isWdaReady = (if (useWda) { webDriverAgent.isHealthy() } else true)
         }
 
         val isSimulatorReady = deviceState == DeviceState.CREATED && isFbsimctlReady && isWdaReady
@@ -679,7 +711,7 @@ class Simulator (
 
     private fun disposeResources() {
         ignoringErrors({ videoRecorder.dispose() })
-        ignoringErrors({ wdaProc.kill() })
+        ignoringErrors({ webDriverAgent.kill() })
     }
 
     private fun ignoringErrors(action: () -> Unit?) {

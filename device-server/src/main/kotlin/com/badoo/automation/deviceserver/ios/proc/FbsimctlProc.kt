@@ -18,8 +18,8 @@ open class FbsimctlProc(
         cmd: List<String>,
         commandEnvironment: Map<String, String>,
         isInteractiveShell: Boolean,
-        out_reader: (line: String) -> Unit,
-        err_reader: (line: String) -> Unit
+        out_reader: ((line: String) -> Unit)?,
+        err_reader: ((line: String) -> Unit)?
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
     private val uri: URI = uriWithPath(fbsimctlEndpoint, "list")

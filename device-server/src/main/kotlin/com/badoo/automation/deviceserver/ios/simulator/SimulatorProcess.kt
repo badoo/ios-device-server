@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
+import java.lang.RuntimeException
 
 class SimulatorProcess(
     private val remote: IRemote,
@@ -36,5 +37,24 @@ class SimulatorProcess(
         // Sends SIGKILL to process with parent pid $mainProcessPid and name $processName
         val command = listOf("/usr/bin/pkill", "-9", "-P", "$mainProcessPid", "-f", processName)
         remote.execIgnoringErrors(command)
+    }
+
+    private fun childProcessPid(processName: String): Int {
+        val command = listOf("/usr/bin/pgrep", "-P", "$mainProcessPid", "-f", processName)
+        val result = remote.execIgnoringErrors(command)
+
+        if (result.isSuccess) {
+            return result.stdOut.toInt()
+        }
+
+        if (result.exitCode == 1) {
+            return -1
+        }
+
+        throw RuntimeException("Failed to get child process PID. StdErr: ${result.stdErr}")
+    }
+
+    fun isChildProcessRunning(processName: String): Boolean {
+        return childProcessPid(processName) > 0
     }
 }
