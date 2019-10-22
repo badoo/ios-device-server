@@ -83,7 +83,7 @@ class SimulatorVideoRecorder(
             if (!isStarted) {
                 val message = "Video recording has not yet started"
                 logger.warn(logMarker, message)
-                throw SimulatorVideoRecordingException(message)
+                return
             }
 
             try {

@@ -45,7 +45,7 @@ class Media(
             } else {
                 val remoteMediaDir = remote.execIgnoringErrors(listOf("mktemp", "-d")).stdOut.trim()
                 defer { remote.execIgnoringErrors(listOf("rm", "-rf", remoteMediaDir)) }
-                remote.rsync(tmpFile.absolutePath, remoteMediaDir, setOf("-r", "--delete"))
+                remote.scp(tmpFile.absolutePath, remoteMediaDir)
                 File(remoteMediaDir, tmpFile.name).absolutePath
             }
 

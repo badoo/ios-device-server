@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.util.ensure
 import com.badoo.automation.deviceserver.util.uriWithPath
+import java.io.File
 import java.net.URI
 
 open class FbsimctlProc(
@@ -23,6 +24,8 @@ open class FbsimctlProc(
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
     private val uri: URI = uriWithPath(fbsimctlEndpoint, "list")
+    //private val stdOutFile: File = File.createTempFile("", "")
+    //private val stdErrFile: File = File.createTempFile("", "")
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${fbsimctlEndpoint.port}>"
 
@@ -30,14 +33,17 @@ open class FbsimctlProc(
         ensure(childProcess == null) { FbsimctlProcError("Previous fbsimctl process $childProcess has not been killed") }
         logger.debug(logMarker, "$this — Starting child process")
 
+        val outReader: (String) -> Unit = { logger.trace(logMarker, it.trim()) }
+        val errReader: (String) -> Unit = { logger.debug(logMarker, it.trim()) }
+
         childProcess = childFactory(
                 remote.hostName,
                 remote.userName,
                 getFbsimctlCommand(headless),
                 mapOf(),
                 true,
-                { logger.trace(logMarker, "${this@FbsimctlProc}: FbSimCtl <o>: ${it.trim()}") },
-                { logger.debug(logMarker, "${this@FbsimctlProc}: FbSimCtl <e>: ${it.trim()}") }
+                outReader, // TODO: write to file o.txt
+                errReader  // TODO: write to file e.txt
         )
 
         logger.debug(logMarker, "$this FBSimCtl: $childProcess")

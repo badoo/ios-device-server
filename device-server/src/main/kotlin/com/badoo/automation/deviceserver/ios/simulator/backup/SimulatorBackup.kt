@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.File
 import java.io.IOException
+import java.time.Duration
 
 class SimulatorBackup(
         private val remote: IRemote,
@@ -69,7 +70,7 @@ class SimulatorBackup(
     //region create backup
     override fun create() {
         remote.execIgnoringErrors(listOf("rm", "-rf", backupPath))
-        val result = remote.execIgnoringErrors(listOf("cp", "-R", srcPath, backupPath))
+        val result = remote.execIgnoringErrors(listOf("cp", "-R", srcPath, backupPath), timeOutSeconds = 120)
 
         ensureSuccess(result, "$this failed to create backup $backupPath: $result")
 
@@ -94,7 +95,7 @@ class SimulatorBackup(
                 }
             }
             else -> {
-                remote.execIgnoringErrors("mkdir -p $metaFileDirectory".split(" "))
+                remote.execIgnoringErrors(listOf("mkdir", "-p", metaFileDirectory))
                 val result = remote.shell(
                     "echo ${ShellUtils.escape(content)} > $metaFilePath",
                     returnOnFailure = true
@@ -108,12 +109,12 @@ class SimulatorBackup(
     override fun restore() {
         val deleteResult = remote.execIgnoringErrors(listOf("rm", "-rf", srcPath), timeOutSeconds = 60L)
         if (!deleteResult.isSuccess) {
-            logger.error(logMarker, "Failed to delete at path: [$backupPath]")
-            val killResult = remote.shell("lsof -a -l -n -M -R -P -t +D $srcPath | xargs -n 1 kill -HUP", true)
+            logger.error(logMarker, "Failed to delete at path: [$srcPath]. Stderr: ${deleteResult.stdErr}")
+            val killResult = remote.shell("/usr/sbin/lsof -a -l -n -M -R -P -t +D $srcPath | /usr/bin/xargs -n 1 kill -HUP", true)
             logger.debug(logMarker, "Trying to kill processes holding $backupPath. Exit code: ${killResult.exitCode}")
             val secondDeleteResult = remote.execIgnoringErrors(listOf("rm", "-rf", srcPath), timeOutSeconds = 60L)
             logger.error(logMarker, "Trying to delete $srcPath second time. Exit code: ${secondDeleteResult.exitCode}")
-            remote.shell("lsof -a -l -n -M -R -P -t +D $srcPath | xargs -n 1 kill -HUP", true)
+            remote.shell("/usr/sbin/lsof -a -l -n -M -R -P -t +D $srcPath | /usr/bin/xargs -n 1 kill -HUP", true)
         }
 
         val result = remote.execIgnoringErrors(listOf("cp", "-R", backupPath, srcPath), timeOutSeconds = 120L)

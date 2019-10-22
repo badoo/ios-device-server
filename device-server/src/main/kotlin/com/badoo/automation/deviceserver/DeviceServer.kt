@@ -24,12 +24,15 @@ import io.ktor.features.StatusPages
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
+import io.ktor.request.httpMethod
+import io.ktor.request.path
 import io.ktor.request.uri
 import io.ktor.response.respond
 import io.ktor.response.respondText
 import io.ktor.routing.*
 import io.ktor.server.engine.ApplicationEngineEnvironmentReloading
 import io.ktor.server.engine.ShutDownUrl
+import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.lang.IllegalStateException
@@ -330,7 +333,13 @@ fun Application.module() {
                 else -> HttpStatusCode.InternalServerError
             }
 
-            logger.error(call.request.toString(), exception)
+            val path = call.request.path()
+            val marker = MapEntriesAppendingMarker(mapOf(
+                "http_api" to path
+            ))
+
+            logger.error(marker, "HTTP_API: $path | Error: ${exception.message}", exception)
+
             call.respond(statusCode,
                     hashMapOf(
                             "error" to exception.toDto()

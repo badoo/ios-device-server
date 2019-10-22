@@ -333,7 +333,7 @@ class Simulator (
         if (remote.isLocalhost()) {
             remote.shell("cp $trustStoreFile $keyChainLocation", returnOnFailure = false)
         } else {
-            remote.rsync(trustStoreFile, keyChainLocation, setOf("--delete"))
+            remote.scp(trustStoreFile, keyChainLocation)
         }
 
         logger.info(logMarker, "Copied trust store to ${this@Simulator}")
