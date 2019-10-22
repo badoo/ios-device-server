@@ -15,7 +15,8 @@ abstract class LongRunningProc(udid: UDID, remoteHostName: String) : ILongRunnin
     protected val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     protected val logMarker = MapEntriesAppendingMarker(mapOf(
             LogMarkers.HOSTNAME to remoteHostName,
-            LogMarkers.UDID to udid
+            LogMarkers.UDID to udid,
+            LogMarkers.DEVICE_REF to "$udid-$remoteHostName".replace(Regex("[^-\\w]"), "-")
     ))
     @Volatile protected var childProcess: ChildProcess? = null
     override val isProcessAlive: Boolean get() = true == childProcess?.isAlive()
