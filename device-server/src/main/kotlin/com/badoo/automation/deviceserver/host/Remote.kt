@@ -130,6 +130,16 @@ class Remote(
         }
     }
 
+    override fun rm(path: String, timeOut: Duration) {
+        val result = remoteExecutor.exec(listOf("/bin/rm", "-rf", path), timeOut = timeOut, returnFailure = true)
+
+        ensure(result.isSuccess) {
+            val message = "Failed to delete remote files. Stderr: ${result.stdErr}"
+            logger.error(logMarker, message)
+            RuntimeException(message)
+        }
+    }
+
     private fun environmentForRsync(): MutableMap<String, String> {
         val env = mutableMapOf<String, String>()
         val sshAuthSocket = System.getenv(SSH_AUTH_SOCK)
