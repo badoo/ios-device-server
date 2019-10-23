@@ -17,10 +17,7 @@ import io.ktor.auth.UnauthorizedResponse
 import io.ktor.auth.UserIdPrincipal
 import io.ktor.auth.authentication
 import io.ktor.auth.principal
-import io.ktor.features.CallLogging
-import io.ktor.features.ContentNegotiation
-import io.ktor.features.DefaultHeaders
-import io.ktor.features.StatusPages
+import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
@@ -335,7 +332,8 @@ fun Application.module() {
 
             val path = call.request.path()
             val marker = MapEntriesAppendingMarker(mapOf(
-                "http_api" to path
+                "http_api" to path,
+                "exception_class" to exception.javaClass.canonicalName
             ))
 
             logger.error(marker, "HTTP_API: $path | Error: ${exception.message}", exception)

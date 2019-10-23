@@ -83,7 +83,7 @@ class SimulatorXcrunWebDriverAgent(
             wdaBundleId,
             "--port", wdaEndpoint.port.toString(),
             "--mjpeg-server-port", mjpegServerPort.toString(),
-            "--mjpeg-server-frame-rate", 8.toString()
+            "--mjpeg-server-frame-rate", 4.toString()
         )
 
         val result = remote.execIgnoringErrors(cmd, timeOutSeconds = 90)
