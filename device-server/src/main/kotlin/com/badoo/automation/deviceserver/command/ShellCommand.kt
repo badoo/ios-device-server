@@ -37,6 +37,8 @@ open class ShellCommand(
         }
 
         if (exitCode == Int.MIN_VALUE) { // waiting timed out
+            logger.error(logMarker, "Command has failed to complete in time. Command: ${command.joinToString(" ")}")
+
             try {
                 process.destroy(false)
             } catch (e: RuntimeException) {
