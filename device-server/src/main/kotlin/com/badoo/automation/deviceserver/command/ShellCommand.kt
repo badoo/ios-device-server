@@ -30,24 +30,26 @@ open class ShellCommand(
 
         var exitCode = Int.MIN_VALUE
 
+        val commandString = command.joinToString(" ")
+
         try {
             exitCode = process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
         } catch (e: InterruptedException) {
-            logger.warn(logMarker, "Error while running command: ${command.joinToString(" ")}", e)
+            logger.warn(logMarker, "Error while running command: $commandString", e)
         }
 
         if (exitCode == Int.MIN_VALUE) { // waiting timed out
-            logger.error(logMarker, "Command has failed to complete in time. Command: ${command.joinToString(" ")}")
+            logger.error(logMarker, "Command has failed to complete in time. Command: $commandString")
 
             try {
                 process.destroy(false)
             } catch (e: RuntimeException) {
-                logger.warn(logMarker, "Error while terminating command: ${command.joinToString(" ")}", e)
+                logger.warn(logMarker, "Error while terminating command: $commandString", e)
             }
             try {
                 process.destroy(true)
             } catch (e: RuntimeException) {
-                logger.warn(logMarker, "Error while terminating command forcibly: ${command.joinToString(" ")}", e)
+                logger.warn(logMarker, "Error while terminating command forcibly: $commandString", e)
             }
         }
 
@@ -59,7 +61,7 @@ open class ShellCommand(
                 cmd = command // Store actual command - including ssh stuff.
         )
         ensure(processListener.exitCode == 0 || returnFailure) {
-            val errorMessage = "Error while running command: ${command.joinToString(" ")} Result=$result"
+            val errorMessage = "Error while running command: $commandString Result=$result"
             logger.error(logMarker, errorMessage)
             ShellCommandException(errorMessage)
         }
