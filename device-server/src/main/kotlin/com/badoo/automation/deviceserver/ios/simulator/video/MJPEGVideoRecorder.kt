@@ -1,47 +1,62 @@
 package com.badoo.automation.deviceserver.ios.simulator.video
 
-import com.badoo.automation.deviceserver.command.ChildProcess
-import com.badoo.automation.deviceserver.command.IShellCommand
+import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.DeviceInfo
+import com.badoo.automation.deviceserver.data.DeviceRef
+import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.WdaClient
-import com.badoo.automation.deviceserver.ios.proc.LongRunningProc
-import com.badoo.automation.deviceserver.util.pollFor
+import com.badoo.automation.deviceserver.util.CustomHttpClient
+import net.logstash.logback.marker.MapEntriesAppendingMarker
+import okhttp3.Call
+import okhttp3.Request
+import okio.buffer
+import okio.sink
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.awt.Rectangle
 import java.io.File
-import java.lang.RuntimeException
 import java.net.URI
+import java.net.URL
 import java.nio.file.Files
 import java.time.Duration
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
-class MJPEGVideoRecorder(
+class
+MJPEGVideoRecorder(
     private val deviceInfo: DeviceInfo,
     private val remote: IRemote,
-    private val wdaEndpoint: URI,
-    private val mjpegServerPort: Int,
-    private val childFactory: (remoteHost: String, executor: IShellCommand, cmd: List<String>, commandEnvironment: Map<String, String>,
-                               out_reader: (line: String) -> Unit, err_reader: (line: String) -> Unit
-        ) -> ChildProcess? = ChildProcess.Companion::fromLocalCommand,
-    private val recorderStopTimeout: Duration = Duration.ofSeconds(5),
+    wdaEndpoint: URI,
+    mjpegServerPort: Int,
+    private val ref: DeviceRef,
+    udid: UDID,
+    maxVideoDuration: Duration = Duration.ofMinutes(15),
     private val videoFile: File = File.createTempFile("videoRecording_${deviceInfo.udid}_", ".mjpeg"),
     private val encodedVideoFile: File = File.createTempFile("videoRecording_${deviceInfo.udid}_", ".mp4")
-) : LongRunningProc(deviceInfo.udid, remote.hostName), VideoRecorder {
+) : VideoRecorder {
+    private val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
+    private val logMarker = MapEntriesAppendingMarker(
+        mapOf(
+            LogMarkers.HOSTNAME to remote.publicHostName,
+            LogMarkers.UDID to udid,
+            LogMarkers.DEVICE_REF to ref
+        )
+    )
 
-    private val udid = deviceInfo.udid
+    init {
+        delete()
+    }
 
-    @Volatile
-    private var isStarted: Boolean = false
+    private val httpClient = CustomHttpClient.client.newBuilder().readTimeout(maxVideoDuration).build()
+    private var videoRecordingTask: Future<*>? = null
+    private var videoRecordingHttpCall: Call? = null
 
-    private val lock = ReentrantLock(true)
-
-    override fun toString(): String = udid
-
-    override fun checkHealth(): Boolean = childProcess?.isAlive() ?: false
+    override fun toString(): String = "${javaClass.simpleName} for $ref"
 
     private val uniqueTag = "video-recording-$udid"
     private val wdaClient = WdaClient(wdaEndpoint.toURL())
+    private val mjpegStreamUrl = URL("http://${remote.publicHostName}:${mjpegServerPort}")
 
     override fun delete() {
         logger.debug(logMarker, "Deleting video recording")
@@ -63,33 +78,29 @@ class MJPEGVideoRecorder(
 
     override fun start() {
         logger.info(logMarker, "Starting video recording")
-        lock.withLock {
-            if (isStarted) {
-                val message = "Video recording already started"
-                logger.error(logMarker, message)
-                throw SimulatorVideoRecordingException(message)
+
+        stopVideoRecording()
+        delete()
+        adjustVideoStreamSettings()
+
+        val executor = Executors.newSingleThreadExecutor()
+        val request: Request = Request.Builder()
+            .get()
+            .url(mjpegStreamUrl)
+            .build()
+
+        videoRecordingHttpCall = httpClient.newCall(request)
+
+        videoRecordingTask = executor.submit {
+            videoFile.sink().use { sink ->
+                videoRecordingHttpCall!!.execute().use { response ->
+                    sink.buffer().writeAll(response.body!!.source())
+                }
             }
-
-            delete()
-
-            adjustVideoStreamSettings()
-
-            val cmd = listOf(
-                "/usr/bin/curl",
-                "-s",
-                "-o",
-                videoFile.toString(),
-                "http://${remote.publicHostName}:${mjpegServerPort}"
-            )
-
-            childProcess = childFactory(remote.hostName, remote.localExecutor, cmd, mapOf(),
-                { logger.debug(logMarker, "$udid: VideoRecorder <o>: ${it.trim()}") },
-                { logger.debug(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
-            )
-
-            logger.info(logMarker, "Started video recording")
-            isStarted = true
         }
+        executor.shutdown()
+
+        logger.info(logMarker, "Started video recording")
     }
 
     private fun adjustVideoStreamSettings() {
@@ -98,7 +109,7 @@ class MJPEGVideoRecorder(
             mapOf(
                 "settings" to mapOf(
                     "mjpegServerFramerate" to 4,
-                    "mjpegServerScreenshotQuality" to 40
+                    "mjpegServerScreenshotQuality" to 100
                 )
             )
         )
@@ -106,28 +117,28 @@ class MJPEGVideoRecorder(
     }
 
     override fun stop() {
-        lock.withLock {
-            if (!isStarted) {
-                val message = "Video recording has not yet started"
-                logger.warn(logMarker, message)
-                return
-            }
+        logger.info(logMarker, "Stopping video recording")
 
-            try {
-                logger.info(logMarker, "Stopping video recording")
-                childProcess?.kill(Duration.ofSeconds(5))
+        stopVideoRecording()
 
-                pollFor(recorderStopTimeout, "Stop video recording", false, Duration.ofMillis(500), logger, logMarker) {
-                    logger.warn("Stream recorder is still running: ${childProcess?.isAlive()}")
+        logger.info(logMarker, "Stopped video recording stopped")
+    }
 
-                    childProcess?.isAlive() == false
-                }
-            } finally {
-                childProcess?.kill()
-                childProcess = null
-                logger.info(logMarker, "Stopped video recording")
-                isStarted = false
-            }
+    private fun stopVideoRecording() {
+        try {
+            videoRecordingHttpCall?.cancel()
+        } catch (e: RuntimeException) {
+            logger.warn(logMarker, "Failed to cancel video recording call. ${e.message}", e)
+        } finally {
+            videoRecordingHttpCall = null
+        }
+
+        try {
+            videoRecordingTask?.cancel(true)
+        } catch (e: RuntimeException) {
+            logger.warn(logMarker, "Failed to cancel video recording task. ${e.message}", e)
+        } finally {
+            videoRecordingTask = null
         }
     }
 
@@ -175,17 +186,11 @@ class MJPEGVideoRecorder(
 
     override fun dispose() {
         logger.info(logMarker, "Terminating video recording process")
-        try {
-            if (childProcess?.isAlive() == true) {
-                childProcess?.kill(Duration.ofSeconds(1))
-            }
-        } catch (e: RuntimeException) {
-            logger.error(logMarker, "Error while terminating video recording process", e)
-        }
-
+        stop()
         delete()
         logger.info(logMarker, "Disposed video recording")
     }
+
     private fun getVideoResolution(file: File): Rectangle {
         val cmd = "$FFPROBE_PATH -v error -show_entries stream=width,height -of csv=p=0:s=x ${file.absolutePath}"
         val result = remote.localExecutor.exec(cmd.split(" "), timeOut = Duration.ofSeconds(60L))
