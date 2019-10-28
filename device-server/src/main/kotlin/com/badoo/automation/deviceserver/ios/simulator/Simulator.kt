@@ -79,7 +79,9 @@ class Simulator (
                 deviceInfo,
                 remote,
                 wdaEndpoint,
-                mjpegServerPort
+                mjpegServerPort,
+                ref,
+                udid
             )
             else -> throw IllegalArgumentException(
                 "Wrong class specified as video recorder: $recorderClassName. " +
