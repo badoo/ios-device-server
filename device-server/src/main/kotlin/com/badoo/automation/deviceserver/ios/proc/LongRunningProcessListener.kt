@@ -24,11 +24,7 @@ class LongRunningProcessListener(
     var exitCode: Int = Int.MIN_VALUE
         private set
 
-    fun writeStdin(string: String) {
-        nuProcess.writeStdin(ByteBuffer.wrap(string.toByteArray()))
-    }
-
-    fun destroy(force: Boolean, timeOut: Duration = Duration.ofSeconds(1)): Int {
+    fun destroy(force: Boolean, timeOut: Duration): Int {
         try {
             nuProcess.destroy(force)
         } catch (e: RuntimeException) {
