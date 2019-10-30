@@ -18,7 +18,6 @@ class UsbProxy(
         userName: String,
         cmd: List<String>,
         commandEnvironment: Map<String, String>,
-        isInteractiveShell: Boolean,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
@@ -42,7 +41,6 @@ class UsbProxy(
             remote.userName,
             listOf(IPROXY_BIN, localPort.toString(), devicePort.toString(), udid),
             mapOf(),
-            false,
             { message -> logger.trace(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
             { message -> logger.debug(logMarker, "${this}: iproxy <e>: ${message.trim()}") }
         )
@@ -52,7 +50,6 @@ class UsbProxy(
             remote.userName,
             listOf(SOCAT_BIN, "tcp-listen:$localPort,reuseaddr,fork", "tcp:0.0.0.0:$localPort"),
             mapOf(),
-            false,
             { message -> logger.trace(logMarker, "${this}: socat <o>: ${message.trim()}") },
             { message -> logger.debug(logMarker, "${this}: socat <e>: ${message.trim()}") }
         )
