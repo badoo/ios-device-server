@@ -22,7 +22,6 @@ open class WebDriverAgent(
                 userName: String,
                 cmd: List<String>,
                 commandEnvironment: Map<String, String>,
-                isInteractiveShell: Boolean,
                 out_reader: ((line: String) -> Unit)?,
                 err_reader: ((line: String) -> Unit)?
         ) -> ChildProcess = ChildProcess.Companion::fromCommand
@@ -62,7 +61,6 @@ open class WebDriverAgent(
                 remote.userName,
                 launchXctestCommand,
                 mapOf("MJPEG_SERVER_FRAMERATE" to "4"),
-                false,
                 null,
                 { message -> logger.debug(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
         )
