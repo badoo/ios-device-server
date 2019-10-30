@@ -36,38 +36,16 @@ class ChildProcess private constructor(
         }
     }
 
-    fun writeStdin(string: String) {
-        processListener.writeStdin(string)
-    }
-
     companion object {
         fun fromCommand(
             remoteHost: String,
             userName: String,
             cmd: List<String>,
             commandEnvironment: Map<String, String>,
-            isInteractiveShell: Boolean,
             out_reader: ((line: String) -> Unit)?,
             err_reader: ((line: String) -> Unit)?
         ): ChildProcess {
-            val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName, isInteractiveShell = isInteractiveShell)
-            return ChildProcess(
-                command = cmd,
-                commandEnvironment = commandEnvironment,
-                executor = executor,
-                remoteHostname = remoteHost,
-                processListener = LongRunningProcessListener(out_reader, err_reader)
-            )
-        }
-
-        fun fromLocalCommand(
-            remoteHost: String,
-            executor: IShellCommand,
-            cmd: List<String>,
-            commandEnvironment: Map<String, String>,
-            out_reader: ((line: String) -> Unit)?,
-            err_reader: ((line: String) -> Unit)?
-        ): ChildProcess {
+            val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName)
             return ChildProcess(
                 command = cmd,
                 commandEnvironment = commandEnvironment,

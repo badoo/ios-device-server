@@ -42,34 +42,11 @@ class RemoteShellCommandTest {
         System.setOut(testOut)
     }
 
-    @Test fun nonInteractiveSshCommand() {
-        remoteShell = RemoteShellCommand(
-                remoteHost = remoteHost,
-                userName = userName,
-                builderFactory = ::nuProcessBuilderForTesting,
-                connectionTimeout = 1
-        )
-        remoteShell.exec(listOf("fbsimctl"), timeOut = Duration.ofMillis(100))
-
-        val expectedCommand = listOf(
-                "/usr/bin/ssh",
-                "-o", "ConnectTimeout=1",
-                "-o", "PreferredAuthentications=publickey",
-                "-q",
-                "-T",
-                userAtHost,
-            "fbsimctl"
-        )
-
-        assertEquals(expectedCommand, spyProcessBuilder.command())
-    }
-
     @Test fun interactiveSshCommand() {
         remoteShell = RemoteShellCommand(
                 remoteHost = remoteHost,
                 userName = userName,
                 builderFactory = ::nuProcessBuilderForTesting,
-                isInteractiveShell = true,
                 connectionTimeout = 1
                 )
         remoteShell.exec(listOf("fbsimctl"), timeOut = Duration.ofMillis(100))
@@ -101,7 +78,8 @@ class RemoteShellCommandTest {
                 "-o", "ConnectTimeout=1",
                 "-o", "PreferredAuthentications=publickey",
                 "-q",
-                "-T",
+                "-t",
+                "-t",
                 userAtHost,
                 "fbsimctl",
                 "udid='UDID'",

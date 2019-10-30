@@ -13,7 +13,6 @@ class RemoteShellCommand(
     userName: String,
     builderFactory: (cmd: List<String>, env: Map<String, String>) -> NuProcessBuilder = ::defaultNuProcessBuilder,
     commonEnvironment: Map<String, String> = mapOf(),
-    isInteractiveShell: Boolean = false,
     isVerboseMode: Boolean = false,
     connectionTimeout: Int = 10
 ) : ShellCommand(builderFactory, commonEnvironment) {
@@ -31,11 +30,7 @@ class RemoteShellCommand(
                 QUIET_MODE
         ))
 
-        if (isInteractiveShell) {
-            sshPrefix.addAll(FORCE_PSEUDO_TERMINAL_ALLOCATION)
-        } else {
-            sshPrefix.add(NO_PSEUDO_TERMINAL_ALLOCATION)
-        }
+        sshPrefix.addAll(FORCE_PSEUDO_TERMINAL_ALLOCATION)
 
         if (isVerboseMode) {
             sshPrefix.add("-vvv")
@@ -107,7 +102,6 @@ class RemoteShellCommand(
         const val SSH_COMMAND = "/usr/bin/ssh"
         const val QUIET_MODE = "-q"
         val FORCE_PSEUDO_TERMINAL_ALLOCATION = listOf("-t", "-t")
-        const val NO_PSEUDO_TERMINAL_ALLOCATION = "-T"
         const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
         const val SSH_ERROR = 255
     }

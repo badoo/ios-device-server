@@ -18,7 +18,6 @@ open class FbsimctlProc(
         username: String,
         cmd: List<String>,
         commandEnvironment: Map<String, String>,
-        isInteractiveShell: Boolean,
         out_reader: ((line: String) -> Unit)?,
         err_reader: ((line: String) -> Unit)?
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
@@ -41,7 +40,6 @@ open class FbsimctlProc(
                 remote.userName,
                 getFbsimctlCommand(headless),
                 mapOf(),
-                true,
                 outReader, // TODO: write to file o.txt
                 errReader  // TODO: write to file e.txt
         )
