@@ -132,7 +132,7 @@ class SimulatorVideoRecorder(
         }
 
         logger.info(logMarker, "Terminating video recording process")
-        childProcess?.kill(Duration.ofSeconds(1))
+        childProcess?.kill()
         delete()
         logger.info(logMarker, "Disposed video recording")
     }
