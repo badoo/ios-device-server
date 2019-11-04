@@ -2,7 +2,6 @@ package com.badoo.automation.deviceserver.ios.fbsimctl
 
 import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.IShellCommand
-import com.badoo.automation.deviceserver.command.RemoteShellCommand
 import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.util.ensure
@@ -176,5 +175,7 @@ class FBSimctl(
         return cmd
     }
 
-    private fun filterFailures(out: String) = parser.parse(out).filter { it["event_name"] == "failure" }
+    private fun filterFailures(fbsimctlResponse: String): List<Map<String, Any>> {
+        return parser.parseFailures(fbsimctlResponse)
+    }
 }

@@ -13,6 +13,14 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
             .map { mapper.fromJson<Map<String, Any>>(it) }
     }
 
+    override fun parseFailures(response: String): List<Map<String, Any>> {
+        val failureEvents = filteredResponseLines(response)
+            .filter { isOfEventName(it, "failure") }
+
+        val jsonMapper = JsonMapper()
+        return failureEvents.map { jsonMapper.fromJson<Map<String, Any>>(it) }
+    }
+
     /**
      * Parses device list
      */
@@ -23,8 +31,10 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
             .map { it.subject }
 
     override fun parseDeviceSets(response: String): List<String> {
-        return parse(response)
-                .map { it["subject"] as String }
+        val deviceSetsEvent = filteredResponseLines(response)
+            .first { isOfEventName(it, "list_device_sets") }
+
+        return parse(deviceSetsEvent).map { it["subject"] as String }
     }
 
     /**
@@ -37,11 +47,14 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
             .map { it.subject }.flatten()
 
     override fun parseDiagnosticInfo(response: String): FBSimctlDeviceDiagnosticInfo {
-        val result = parse(response)
+        val jsonMapper = JsonMapper()
+        val diagnosticEvents = filteredResponseLines(response)
+            .filter { isOfEventName(it, "diagnostic") }
+            .map { jsonMapper.fromJson<Map<String, Any>>(it) }
 
-        val sysLog = getFileLocation(result, "system_log")
-        val coreSimulatorLog = getFileLocation(result, "coresimulator")
-        val videoRecording = getFileLocation(result, "video")
+        val sysLog = getFileLocation(diagnosticEvents, "system_log")
+        val coreSimulatorLog = getFileLocation(diagnosticEvents, "coresimulator")
+        val videoRecording = getFileLocation(diagnosticEvents, "video")
 
         return FBSimctlDeviceDiagnosticInfo(
                 sysLogLocation = sysLog,
