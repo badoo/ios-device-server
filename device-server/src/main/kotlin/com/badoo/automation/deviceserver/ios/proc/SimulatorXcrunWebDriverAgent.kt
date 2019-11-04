@@ -43,9 +43,6 @@ class SimulatorXcrunWebDriverAgent(
 
     private val wdaBundleId = "com.facebook.WebDriverAgentRunner.dev2.xctrunner"
     private val uri: URI = uriWithPath(wdaEndpoint, "status")
-
-    private val isProcessAlive: Boolean get() = simulatorProcess.isChildProcessRunning("WebDriverAgentRunner-Runner.app")
-
     private val client: CustomHttpClient = CustomHttpClient()
 
     override fun isHealthy(): Boolean {
