@@ -29,7 +29,7 @@ class ChildProcess private constructor(
 
     fun kill() {
         logger.debug(logMarker, "Sending SIGTERM to process $this")
-        val timeOut = Duration.ofSeconds(5)
+        val timeOut = Duration.ofSeconds(15)
         val result = processListener.destroy(false, timeOut)
         if (result == Int.MIN_VALUE) {
             logger.warn(logMarker, "Process $this did not terminate gracefully within [${timeOut.seconds}] seconds. Sending SIGKILL")

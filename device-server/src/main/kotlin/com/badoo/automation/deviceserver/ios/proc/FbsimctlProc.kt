@@ -40,7 +40,7 @@ open class FbsimctlProc(
                 remote.userName,
                 getFbsimctlCommand(headless),
                 mapOf(),
-                outReader, // TODO: write to file o.txt
+                null, // outReader, // TODO: write to file o.txt
                 errReader  // TODO: write to file e.txt
         )
 

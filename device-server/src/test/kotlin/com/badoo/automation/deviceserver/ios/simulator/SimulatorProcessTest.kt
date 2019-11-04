@@ -1,16 +1,18 @@
 package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.command.CommandResult
+import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.*
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 
 class SimulatorProcessTest {
     private val udid: UDID = "ADB25768-5C9D-487E-A787-D271934B78B0"
+    private val deviceRef: DeviceRef = "asdf"
     private val remote = mockThis<IRemote>()
     private val stdOutWithSimulatorPid = """
         41757 launchd_sim /Users/z/Library/Developer/CoreSimulator/Devices/ADB25768-5C9D-487E-A787-D271934B78B0/data/var/run/launchd_bootstrap.plist
@@ -19,31 +21,29 @@ class SimulatorProcessTest {
 
     @Test
     fun testSimulatorProcessFound() {
-        val simulatorProcess = SimulatorProcess(remote, udid)
+        val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
         val simulatorFoundCommandResult = CommandResult(stdOutWithSimulatorPid, "", ByteArray(0), 0)
 
         whenever(remote.execIgnoringErrors(any(), any(), any()))
             .thenReturn(simulatorFoundCommandResult)
 
-        assertEquals(41757, simulatorProcess.mainProcessPid)
+        assertEquals(41757, simulatorProcess.getSimulatorMainProcessPid())
     }
 
     @Test
     fun testSimulatorProcessNotFound() {
-        val simulatorProcess = SimulatorProcess(remote, udid)
+        val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
         val noSimulatorFoundCommandResult = CommandResult("", "", ByteArray(0), 0)
 
         whenever(remote.execIgnoringErrors(any(), any(), any()))
             .thenReturn(noSimulatorFoundCommandResult)
 
-        assertFailsWith<IllegalStateException> {
-            simulatorProcess.mainProcessPid
-        }
+        assertNull(simulatorProcess.getSimulatorMainProcessPid())
     }
 
     @Test
     fun testKillSimulatorProcess() {
-        val simulatorProcess = SimulatorProcess(remote, udid)
+        val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
         whenever(remote.execIgnoringErrors(any(), any(), any()))
             .thenReturn(CommandResult(stdOutWithSimulatorPid, "", ByteArray(0), 0))

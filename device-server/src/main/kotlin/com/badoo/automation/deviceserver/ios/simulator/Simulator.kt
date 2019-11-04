@@ -101,7 +101,7 @@ class Simulator (
 
     private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
-    private val simulatorProcess = SimulatorProcess(remote, udid)
+    private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
     private val webDriverAgent: IWebDriverAgent
 

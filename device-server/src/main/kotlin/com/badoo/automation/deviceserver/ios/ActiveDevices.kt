@@ -112,7 +112,7 @@ class ActiveDevices(
             sessionEntry.updatedAtSeconds + sessionEntry.releaseTimeout.seconds
         }
 
-        logger.info("nextReleaseAtSeconds = $nextReleaseAtSeconds seconds")
+        logger.debug("nextReleaseAtSeconds = $nextReleaseAtSeconds seconds")
         return nextReleaseAtSeconds
     }
 
