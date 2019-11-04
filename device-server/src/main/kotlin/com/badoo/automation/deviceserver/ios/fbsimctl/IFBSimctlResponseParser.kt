@@ -8,4 +8,5 @@ interface IFBSimctlResponseParser {
     fun parse(response: String): List<Map<String, Any>>
     fun parseDeviceSets(response: String): List<String>
     fun parseInstallApp(response: String): FBSimctlInstallResult
+    fun parseFailures(response: String): List<Map<String, Any>>
 }
