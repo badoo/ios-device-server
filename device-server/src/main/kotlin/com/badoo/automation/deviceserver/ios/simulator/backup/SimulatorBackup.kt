@@ -107,19 +107,33 @@ class SimulatorBackup(
     //endregion
 
     override fun restore() {
-        val deleteResult = remote.execIgnoringErrors(listOf("rm", "-rf", srcPath), timeOutSeconds = 60L)
+        val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", srcPath), timeOutSeconds = 90L)
+
         if (!deleteResult.isSuccess) {
-            logger.error(logMarker, "Failed to delete at path: [$srcPath]. Stderr: ${deleteResult.stdErr}")
-            val killResult = remote.shell("/usr/sbin/lsof -a -l -n -M -R -P -t +D $srcPath | /usr/bin/xargs -n 1 kill -HUP", true)
-            logger.debug(logMarker, "Trying to kill processes holding $backupPath. Exit code: ${killResult.exitCode}")
-            val secondDeleteResult = remote.execIgnoringErrors(listOf("rm", "-rf", srcPath), timeOutSeconds = 60L)
-            logger.error(logMarker, "Trying to delete $srcPath second time. Exit code: ${secondDeleteResult.exitCode}")
-            remote.shell("/usr/sbin/lsof -a -l -n -M -R -P -t +D $srcPath | /usr/bin/xargs -n 1 kill -HUP", true)
+            logger.error(logMarker, "Failed to delete at path: [$srcPath]. Result: $deleteResult")
+
+            val r = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", srcPath), timeOutSeconds = 90L);
+
+            if (!r.isSuccess) {
+                val undeletedFiles = remote.execIgnoringErrors(listOf("/usr/bin/find", srcPath), timeOutSeconds = 90L);
+                logger.error(logMarker, "Failed to delete at path: [$srcPath]. Not deleted files: ${undeletedFiles.stdOut}")
+            }
         }
 
-        val result = remote.execIgnoringErrors(listOf("cp", "-R", backupPath, srcPath), timeOutSeconds = 120L)
+        val result = remote.execIgnoringErrors(listOf("/bin/cp", "-Rfp", backupPath, srcPath), timeOutSeconds = 120L)
 
-        ensureSuccess(result, "$this failed to restore from backup $backupPath: $result")
+        if (!result.isSuccess) {
+            logger.error(logMarker, "Failed to restore from backup at path: [$backupPath] to path: [$result]")
+
+            val secondTry = remote.execIgnoringErrors(listOf("cp", "-Rfp", backupPath, srcPath), timeOutSeconds = 120L)
+
+            if (!secondTry.isSuccess) {
+                val errorMessage = "Failed second attempt to restore from backup at path: [$backupPath] to path: [$secondTry]"
+                logger.error(logMarker, errorMessage)
+                throw SimulatorBackupError(errorMessage)
+            }
+        }
+
         logger.debug(logMarker, "Restored simulator $udid from backup at path: [$backupPath]")
     }
 
