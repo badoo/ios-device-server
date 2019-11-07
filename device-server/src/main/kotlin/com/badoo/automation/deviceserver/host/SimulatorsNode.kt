@@ -4,11 +4,13 @@ import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
 import com.badoo.automation.deviceserver.data.*
+import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
+import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.newDeviceRef
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.newFixedThreadPoolContext
@@ -18,7 +20,10 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
+import kotlin.system.measureNanoTime
 
 class SimulatorsNode(
         val remote: IRemote,
@@ -32,12 +37,61 @@ class SimulatorsNode(
         private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {},
         private val locationPermissionsLock: ReentrantLock = ReentrantLock(true)
 ) : ISimulatorsNode {
+    override fun appInstallProgress(deviceRef: DeviceRef): String {
+        val udid = getDeviceFor(deviceRef).udid
+
+        return appInstaller.installProgress(udid)
+    }
+
+    private val apps: MutableMap<String, ApplicationBundle> = ConcurrentHashMap(200)
+    private val appBinaries: MutableMap<String, File> = ConcurrentHashMap(200)
+    private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(3), remote)
+
+    override fun installApplicationAsync(deviceRef: DeviceRef, appBundle: ApplicationBundle) {
+        synchronized(this) {
+            val udid = getDeviceFor(deviceRef).udid
+
+            // TODO: add date of syncing for future deleting cleanup
+            if (!apps.contains(appBundle.appUrl)) { // FIXME: check if app is deleted in one hour
+                if (remote.isLocalhost()) {
+                    // nothing to do
+                    appBinaries[appBundle.appUrl] = appBundle.appFile
+                } else {
+                    // save reference to file on remote host
+                    val nanos = measureNanoTime {
+                        val remoteAppDir = remoteAppDirectoryContainer(appBundle.appFile)
+                        remote.scp(appBundle.appFile.absolutePath, remoteAppDir)
+                        appBinaries[appBundle.appUrl] = File(remoteAppDir, appBundle.appFile.name)
+                    }
+                    val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+                    val measurement = mutableMapOf(
+                        HOSTNAME to remote.publicHostName,
+                        DEVICE_REF to newDeviceRef(udid, remote.publicHostName),
+                        UDID to udid,
+                        "action_name" to "scp_application",
+                        "duration" to seconds,
+                        "app_size" to appBundle.appFile.length()
+                    )
+                    logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.bundleId} on simulator $udid. Took $seconds seconds")
+                }
+
+                apps[appBundle.appUrl] = appBundle
+            }
+
+            appInstaller.installApplicationAsync(udid, appBundle, appBinaries[appBundle.appUrl]!!)
+        }
+    }
+
+    private fun remoteAppDirectoryContainer(appFile: File): String {
+        val command = listOf("/usr/bin/mktemp", "-d", "-t", "app_bundle_cache")
+        return remote.exec(command, mapOf(), false, 90).stdOut.trim()
+    }
 
     override val remoteAddress: String get() = publicHostName
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
-            HOSTNAME to remote.hostName
+            HOSTNAME to remote.publicHostName
     ))
 
     override val isNodePrepared: Boolean

@@ -21,7 +21,6 @@ import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.jackson.jackson
-import io.ktor.request.httpMethod
 import io.ktor.request.path
 import io.ktor.request.uri
 import io.ktor.response.respond
@@ -243,6 +242,15 @@ fun Application.module() {
                         val ref = param(call, "ref")
                         val bundleId = param(call, "bundleId")
                         call.respond(devicesController.uninstallApplication(ref, bundleId))
+                    }
+                    post("install") {
+                        val ref = param(call, "ref")
+                        val appBundle = jsonContent<AppBundleDto>(call)
+                        call.respond(devicesController.installApplication(ref, appBundle))
+                    }
+                    get("install_progress") {
+                        val ref = param(call, "ref")
+                        call.respond(devicesController.appInstallProgress(ref))
                     }
                 }
                 route("media") {

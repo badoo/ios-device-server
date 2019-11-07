@@ -6,9 +6,14 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.host.management.util.AutoreleaseLooper
 import com.badoo.automation.deviceserver.ios.ActiveDevices
+import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.net.URL
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
+import kotlin.system.measureNanoTime
 
 private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
 
@@ -208,5 +213,39 @@ class DeviceManager(
 
     fun resetDiagnostic(ref: DeviceRef, type: DiagnosticType) {
         nodeRegistry.activeDevices.getNodeFor(ref).resetDiagnostic(ref, type)
+    }
+
+    private val applications: MutableSet<ApplicationBundle> = mutableSetOf()
+
+    private val appInstallLock = ReentrantLock()
+
+    fun installApplication(ref: String, dto: AppBundleDto) {
+        val appBundle = ApplicationBundle.fromAppBundleDto(dto)
+
+        appInstallLock.withLock {
+            if (!applications.contains(appBundle)) {
+                applications.add(appBundle)
+            }
+
+            if (!appBundle.isAppDownloaded) {
+                val nanos = measureNanoTime {
+                    appBundle.downloadApp() // TODO: Retries
+                }
+
+                val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+                val measurement = mutableMapOf(
+                    "action_name" to "download_application",
+                    "app_bundle_id" to appBundle.bundleId,
+                    "duration" to seconds
+                )
+                logger.debug(MapEntriesAppendingMarker(measurement), "Successfully downloaded application ${appBundle.bundleId}. Took $seconds seconds")
+            }
+        }
+
+        nodeRegistry.activeDevices.getNodeFor(ref).installApplicationAsync(ref, appBundle)
+    }
+
+    fun appInstallProgress(deviceRef: DeviceRef): String {
+        return nodeRegistry.activeDevices.getNodeFor(deviceRef).appInstallProgress(deviceRef)
     }
 }

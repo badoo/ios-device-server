@@ -168,4 +168,14 @@ class DevicesController(private val deviceManager: DeviceManager) {
         deviceManager.setEnvironmentVariables(ref, environmentVariables)
         return happy
     }
+
+    fun installApplication(ref: String, appBundleDto: AppBundleDto): Map<String, String> {
+        deviceManager.installApplication(ref, appBundleDto)
+        return mapOf("" to "")
+    }
+
+    fun appInstallProgress(deviceRef: DeviceRef): Map<String, String> {
+        val status: String = deviceManager.appInstallProgress(deviceRef)
+        return mapOf("install_status" to status)
+    }
 }

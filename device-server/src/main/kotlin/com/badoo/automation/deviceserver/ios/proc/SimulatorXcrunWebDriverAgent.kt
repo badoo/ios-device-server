@@ -131,9 +131,6 @@ class SimulatorXcrunWebDriverAgent(
         logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed WDA on Simulator with xcrun simctl. Took $seconds seconds")
     }
 
-    private fun zisHostAppInstalled(): Boolean {
-        return remote.fbsimctl.listApps(udid).any { it.bundle.bundle_id.contains("WebDriverAgentRunner-Runner") }
-    }
     private fun isHostAppInstalled(): Boolean {
         val result = remote.execIgnoringErrors(listOf(
             "/usr/bin/xcrun",

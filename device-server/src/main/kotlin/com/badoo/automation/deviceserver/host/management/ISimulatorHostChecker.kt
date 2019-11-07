@@ -95,31 +95,38 @@ class SimulatorHostChecker(
 
         val caches = listOf(
                 "/private/var/folders/*/*/*/*-*-*/*.app",
+                "/private/var/folders/*/*/*/app_bundle_cache.*",
                 "/private/var/folders/*/*/*/fbsimctl-*",
                 "/var/folders/*/*/*/videoRecording_*",
                 "/private/var/folders/*/*/*/videoRecording_*",
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )
 
-        val cleanUpRunnable: Runnable = object : Runnable {
-            override fun run() {
-                caches.forEach {
-                    try {
-                        val r = remote.shell("find $it -maxdepth 0 -mmin +60 -exec rm -rf {} \\;", returnOnFailure = true) // find returns non zero if nothing found
-                        if (!r.isSuccess || r.stdErr.isNotEmpty() || r.stdOut.isNotEmpty()) {
-                            logger.debug(logMarker, "[disc cleaner] $this returned non-empty. Result stdErr: ${r.stdErr}")
-                        }
-                    } catch (e: RuntimeException) {
-                        logger.debug(logMarker, "[disc cleaner] $this got exception while cleaning caches: ${e.message}", e)
-                    }
-                }
+        val cleanUpRunnable: Runnable = Runnable {
+            caches.forEach { path ->
+                removeOldFiles(path, 120)
             }
         }
+
         cleanUpTask = periodicTasksPool.scheduleWithFixedDelay(
                 cleanUpRunnable,
                 0,
                 diskCleanupInterval.toMinutes(),
                 TimeUnit.MINUTES)
+    }
+
+    private fun removeOldFiles(path: String, minutes: Int) {
+        try {
+            val r = remote.shell(
+                "find $path -maxdepth 0 -mmin +$minutes -exec rm -rf {} \\;",
+                returnOnFailure = true
+            ) // find returns non zero if nothing found
+            if (!r.isSuccess || r.stdErr.isNotEmpty() || r.stdOut.isNotEmpty()) {
+                logger.debug(logMarker, "[disc cleaner] $this returned non-empty. Result stdErr: ${r.stdErr}")
+            }
+        } catch (e: RuntimeException) {
+            logger.debug(logMarker, "[disc cleaner] $this got exception while cleaning caches: ${e.message}", e)
+        }
     }
 
     private fun cleanupSimulators() {
