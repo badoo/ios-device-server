@@ -2,18 +2,21 @@ package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
+import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.XcodeVersion
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
+import com.badoo.automation.deviceserver.util.AppInstaller
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URL
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
@@ -29,6 +32,28 @@ class DevicesNode(
     private val remoteWdaBundleRoot: File,
     private val fbsimctlVersion: String
 ) : ISimulatorsNode {
+    override fun appInstallProgress(deviceRef: DeviceRef): String {
+        val device = slotByExternalRef(deviceRef).device
+        val udid = device.udid
+        return appInstaller.installProgress(udid)
+    }
+
+    private val apps: MutableMap<String, ApplicationBundle> = ConcurrentHashMap(200)
+    private val appBinaries: MutableMap<String, File> = ConcurrentHashMap(200)
+    private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(3), remote)
+
+    override fun installApplicationAsync(deviceRef: DeviceRef, appBundle: ApplicationBundle) {
+        val device = slotByExternalRef(deviceRef).device
+        val udid = device.udid
+        // TODO: add date of syncing for future deleting cleanup
+        if (!apps.contains(appBundle.appUrl)) { // FIXME: check if app is deleted in one hour
+            appBinaries[appBundle.appUrl] = appBundle.appFile
+            apps[appBundle.appUrl] = appBundle
+        }
+
+        appInstaller.installApplicationAsync(udid, appBundle, appBinaries[appBundle.appUrl]!!)
+    }
+
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(
         mapOf(
