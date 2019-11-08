@@ -169,13 +169,18 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
-    fun installApplication(ref: String, appBundleDto: AppBundleDto): Map<String, String> {
+    fun installApplication(ref: String, appBundleDto: AppBundleDto): EmptyMap {
         deviceManager.installApplication(ref, appBundleDto)
-        return mapOf("" to "")
+        return happy
     }
 
     fun appInstallProgress(deviceRef: DeviceRef): Map<String, String> {
         val status: String = deviceManager.appInstallProgress(deviceRef)
         return mapOf("install_status" to status)
+    }
+
+    fun updateApplicationPlist(deviceRef: String, plistEntry: PlistEntryDTO): Any {
+        deviceManager.updateApplicationPlist(deviceRef, plistEntry)
+        return happy
     }
 }

@@ -37,45 +37,58 @@ class SimulatorsNode(
         private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {},
         private val locationPermissionsLock: ReentrantLock = ReentrantLock(true)
 ) : ISimulatorsNode {
+    override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
+        val applicationContainer = getDeviceFor(ref).applicationContainer(plistEntry.bundleId)
+        val path = File(plistEntry.file_name).toPath()
+        val key = plistEntry.key
+        val value = plistEntry.value
+
+        if (plistEntry.command == "set") {
+            applicationContainer.setPlistValue(path, key, value)
+        } else {
+            val type = plistEntry.type ?: throw RuntimeException("Unable to add new property $key as it requires value type.")
+            applicationContainer.addPlistValue(path, key, value, type)
+        }
+    }
+
     override fun appInstallProgress(deviceRef: DeviceRef): String {
         val udid = getDeviceFor(deviceRef).udid
 
         return appInstaller.installProgress(udid)
     }
 
-    private val apps: MutableMap<String, ApplicationBundle> = ConcurrentHashMap(200)
+    private val appsCache: MutableMap<String, ApplicationBundle> = ConcurrentHashMap(200)
     private val appBinaries: MutableMap<String, File> = ConcurrentHashMap(200)
-    private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(3), remote)
+    private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(1), remote)
 
     override fun installApplicationAsync(deviceRef: DeviceRef, appBundle: ApplicationBundle) {
+        logger.info(logMarker, "Ready to install app ${appBundle.bundleId} on device $deviceRef")
+
         synchronized(this) {
             val udid = getDeviceFor(deviceRef).udid
+            logger.info(logMarker, "Started to install app ${appBundle.bundleId} on device $deviceRef")
 
             // TODO: add date of syncing for future deleting cleanup
-            if (!apps.contains(appBundle.appUrl)) { // FIXME: check if app is deleted in one hour
+            if (!appsCache.contains(appBundle.appUrl)) { // FIXME: check if app is deleted in one hour
                 if (remote.isLocalhost()) {
-                    // nothing to do
-                    appBinaries[appBundle.appUrl] = appBundle.appFile
+                    appBinaries[appBundle.appUrl] = appBundle.appFile!! // nothing else to do here
                 } else {
+                    val markerData = mapOf(HOSTNAME to remote.publicHostName, DEVICE_REF to newDeviceRef(udid, remote.publicHostName), UDID to udid)
+                    logger.debug(MapEntriesAppendingMarker(markerData), "Copying application ${appBundle.bundleId} on simulator $deviceRef.")
+
                     // save reference to file on remote host
                     val nanos = measureNanoTime {
-                        val remoteAppDir = remoteAppDirectoryContainer(appBundle.appFile)
-                        remote.scp(appBundle.appFile.absolutePath, remoteAppDir)
-                        appBinaries[appBundle.appUrl] = File(remoteAppDir, appBundle.appFile.name)
+                        val remoteAppDir = remoteAppDirectoryContainer(appBundle.appFile!!)
+                        remote.scp(appBundle.appFile!!.absolutePath, remoteAppDir)
+                        appBinaries[appBundle.appUrl] = File(remoteAppDir, appBundle.appFile!!.name)
                     }
+
                     val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
-                    val measurement = mutableMapOf(
-                        HOSTNAME to remote.publicHostName,
-                        DEVICE_REF to newDeviceRef(udid, remote.publicHostName),
-                        UDID to udid,
-                        "action_name" to "scp_application",
-                        "duration" to seconds,
-                        "app_size" to appBundle.appFile.length()
-                    )
-                    logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.bundleId} on simulator $udid. Took $seconds seconds")
+                    val measurement = mapOf(HOSTNAME to remote.publicHostName, DEVICE_REF to newDeviceRef(udid, remote.publicHostName), UDID to udid, "action_name" to "scp_application", "duration" to seconds, "app_size" to appBundle.appFile!!.length())
+                    logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.bundleId} on simulator $deviceRef. Took $seconds seconds")
                 }
 
-                apps[appBundle.appUrl] = appBundle
+                appsCache[appBundle.appUrl] = appBundle
             }
 
             appInstaller.installApplicationAsync(udid, appBundle, appBinaries[appBundle.appUrl]!!)

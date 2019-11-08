@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.DeviceServerConfig
+import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
@@ -10,6 +11,7 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.net.URL
 import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -215,30 +217,42 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).resetDiagnostic(ref, type)
     }
 
-    private val applications: MutableSet<ApplicationBundle> = mutableSetOf()
+    private val applicationsCache: ConcurrentHashMap<String, ApplicationBundle> = ConcurrentHashMap()
 
     private val appInstallLock = ReentrantLock()
 
     fun installApplication(ref: String, dto: AppBundleDto) {
-        val appBundle = ApplicationBundle.fromAppBundleDto(dto)
+        val marker = MapEntriesAppendingMarker(mapOf(LogMarkers.DEVICE_REF to ref))
+
+        val bundleKey = dto.appUrl
+        applicationsCache.putIfAbsent(bundleKey, ApplicationBundle.fromAppBundleDto(dto))
+        val appBundle = applicationsCache.get(bundleKey)!!
 
         appInstallLock.withLock {
-            if (!applications.contains(appBundle)) {
-                applications.add(appBundle)
-            }
+            logger.debug(marker, "Starting application install ${appBundle.bundleId} on device $ref")
 
-            if (!appBundle.isAppDownloaded) {
+            if (appBundle.isAppDownloaded) {
+                logger.debug(marker, "Using cached app bundle ${appBundle.bundleId} on device $ref. Url: ${appBundle.appUrl}")
+            } else {
+                var size: Long = 0
+                var sizeMB: Long = 0
                 val nanos = measureNanoTime {
-                    appBundle.downloadApp() // TODO: Retries
+                    logger.debug(marker, "Downloading app bundle to cache ${appBundle.bundleId} on device $ref. Url: ${appBundle.appUrl}")
+                    val applicationBinary = appBundle.downloadApp()
+
+                    size = applicationBinary.length()
+                    sizeMB = size.shr(20) // TODO: Retries
                 }
 
                 val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
                 val measurement = mutableMapOf(
                     "action_name" to "download_application",
                     "app_bundle_id" to appBundle.bundleId,
-                    "duration" to seconds
+                    "duration" to seconds,
+                    "app_size" to sizeMB
                 )
-                logger.debug(MapEntriesAppendingMarker(measurement), "Successfully downloaded application ${appBundle.bundleId}. Took $seconds seconds")
+
+                logger.debug(MapEntriesAppendingMarker(measurement), "Successfully downloaded application ${appBundle.bundleId} size: $size bytes. Took $seconds seconds")
             }
         }
 
@@ -247,5 +261,9 @@ class DeviceManager(
 
     fun appInstallProgress(deviceRef: DeviceRef): String {
         return nodeRegistry.activeDevices.getNodeFor(deviceRef).appInstallProgress(deviceRef)
+    }
+
+    fun updateApplicationPlist(deviceRef: String, plistEntry: PlistEntryDTO) {
+        return nodeRegistry.activeDevices.getNodeFor(deviceRef).updateApplicationPlist(deviceRef, plistEntry)
     }
 }
