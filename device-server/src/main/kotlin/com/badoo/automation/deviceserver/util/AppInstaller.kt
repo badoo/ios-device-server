@@ -26,31 +26,33 @@ class AppInstaller(
     private val appBinariesCache: ConcurrentHashMap<String, File> = ConcurrentHashMap()
 
     fun installApplicationAsync(udid: UDID, appBundle: ApplicationBundle, appBinaryPath: File) {
-        val logMarker = logMarker(udid)
-        logger.info(logMarker, "Installing app ${appBundle.bundleId} on device $udid asynchronously")
+        synchronized(this) {
+            val logMarker = logMarker(udid)
+            logger.info(logMarker, "Installing app ${appBundle.bundleId} on device $udid asynchronously")
 
-        val installTask = installTasksCache[udid]
+            val installTask = installTasksCache[udid]
 
-        if (installTask != null) {
-            if (installTask.isDone) {
-                installTasksCache.remove(udid)
-                logger.info(logMarker, "Removed previous installer task on device $udid asynchronously")
-            } else {
-                val errorMessage = "Install operation is still in progress for $udid"
-                logger.error(logMarker, errorMessage)
-                throw RuntimeException(errorMessage)
+            if (installTask != null) {
+                if (installTask.isDone) {
+                    installTasksCache.remove(udid)
+                    logger.info(logMarker, "Removed previous installer task on device $udid asynchronously")
+                } else {
+                    val errorMessage = "Install operation is still in progress for $udid"
+                    logger.error(logMarker, errorMessage)
+                    throw RuntimeException(errorMessage)
+                }
             }
+
+            logger.debug(logMarker, "Scheduling install app ${appBundle.bundleId} on $udid")
+            installTasksCache[udid] = executorService.submit(Callable {
+                try {
+                    return@Callable performInstall(logMarker, udid, appBinaryPath, appBundle)
+                } catch (e: RuntimeException) {
+                    logger.error(logMarker, "Error happenned while installing the app ${appBundle.bundleId} on $udid", e)
+                    return@Callable false
+                }
+            })
         }
-
-        logger.debug(logMarker, "Scheduling install app ${appBundle.bundleId} on $udid")
-        installTasksCache[udid] = executorService.submit(Callable {
-            try {
-                return@Callable performInstall(logMarker, udid, appBinaryPath, appBundle)
-            } catch (e: RuntimeException) {
-                logger.error(logMarker, "Error happenned while installing the app ${appBundle.bundleId} on $udid", e)
-                return@Callable false
-            }
-        })
     }
 
     fun isApplicationInstalled(udid: UDID): Boolean {
@@ -89,19 +91,50 @@ class AppInstaller(
         }
     }
 
-    fun uninstallApplication(udid: UDID, bundleId: String) {
-        val logMarker = logMarker(udid)
-        val installTask = installTasksCache[udid]
+    private fun terminateApplication(logMarker: Marker, bundleId: String, udid: UDID) {
+        val terminateResult = remote.execIgnoringErrors(listOf("xcrun", "simctl", "terminate", udid, bundleId))
 
-        if (installTask != null) {
-            if (installTask.isDone) {
-                installTasksCache.remove(udid)
-            } else {
-                logger.error(logMarker, "Error happened while uninstalling $bundleId from $udid")
+        if (!terminateResult.isSuccess) {
+            logger.error(logMarker, "Terminating application $bundleId was unsuccessful. Result $terminateResult")
+        }
+    }
+
+    fun uninstallApplication(udid: UDID, bundleId: String) {
+        synchronized(this) {
+            val logMarker = logMarker(udid)
+
+            val installTask = installTasksCache[udid]
+
+            if (installTask != null) {
+                if (installTask.isDone) {
+                    installTasksCache.remove(udid)
+                } else {
+                    val errorMessage = "Install operation is still in progress for $udid"
+                    logger.error(logMarker, errorMessage)
+                    throw RuntimeException(errorMessage)
+                }
+            }
+
+            val uninstallTask = executorService.submit(Callable {
+                try {
+                    logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")
+
+                    terminateApplication(logMarker, bundleId, udid)
+
+                    val uninstallResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "uninstall", udid, bundleId), mapOf(), false, 60)
+                    return@Callable uninstallResult.isSuccess
+                } catch (e: RuntimeException) {
+                    logger.error(logMarker, "Error occured while uninstalling the app $bundleId on $udid", e)
+                    return@Callable false
+                }
+            })
+
+            val result = uninstallTask.get()
+
+            if (!result) {
+                logger.error(logMarker, "Uninstall application $bundleId was unsuccessful.")
             }
         }
-
-        remote.exec(listOf("/usr/bin/xcrun", "simctl", "uninstall", udid, bundleId), mapOf(), false, 60)
     }
 
     private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, appBundle: ApplicationBundle): Boolean {

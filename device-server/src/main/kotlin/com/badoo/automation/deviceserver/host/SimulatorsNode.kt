@@ -358,7 +358,7 @@ class SimulatorsNode(
     }
 
     override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
-        getDeviceFor(deviceRef).uninstallApplication(bundleId)
+        getDeviceFor(deviceRef).uninstallApplication(bundleId, appInstaller)
     }
 
     override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
