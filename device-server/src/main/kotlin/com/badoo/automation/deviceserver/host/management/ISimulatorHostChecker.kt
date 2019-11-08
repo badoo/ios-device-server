@@ -95,7 +95,7 @@ class SimulatorHostChecker(
 
         val caches = listOf(
                 "/private/var/folders/*/*/*/*-*-*/*.app",
-                "/private/var/folders/*/*/*/app_bundle_cache.*",
+//                "/private/var/folders/*/*/*/app_bundle_cache.*", // FIXME: delete app cache
                 "/private/var/folders/*/*/*/fbsimctl-*",
                 "/var/folders/*/*/*/videoRecording_*",
                 "/private/var/folders/*/*/*/videoRecording_*",
