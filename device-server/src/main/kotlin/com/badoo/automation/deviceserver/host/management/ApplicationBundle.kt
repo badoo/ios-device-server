@@ -3,11 +3,16 @@ package com.badoo.automation.deviceserver.host.management
 import com.badoo.automation.deviceserver.data.AppBundleDto
 import com.badoo.automation.deviceserver.util.CustomHttpClient
 import okhttp3.Request
+import okhttp3.internal.headersContentLength
 import okio.buffer
 import okio.sink
+import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URL
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.Duration
 
 class ApplicationBundle(
@@ -15,11 +20,13 @@ class ApplicationBundle(
     val dsymUrl: String?, // TODO: maybe null
     val bundleId: String
 ) {
-    lateinit var appFile: File
-    lateinit var dsymFile: File
+    @Volatile
+    var appFile: File? = null
 
-    val isAppDownloaded: Boolean get() = ::appFile.isInitialized && appFile.exists() // FIXME: checksum
-    val isDsymDownloaded: Boolean get() = ::dsymFile.isInitialized && dsymFile.exists() // FIXME: checksum
+    val isAppDownloaded: Boolean get() {
+        val file = appFile
+        return file != null && file.exists() // FIXME: add checksum
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -36,13 +43,16 @@ class ApplicationBundle(
         return appUrl.hashCode()
     }
 
-    fun downloadApp() {
-        appFile = download(appUrl.toUrl())
+    fun downloadApp(): File {
+        val downloaded = download(appUrl.toUrl())
+        appFile = downloaded
+        return downloaded
     }
 
     private val httpClient = CustomHttpClient.client
         .newBuilder()
-        .callTimeout(Duration.ofMinutes(5)) // TODO: case when timed out
+        .followRedirects(true)
+        .callTimeout(Duration.ofMinutes(10)) // TODO: case when timed out
         .build()
 
     private fun download(url: URL): File {
@@ -52,13 +62,15 @@ class ApplicationBundle(
             .build()
 
         val file = File(url.path)
-        val localFile: File = File.createTempFile(file.name, file.extension)
+        val localFile: File = File.createTempFile("${file.name}.", ".${file.extension}")
 
         try {
             val httpCall = httpClient.newCall(request)
-            localFile.sink().use { sink ->
-                httpCall.execute().use { response ->
-                    sink.buffer().writeAll(response.body!!.source())
+            val outPath = localFile.toPath()
+
+            httpCall.execute().use { response ->
+                response.body!!.byteStream().use { inputStream ->
+                    Files.copy(inputStream, outPath, StandardCopyOption.REPLACE_EXISTING)
                 }
             }
 

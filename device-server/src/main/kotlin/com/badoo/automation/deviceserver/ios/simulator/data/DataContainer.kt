@@ -57,6 +57,16 @@ class DataContainer(
         }
     }
 
+    fun setPlistValue(path: Path, key: String, value: String) {
+        val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
+        remote.shell("/usr/libexec/PlistBuddy -c 'Set $key $value' $expandedPath", false) // TODO: Simple values only for now
+    }
+
+    fun addPlistValue(path: Path, key: String, value: String, type: String) {
+        val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
+        remote.shell("/usr/libexec/PlistBuddy -c 'Add $key $type $value' $expandedPath", false) // TODO: Simple values only for now
+    }
+
     private fun sshNoEscapingWorkaround(path: String): String {
         // FIXME: fix escaping on ssh side and remove workarounds
         return when {
