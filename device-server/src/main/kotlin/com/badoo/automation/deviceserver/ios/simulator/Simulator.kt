@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.*
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
@@ -851,24 +850,8 @@ class Simulator (
     }
 
     //endregion
-    override fun uninstallApplication(bundleId: String) {
-        logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")
-
-        terminateApplication(bundleId)
-
-        val uninstallResult = remote.execIgnoringErrors(listOf("xcrun", "simctl", "uninstall", udid, bundleId))
-
-        if (!uninstallResult.isSuccess) {
-            logger.error(logMarker, "Uninstall application $bundleId was unsuccessful. Result $uninstallResult")
-        }
-    }
-
-    private fun terminateApplication(bundleId: String) {
-        val terminateResult = remote.execIgnoringErrors(listOf("xcrun", "simctl", "terminate", udid, bundleId))
-
-        if (!terminateResult.isSuccess) {
-            logger.error(logMarker, "Terminating application $bundleId was unsuccessful. Result $terminateResult")
-        }
+    override fun uninstallApplication(bundleId: String, appInstaller: AppInstaller) {
+        appInstaller.uninstallApplication(udid, bundleId)
     }
 
     override fun setEnvironmentVariables(envs: Map<String, String>) {
