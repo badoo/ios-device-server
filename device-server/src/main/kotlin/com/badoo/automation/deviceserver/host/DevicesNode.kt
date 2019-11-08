@@ -32,6 +32,10 @@ class DevicesNode(
     private val remoteWdaBundleRoot: File,
     private val fbsimctlVersion: String
 ) : ISimulatorsNode {
+    override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
     override fun appInstallProgress(deviceRef: DeviceRef): String {
         val device = slotByExternalRef(deviceRef).device
         val udid = device.udid
@@ -47,7 +51,7 @@ class DevicesNode(
         val udid = device.udid
         // TODO: add date of syncing for future deleting cleanup
         if (!apps.contains(appBundle.appUrl)) { // FIXME: check if app is deleted in one hour
-            appBinaries[appBundle.appUrl] = appBundle.appFile
+            appBinaries[appBundle.appUrl] = appBundle.appFile!!
             apps[appBundle.appUrl] = appBundle
         }
 

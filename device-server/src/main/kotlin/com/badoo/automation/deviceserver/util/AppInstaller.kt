@@ -22,20 +22,19 @@ class AppInstaller(
     private val commonLogMarkerDetails = mapOf(
         LogMarkers.HOSTNAME to remote.hostName
     )
-    private val installTasks: MutableMap<String, Future<*>> = ConcurrentHashMap()
-
+    private val installTasksCache: ConcurrentHashMap<String, Future<*>> = ConcurrentHashMap()
+    private val appBinariesCache: ConcurrentHashMap<String, File> = ConcurrentHashMap()
 
     fun installApplicationAsync(udid: UDID, appBundle: ApplicationBundle, appBinaryPath: File) {
         val logMarker = logMarker(udid)
+        logger.info(logMarker, "Installing app ${appBundle.bundleId} on device $udid asynchronously")
 
-        if (installTasks.contains(udid)) {
-            val installTask = installTasks[udid]!!
+        val installTask = installTasksCache[udid]
 
+        if (installTask != null) {
             if (installTask.isDone) {
-                val errorMessage = "Install operation is completed for $udid, but install task is not removed"
-                logger.error(logMarker, errorMessage)
-                throw RuntimeException(errorMessage)
-                // TODO: probably remove this crap. to GC it is ok.
+                installTasksCache.remove(udid)
+                logger.info(logMarker, "Removed previous installer task on device $udid asynchronously")
             } else {
                 val errorMessage = "Install operation is still in progress for $udid"
                 logger.error(logMarker, errorMessage)
@@ -43,13 +42,19 @@ class AppInstaller(
             }
         }
 
-        installTasks[udid] = executorService.submit(Callable {
-            performInstall(logMarker, udid, appBinaryPath, appBundle.bundleId)
+        logger.debug(logMarker, "Scheduling install app ${appBundle.bundleId} on $udid")
+        installTasksCache[udid] = executorService.submit(Callable {
+            try {
+                return@Callable performInstall(logMarker, udid, appBinaryPath, appBundle)
+            } catch (e: RuntimeException) {
+                logger.error(logMarker, "Error happenned while installing the app ${appBundle.bundleId} on $udid", e)
+                return@Callable false
+            }
         })
     }
 
     fun isApplicationInstalled(udid: UDID): Boolean {
-        val installTask = installTasks[udid]
+        val installTask = installTasksCache[udid]
 
         return try {
             installTask != null
@@ -73,7 +78,7 @@ class AppInstaller(
     }
 
     fun installProgress(udid: UDID): String {
-        val task = installTasks[udid]
+        val task = installTasksCache[udid]
 
         return when {
             task == null -> InstallProgress.UNKNOWN.status
@@ -85,40 +90,74 @@ class AppInstaller(
     }
 
     fun uninstallApplication(udid: UDID, bundleId: String) {
-        val installTask = installTasks[udid]
+        val logMarker = logMarker(udid)
+        val installTask = installTasksCache[udid]
 
         if (installTask != null) {
-            if (!installTask.isDone) {
-                installTask.cancel(true)
+            if (installTask.isDone) {
+                installTasksCache.remove(udid)
+            } else {
+                logger.error(logMarker, "Error happened while uninstalling $bundleId from $udid")
             }
-
-            installTasks.remove(udid)
         }
 
         remote.exec(listOf("/usr/bin/xcrun", "simctl", "uninstall", udid, bundleId), mapOf(), false, 60)
     }
 
-    private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, bundleId: String): Boolean {
-        logger.debug(logMarker, "Installing application $bundleId on simulator $udid")
+    private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, appBundle: ApplicationBundle): Boolean {
+        logger.debug(logMarker, "Installing application ${appBundle.bundleId} on simulator $udid")
+
+        lateinit var unpackedBinaryFolder: File
+
+        val cachedBinaryFolder = appBinariesCache[appBundle.appUrl]
+        if (cachedBinaryFolder == null) {
+            if (appBinaryPath.extension == "zip") {
+                if (remote.exec(listOf("/usr/bin/unzip", "-t", appBinaryPath.absolutePath), mapOf(), false, 60L).isSuccess) {
+                    logger.debug(logMarker, "Downloaded application archive seems to be good and tested for $udid")
+                }
+
+                val unpackFolder = File(appBinaryPath.absolutePath + ".extracted")
+
+                remote.exec(listOf("/bin/mkdir", "-p", unpackFolder.absolutePath), mapOf(), false, 60L)
+
+                remote.exec(listOf("/usr/bin/unzip", appBinaryPath.absolutePath, "-d", unpackFolder.absolutePath), mapOf(), false, 90L)
+
+                val result = remote.exec(listOf("/usr/bin/find",  unpackFolder.absolutePath, "-maxdepth", "1", "-type", "d"), mapOf(), false, 60L)
+                if (result.isSuccess) {
+                    logger.debug(logMarker(udid), "Found these folders: ${result.stdOut.lines().joinToString("")}")
+                    unpackedBinaryFolder = File(result.stdOut.lines().first { it != unpackFolder.absolutePath })
+                }
+            } else {
+                unpackedBinaryFolder = appBinaryPath
+            }
+
+            appBinariesCache[appBundle.appUrl] = unpackedBinaryFolder
+        } else {
+            unpackedBinaryFolder = cachedBinaryFolder
+            logger.debug(logMarker, "Using cached unpacked version of application ${appBundle.bundleId} on simulator $udid")
+        }
 
         val nanos = measureNanoTime {
-            val result = remote.execIgnoringErrors(listOf("/usr/bin/xcrun", "simctl", "install", udid, appBinaryPath.absolutePath), timeOutSeconds = 120)
+            logger.debug(logMarker, "Will install application ${appBundle.bundleId} on simulator $udid using xcrun simctl install ${unpackedBinaryFolder.absolutePath}")
+            val result = remote.exec(listOf("/usr/bin/xcrun", "simctl", "install", udid, unpackedBinaryFolder.absolutePath), mapOf(), true, 90L)
 
-            if (!result.isSuccess) {
-                val errorMessage = "Failed to install application $bundleId to simulator $udid. Result: $result"
+            if (result.isSuccess) {
+                logger.debug(logMarker, "Install command completed successfully")
+            } else {
+                val errorMessage = "Failed to install application ${appBundle.bundleId} to simulator $udid. Result: $result"
                 logger.error(logMarker, errorMessage)
                 return false
             }
 
             pollFor(
-                Duration.ofSeconds(60),
-                "Installing application $bundleId",
-                false,
-                Duration.ofSeconds(10),
+                Duration.ofSeconds(20),
+                "Installing application ${appBundle.bundleId}",
+                true,
+                Duration.ofSeconds(4),
                 logger,
                 logMarker
             ) {
-                isAppInstalledOnSimulator(udid, bundleId)
+                isAppInstalledOnSimulator(udid, appBundle.bundleId)
             }
         }
 
@@ -129,7 +168,7 @@ class AppInstaller(
         )
         measurement.putAll(logMarkerDetails(udid))
 
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed application $bundleId on simulator $udid. Took $seconds seconds")
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed application ${appBundle.bundleId} on simulator $udid. Took $seconds seconds")
 
         return true
     }

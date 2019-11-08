@@ -846,6 +846,10 @@ class Simulator (
         return fileSystem.dataContainer(bundleId)
     }
 
+    override fun applicationContainer(bundleId: String): DataContainer {
+        return fileSystem.applicationContainer(bundleId)
+    }
+
     //endregion
     override fun uninstallApplication(bundleId: String) {
         logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")

@@ -252,6 +252,11 @@ fun Application.module() {
                         val ref = param(call, "ref")
                         call.respond(devicesController.appInstallProgress(ref))
                     }
+                    post("update_plist") {
+                        val ref = param(call, "ref")
+                        val plistEntries = jsonContent<PlistEntryDTO>(call)
+                        call.respond(devicesController.updateApplicationPlist(ref, plistEntries))
+                    }
                 }
                 route("media") {
                     get {

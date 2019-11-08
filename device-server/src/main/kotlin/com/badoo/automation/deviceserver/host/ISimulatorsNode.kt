@@ -53,5 +53,7 @@ interface ISimulatorsNode {
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String)
     fun installApplicationAsync(deviceRef: DeviceRef, appBundle: ApplicationBundle)
     fun appInstallProgress(deviceRef: DeviceRef): String
+    fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO)
+
     val publicHostName: String
 }
