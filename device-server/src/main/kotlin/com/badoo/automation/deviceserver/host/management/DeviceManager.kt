@@ -9,6 +9,8 @@ import com.badoo.automation.deviceserver.host.management.util.AutoreleaseLooper
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
+import java.io.File
+import java.lang.RuntimeException
 import java.net.URL
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
@@ -43,6 +45,25 @@ class DeviceManager(
                 } else {
                     INFINITE_DEVICE_TIMEOUT
                 }
+    }
+
+    fun cleanupTemporaryFiles() {
+        val tmpDir: String = when {
+            System.getProperty("os.name") == "Linux" -> "/tmp"
+            System.getenv("TMPDIR") != null -> System.getenv("TMPDIR")
+            else -> throw RuntimeException("Unknown TEMP directory to clean up")
+        }
+
+        File(tmpDir).walk().forEach {
+            if (it.isFile && (it.name.contains(".app.zip.") || it.name.contains(Regex("videoRecording_.*(mjpeg|mp4)")))) {
+                try {
+                    logger.debug("Cleanup: deleting temporary file ${it.absolutePath}")
+                    it.delete()
+                } catch (e: RuntimeException) {
+                    logger.error("Failed to cleanup file ${it.absolutePath}. Error: ${e.message}", e)
+                }
+            }
+        }
     }
 
     fun startAutoRegisteringDevices() {
@@ -238,7 +259,7 @@ class DeviceManager(
                 var sizeMB: Long = 0
                 val nanos = measureNanoTime {
                     logger.debug(marker, "Downloading app bundle to cache ${appBundle.bundleId} on device $ref. Url: ${appBundle.appUrl}")
-                    val applicationBinary = appBundle.downloadApp()
+                    val applicationBinary = appBundle.downloadApp(logger, marker)
 
                     size = applicationBinary.length()
                     sizeMB = size.shr(20) // TODO: Retries
