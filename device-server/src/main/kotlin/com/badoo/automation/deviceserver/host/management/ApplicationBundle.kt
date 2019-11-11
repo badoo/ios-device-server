@@ -2,13 +2,10 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.data.AppBundleDto
 import com.badoo.automation.deviceserver.util.CustomHttpClient
+import net.logstash.logback.marker.MapEntriesAppendingMarker
 import okhttp3.Request
-import okhttp3.internal.headersContentLength
-import okio.buffer
-import okio.sink
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URL
 import java.nio.file.Files
@@ -43,10 +40,16 @@ class ApplicationBundle(
         return appUrl.hashCode()
     }
 
-    fun downloadApp(): File {
-        val downloaded = download(appUrl.toUrl())
-        appFile = downloaded
-        return downloaded
+    fun downloadApp(logger: Logger, marker: MapEntriesAppendingMarker): File {
+        val url = appUrl.toUrl()
+        appFile = try {
+            download(url)
+        } catch (e: IOException) {
+            logger.error(marker, "Failed to download app from url [$url]. Retrying...")
+            download(url)
+        }
+
+        return appFile!!
     }
 
     private val httpClient = CustomHttpClient.client
@@ -69,8 +72,14 @@ class ApplicationBundle(
             val outPath = localFile.toPath()
 
             httpCall.execute().use { response ->
+                val contentLength = response.headers.get("Content-Length")?.toInt() ?: -1
                 response.body!!.byteStream().use { inputStream ->
                     Files.copy(inputStream, outPath, StandardCopyOption.REPLACE_EXISTING)
+                }
+
+                val downloadLength = localFile.length()
+                if (contentLength > 0 && downloadLength != contentLength.toLong()) {
+                    throw IOException("Downloaded file size ($downloadLength) different from Content-Length ($contentLength)")
                 }
             }
 
