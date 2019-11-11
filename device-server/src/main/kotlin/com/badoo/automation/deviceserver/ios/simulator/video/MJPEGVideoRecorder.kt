@@ -19,6 +19,7 @@ import java.io.File
 import java.net.URI
 import java.net.URL
 import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -92,9 +93,9 @@ MJPEGVideoRecorder(
         videoRecordingHttpCall = httpClient.newCall(request)
 
         videoRecordingTask = executor.submit {
-            videoFile.sink().use { sink ->
-                videoRecordingHttpCall!!.execute().use { response ->
-                    sink.buffer().writeAll(response.body!!.source())
+            videoRecordingHttpCall!!.execute().use { response ->
+                response.body!!.byteStream().use { inputStream ->
+                    Files.copy(inputStream, videoFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
                 }
             }
         }
