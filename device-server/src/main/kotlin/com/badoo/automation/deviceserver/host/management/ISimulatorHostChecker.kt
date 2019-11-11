@@ -93,9 +93,11 @@ class SimulatorHostChecker(
         val deviceSetsPath = remote.fbsimctl.defaultDeviceSet()
         check(!deviceSetsPath.isBlank()) { "Device sets must not be blank" } // fbsimctl.defaultDeviceSet will throw if empty. but paranoid mode on.
 
+        removeOldFiles("/private/var/folders/*/*/*/app_bundle_cache.*", 0) // remove local caches
+
+        // TODO: Use $TMPDIR instead of /private/var/folders/*/*/*
         val caches = listOf(
                 "/private/var/folders/*/*/*/*-*-*/*.app",
-//                "/private/var/folders/*/*/*/app_bundle_cache.*", // FIXME: delete app cache
                 "/private/var/folders/*/*/*/fbsimctl-*",
                 "/var/folders/*/*/*/videoRecording_*",
                 "/private/var/folders/*/*/*/videoRecording_*",
