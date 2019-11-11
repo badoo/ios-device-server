@@ -30,7 +30,7 @@ class Media(
     }
 
     fun list() : String {
-        val listCmd = listOf("ls", "$mediaPath/DCIM/100APPLE")
+        val listCmd = listOf("ls", "-1", "$mediaPath/DCIM/100APPLE")
         return remote.execIgnoringErrors(listCmd).stdOut
     }
 
