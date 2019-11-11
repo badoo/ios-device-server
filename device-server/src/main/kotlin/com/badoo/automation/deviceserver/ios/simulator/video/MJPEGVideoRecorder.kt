@@ -144,45 +144,49 @@ MJPEGVideoRecorder(
     }
 
     override fun getRecording(): ByteArray {
-        logger.info(logMarker, "Getting video recording")
+        try {
+            logger.info(logMarker, "Getting video recording")
 
-        if (FFMPEG_PATH == null) {
-            logger.error("Failed to find ffmpeg. Returning mjpeg.")
-            return videoFile.readBytes()
+            if (FFMPEG_PATH == null) {
+                logger.error("Failed to find ffmpeg. Returning mjpeg.")
+                return videoFile.readBytes()
+            }
+
+            var scale = ""
+            val resolution = getVideoResolution(videoFile.absoluteFile)
+            if (resolution.width > 0 && resolution.height > 0) {
+                scale = "-vf scale=\"${resolution.width}x${resolution.height}\" "
+            }
+
+            val cmd = "$FFMPEG_PATH " +
+                    "-hide_banner " +
+                    "-loglevel warning " +
+                    "-f mjpeg " +
+                    "-framerate 4 " +
+                    "-i ${videoFile.absolutePath} " +
+                    "-an " +
+                    "-vcodec h264 " +
+                    scale +
+                    "-preset medium " +
+                    "-tune animation " +
+                    "-pix_fmt yuv420p " +
+                    "-metadata comment=$uniqueTag " +
+                    "-y " +
+                    "${encodedVideoFile.absolutePath}"
+
+            val result = remote.localExecutor.exec(cmd.split(" "), timeOut = Duration.ofSeconds(60L))
+
+            if (!result.isSuccess && (!encodedVideoFile.exists() || Files.size(encodedVideoFile.toPath()) == 0L)) {
+                val message = "Could not read video file. Result stdErr: ${result.stdErr}"
+                logger.error(message)
+                throw SimulatorVideoRecordingException(message)
+            }
+
+            logger.info(logMarker, "Successfully encoded video recording.")
+            return encodedVideoFile.readBytes()
+        } finally {
+            delete()
         }
-
-        var scale = ""
-        val resolution = getVideoResolution(videoFile.absoluteFile)
-        if (resolution.width > 0 && resolution.height > 0) {
-            scale = "-vf scale=\"${resolution.width}x${resolution.height}\" "
-        }
-
-        val cmd = "$FFMPEG_PATH " +
-                "-hide_banner " +
-                "-loglevel warning " +
-                "-f mjpeg " +
-                "-framerate 4 " +
-                "-i ${videoFile.absolutePath} " +
-                "-an " +
-                "-vcodec h264 " +
-                scale +
-                "-preset medium " +
-                "-tune animation " +
-                "-pix_fmt yuv420p " +
-                "-metadata comment=$uniqueTag " +
-                "-y " +
-                "${encodedVideoFile.absolutePath}"
-
-        val result = remote.localExecutor.exec(cmd.split(" "), timeOut = Duration.ofSeconds(60L))
-
-        if (!result.isSuccess && (!encodedVideoFile.exists() || Files.size(encodedVideoFile.toPath()) == 0L)) {
-            val message = "Could not read video file. Result stdErr: ${result.stdErr}"
-            logger.error(message)
-            throw SimulatorVideoRecordingException(message)
-        }
-
-        logger.info(logMarker, "Successfully encoded video recording.")
-        return encodedVideoFile.readBytes()
     }
 
     override fun dispose() {
