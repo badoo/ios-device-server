@@ -103,6 +103,7 @@ fun Application.module() {
         fbsimctlVersion = appConfiguration.fbsimctlVersion
     )
     val deviceManager = DeviceManager(config, hostFactory)
+    deviceManager.cleanupTemporaryFiles()
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchAutoReleaseLoop()
 
