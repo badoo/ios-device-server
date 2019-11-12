@@ -14,7 +14,7 @@ class RemoteShellCommand(
     builderFactory: (cmd: List<String>, env: Map<String, String>) -> NuProcessBuilder = ::defaultNuProcessBuilder,
     commonEnvironment: Map<String, String> = mapOf(),
     isVerboseMode: Boolean = false,
-    connectionTimeout: Int = 10
+    connectionTimeout: Int = 15
 ) : ShellCommand(builderFactory, commonEnvironment) {
     private val userAtHost: String = if (userName.isBlank()) { remoteHost } else { "$userName@$remoteHost" }
     override val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
