@@ -19,10 +19,11 @@ class ApplicationBundle(
 ) {
     @Volatile
     var appFile: File? = null
+    var appFileLength: Long = -1 // if file does not exist, file.length() will return 0L
 
     val isAppDownloaded: Boolean get() {
         val file = appFile
-        return file != null && file.exists() // FIXME: add checksum
+        return file != null && file.exists() && file.length() == appFileLength // FIXME: add checksum
     }
 
     override fun equals(other: Any?): Boolean {
@@ -42,14 +43,17 @@ class ApplicationBundle(
 
     fun downloadApp(logger: Logger, marker: MapEntriesAppendingMarker): File {
         val url = appUrl.toUrl()
-        appFile = try {
+        val downloadedFile = try {
             download(url)
         } catch (e: IOException) {
             logger.error(marker, "Failed to download app from url [$url]. Retrying...")
             download(url)
         }
 
-        return appFile!!
+        appFile = downloadedFile
+        appFileLength = downloadedFile.length()
+
+        return downloadedFile
     }
 
     private val httpClient = CustomHttpClient.client
