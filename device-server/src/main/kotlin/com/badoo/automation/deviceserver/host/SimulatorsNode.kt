@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.host
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
@@ -19,10 +20,12 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URL
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
+import kotlin.collections.HashMap
 import kotlin.system.measureNanoTime
 
 class SimulatorsNode(
@@ -122,14 +125,16 @@ class SimulatorsNode(
         return if (remote.isLocalhost()) {
             file.exists()
         } else {
-            val result = remote.exec(listOf("/bin/test", "-d", file.absolutePath), mapOf(), true, 60L)
+            val result = remote.exec(listOf("/bin/test", file.absolutePath), mapOf(), true, 60L)
             result.exitCode == 0
         }
     }
 
     private fun remoteAppDirectoryContainer(appFile: File): String {
-        val command = listOf("/usr/bin/mktemp", "-d", "-t", "app_bundle_cache")
-        return remote.exec(command, mapOf(), false, 90).stdOut.trim()
+        val remoteDirectory = File(ApplicationConfiguration().appBundleCacheRemotePath, UUID.randomUUID().toString()).absolutePath
+        val command = listOf("/bin/mkdir", "-p", remoteDirectory)
+        remote.exec(command, mapOf(), false, 90).stdOut.trim()
+        return remoteDirectory
     }
 
     override val remoteAddress: String get() = publicHostName

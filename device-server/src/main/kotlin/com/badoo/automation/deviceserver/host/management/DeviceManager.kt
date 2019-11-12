@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.host.management
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
@@ -64,6 +65,12 @@ class DeviceManager(
                 }
             }
         }
+
+        val appCache = File(ApplicationConfiguration().appBundleCachePath)
+        appCache.deleteRecursively()
+        appCache.mkdirs()
+
+        logger.debug("Cleanup complete.")
     }
 
     fun startAutoRegisteringDevices() {
