@@ -68,30 +68,62 @@ class SimulatorsNode(
             val udid = getDeviceFor(deviceRef).udid
             logger.info(logMarker, "Started to install app ${appBundle.bundleId} on device $deviceRef")
 
-            // TODO: add date of syncing for future deleting cleanup
-            if (!appsCache.contains(appBundle.appUrl)) { // FIXME: check if app is deleted in one hour
+            val cachedBundle = appsCache[appBundle.appUrl]
+
+            if (cachedBundle == null || !appDirExists(appBinaries[cachedBundle.appUrl])) {
                 if (remote.isLocalhost()) {
                     appBinaries[appBundle.appUrl] = appBundle.appFile!! // nothing else to do here
                 } else {
-                    val markerData = mapOf(HOSTNAME to remote.publicHostName, DEVICE_REF to newDeviceRef(udid, remote.publicHostName), UDID to udid)
-                    logger.debug(MapEntriesAppendingMarker(markerData), "Copying application ${appBundle.bundleId} on simulator $deviceRef.")
-
-                    // save reference to file on remote host
-                    val nanos = measureNanoTime {
-                        val remoteAppDir = remoteAppDirectoryContainer(appBundle.appFile!!)
-                        remote.scp(appBundle.appFile!!.absolutePath, remoteAppDir)
-                        appBinaries[appBundle.appUrl] = File(remoteAppDir, appBundle.appFile!!.name)
-                    }
-
-                    val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
-                    val measurement = mapOf(HOSTNAME to remote.publicHostName, DEVICE_REF to newDeviceRef(udid, remote.publicHostName), UDID to udid, "action_name" to "scp_application", "duration" to seconds, "app_size" to appBundle.appFile!!.length())
-                    logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.bundleId} on simulator $deviceRef. Took $seconds seconds")
+                    appBinaries[appBundle.appUrl] = copyAppToRemoteHost(udid, appBundle, deviceRef)
                 }
 
                 appsCache[appBundle.appUrl] = appBundle
             }
 
             appInstaller.installApplicationAsync(udid, appBundle, appBinaries[appBundle.appUrl]!!)
+        }
+    }
+
+    private fun copyAppToRemoteHost(udid: UDID, appBundle: ApplicationBundle, deviceRef: DeviceRef): File {
+        val markerData = mapOf(
+            HOSTNAME to remote.publicHostName,
+            DEVICE_REF to newDeviceRef(udid, remote.publicHostName),
+            UDID to udid
+        )
+
+        logger.debug(MapEntriesAppendingMarker(markerData), "Copying application ${appBundle.bundleId} on simulator $deviceRef.")
+
+        val remoteAppDir = remoteAppDirectoryContainer(appBundle.appFile!!)
+
+        val nanos = measureNanoTime {
+            remote.scp(appBundle.appFile!!.absolutePath, remoteAppDir)
+        }
+
+        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+        val measurement = mapOf(
+            HOSTNAME to remote.publicHostName,
+            DEVICE_REF to newDeviceRef(udid, remote.publicHostName),
+            UDID to udid,
+            "action_name" to "scp_application",
+            "duration" to seconds,
+            "app_size" to appBundle.appFile!!.length()
+        )
+
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.bundleId} on simulator $deviceRef. Took $seconds seconds")
+
+        return File(remoteAppDir, appBundle.appFile!!.name)
+    }
+
+    private fun appDirExists(file: File?): Boolean {
+        if (file == null) {
+            return false
+        }
+
+        return if (remote.isLocalhost()) {
+            file.exists()
+        } else {
+            val result = remote.exec(listOf("/bin/test", "-d", file.absolutePath), mapOf(), true, 60L)
+            result.exitCode == 0
         }
     }
 
