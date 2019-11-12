@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.host.management
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
@@ -94,6 +95,7 @@ class SimulatorHostChecker(
         check(!deviceSetsPath.isBlank()) { "Device sets must not be blank" } // fbsimctl.defaultDeviceSet will throw if empty. but paranoid mode on.
 
         removeOldFiles("/private/var/folders/*/*/*/app_bundle_cache.*", 0) // remove local caches
+        removeOldFiles(ApplicationConfiguration().appBundleCacheRemotePath, 0) // remove local caches
 
         // TODO: Use $TMPDIR instead of /private/var/folders/*/*/*
         val caches = listOf(

@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.host.management
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.data.AppBundleDto
 import com.badoo.automation.deviceserver.util.CustomHttpClient
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -7,6 +8,7 @@ import okhttp3.Request
 import org.slf4j.Logger
 import java.io.File
 import java.io.IOException
+import java.lang.RuntimeException
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -69,13 +71,18 @@ class ApplicationBundle(
             .build()
 
         val file = File(url.path)
-        val localFile: File = File.createTempFile("${file.name}.", ".${file.extension}")
+        val cacheDirectory = File(ApplicationConfiguration().appBundleCachePath)
+        val localFile: File = File.createTempFile("${file.name}.", ".${file.extension}", cacheDirectory)
 
         try {
             val httpCall = httpClient.newCall(request)
             val outPath = localFile.toPath()
 
             httpCall.execute().use { response ->
+                if (response.code != 200) {
+                    throw RuntimeException("Unable to download binary from $url. Response code: ${response.code}. Headers: ${response.headers}. Body: ${response.peekBody(1024).string()}")
+                }
+
                 val contentLength = response.headers.get("Content-Length")?.toInt() ?: -1
                 response.body!!.byteStream().use { inputStream ->
                     Files.copy(inputStream, outPath, StandardCopyOption.REPLACE_EXISTING)

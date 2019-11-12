@@ -117,7 +117,7 @@ class AppInstaller(
 
             val uninstallTask = executorService.submit(Callable {
                 try {
-                    logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $this")
+                    logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $udid")
 
                     terminateApplication(logMarker, bundleId, udid)
 
@@ -182,16 +182,6 @@ class AppInstaller(
                 return false
             }
 
-            pollFor(
-                Duration.ofSeconds(20),
-                "Installing application ${appBundle.bundleId}",
-                true,
-                Duration.ofSeconds(4),
-                logger,
-                logMarker
-            ) {
-                isAppInstalledOnSimulator(udid, appBundle.bundleId)
-            }
         }
 
         val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
