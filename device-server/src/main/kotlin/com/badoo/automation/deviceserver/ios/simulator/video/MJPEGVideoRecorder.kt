@@ -110,6 +110,7 @@ MJPEGVideoRecorder(
             mapOf(
                 "settings" to mapOf(
                     "mjpegServerFramerate" to 4,
+                    "mjpegScalingFactor" to 50,
                     "mjpegServerScreenshotQuality" to 100
                 )
             )
@@ -152,29 +153,25 @@ MJPEGVideoRecorder(
                 return videoFile.readBytes()
             }
 
-            var scale = ""
-            val resolution = getVideoResolution(videoFile.absoluteFile)
-            if (resolution.width > 0 && resolution.height > 0) {
-                scale = "-vf scale=\"${resolution.width}x${resolution.height}\" "
-            }
+            val cmd = listOf(
+                 FFMPEG_PATH,
+                    "-hide_banner",
+                    "-loglevel", "warning",
+                    "-f", "mjpeg",
+                    "-framerate", "4",
+                    "-i", videoFile.absolutePath,
+                    "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+                    "-an",
+                    "-vcodec", "h264",
+                    "-preset", "ultrafast",
+                    "-tune", "fastdecode",
+                    "-pix_fmt", "yuv420p",
+                    "-metadata", "comment=$uniqueTag",
+                    "-y",
+                    encodedVideoFile.absolutePath
+            )
 
-            val cmd = "$FFMPEG_PATH " +
-                    "-hide_banner " +
-                    "-loglevel warning " +
-                    "-f mjpeg " +
-                    "-framerate 4 " +
-                    "-i ${videoFile.absolutePath} " +
-                    "-an " +
-                    "-vcodec h264 " +
-                    scale +
-                    "-preset medium " +
-                    "-tune animation " +
-                    "-pix_fmt yuv420p " +
-                    "-metadata comment=$uniqueTag " +
-                    "-y " +
-                    "${encodedVideoFile.absolutePath}"
-
-            val result = remote.localExecutor.exec(cmd.split(" "), timeOut = Duration.ofSeconds(60L))
+            val result = remote.localExecutor.exec(cmd, timeOut = Duration.ofSeconds(60L))
 
             if (!result.isSuccess && (!encodedVideoFile.exists() || Files.size(encodedVideoFile.toPath()) == 0L)) {
                 val message = "Could not read video file. Result stdErr: ${result.stdErr}"
