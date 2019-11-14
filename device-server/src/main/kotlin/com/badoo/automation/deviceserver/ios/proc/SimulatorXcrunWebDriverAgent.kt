@@ -41,7 +41,7 @@ class SimulatorXcrunWebDriverAgent(
 
     private val hostApp = wdaRunnerXctest.parentFile.parentFile.absolutePath
 
-    private val wdaBundleId = "com.facebook.WebDriverAgentRunner.dev2.xctrunner"
+    private val wdaBundleId = "com.facebook.WebDriverAgentRunner.dev.xctrunner"
     private val uri: URI = uriWithPath(wdaEndpoint, "status")
     private val client: CustomHttpClient = CustomHttpClient()
 
@@ -90,8 +90,6 @@ class SimulatorXcrunWebDriverAgent(
             throw RuntimeException("Failed to start WDA on Simulator with xcrun simctl")
         }
     }
-
-    // /usr/bin/xcrun simctl get_app_container BA8B8CD8-06A0-45CB-A746-A897A3746DCB com.facebook.WebDriverAgentRunner.dev2.xctrunner
 
     private fun uninstallHostApp() {
         remote.execIgnoringErrors(listOf("/usr/bin/xcrun", "simctl", "uninstall", udid, wdaBundleId))
