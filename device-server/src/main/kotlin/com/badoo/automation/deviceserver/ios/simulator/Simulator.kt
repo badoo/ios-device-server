@@ -364,7 +364,7 @@ class Simulator (
         logger.info(logMarker, "Shutting down ${this@Simulator}")
         val result = remote.fbsimctl.shutdown(udid)
 
-        if (!result.isSuccess) {
+        if (!result.isSuccess && !result.stdErr.contains("current state: Shutdown")) {
             logger.debug(logMarker, "Error occured while shutting down simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
         }
 
