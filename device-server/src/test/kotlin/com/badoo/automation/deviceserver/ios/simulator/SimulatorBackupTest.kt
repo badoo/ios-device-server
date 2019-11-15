@@ -19,7 +19,7 @@ import org.mockito.MockitoAnnotations
 
 class SimulatorBackupTest {
     private val metaJson = """
-        {"version":1,"created":"2018-01-12 01:46:48 +0000"}
+        {"version":${SimulatorBackup.CURRENT_VERSION},"created":"2018-01-12 01:46:48 +0000"}
     """.trimIndent()
 
     @Mock private lateinit var remote: IRemote
@@ -68,7 +68,7 @@ class SimulatorBackupTest {
         val cmdCaptor = ArgumentCaptor.forClass("".javaClass)
         verify(remote, times(1)).shell(cmdCaptor.capture() ?: "", anyBoolean())
         val redirectPath = "$deviceSetPath/${udid}_BACKUP/data/device_server/meta.json"
-        val regex = """echo \\\{\\"version\\":1,\\"created\\":\\"[0-9T:-]+\\"\\} > $redirectPath""".toRegex()
+        val regex = """echo \\\{\\"version\\":[0-9]+,\\"created\\":\\"[0-9T:-]+\\"\\} > $redirectPath""".toRegex()
         assertThat(cmdCaptor.firstValue,  matchesPattern(regex.pattern))
     }
 
