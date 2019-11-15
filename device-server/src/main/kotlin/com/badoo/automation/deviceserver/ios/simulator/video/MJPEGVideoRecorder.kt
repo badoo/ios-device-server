@@ -110,7 +110,7 @@ MJPEGVideoRecorder(
             mapOf(
                 "settings" to mapOf(
                     "mjpegServerFramerate" to 4,
-                    "mjpegScalingFactor" to 50,
+//                    "mjpegScalingFactor" to 50,
                     "mjpegServerScreenshotQuality" to 100
                 )
             )
