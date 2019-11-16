@@ -270,8 +270,8 @@ class Simulator (
         healthChecker?.cancel()
     }
 
-    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(20), retryInterval: Duration = Duration.ofSeconds(5)) {
-        val maxRetries = 3
+    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(10), retryInterval: Duration = Duration.ofSeconds(1)) {
+        val maxRetries = 7
 
         for (attempt in 1..maxRetries) {
             try {
@@ -279,6 +279,8 @@ class Simulator (
 
                 webDriverAgent.kill()
                 webDriverAgent.start()
+
+                Thread.sleep(2000)
 
                 pollFor(
                     pollTimeout,
