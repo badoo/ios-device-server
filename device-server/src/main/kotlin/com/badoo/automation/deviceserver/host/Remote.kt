@@ -47,7 +47,7 @@ class Remote(
 
     private fun isReachableBySSH(): Boolean {
         return try {
-            remoteExecutor.exec(listOf("echo", "1"), returnFailure = true, timeOut = Duration.ofSeconds(15)).isSuccess
+            remoteExecutor.exec(listOf("echo", "1"), returnFailure = true, timeOut = Duration.ofSeconds(20)).isSuccess
         } catch (e: SshConnectionException) {
             false
         }
