@@ -36,7 +36,7 @@ class NodeWrapper(
     @Volatile var isEnabled: Boolean = true
         private set
 
-    fun isAlive(): Boolean = isStarted && node.isReachable() && node.isNodePrepared
+    fun isAlive(): Boolean = isStarted && node.isReachable()
 
     override fun toString(): String = "NodeWrapper for ${config.publicHost}"
 

@@ -18,7 +18,6 @@ interface ISimulatorHostChecker {
     fun setupHost()
     fun killDiskCleanupThread()
     fun copyWdaBundleToHost()
-    val isWdaBundleDeployed: Boolean
 }
 
 class SimulatorHostChecker(
@@ -29,9 +28,6 @@ class SimulatorHostChecker(
         private val fbsimctlVersion: String,
         private val shutdownSimulators: Boolean
 ) : ISimulatorHostChecker {
-    override val isWdaBundleDeployed: Boolean
-        get() = remote.execIgnoringErrors(listOf("test", "-d", remoteWdaBundleRoot.absolutePath)).isSuccess
-
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
             LogMarkers.HOSTNAME to remote.hostName
