@@ -59,8 +59,8 @@ private fun paramInt(call: ApplicationCall, s: String): Int {
 }
 
 fun getAddresses(): List<String> {
-    return NetworkInterface.getNetworkInterfaces().toList().flatMap {
-        it.inetAddresses.toList()
+    return NetworkInterface.getNetworkInterfaces().toList().flatMap { networkInterface ->
+        networkInterface.inetAddresses.toList()
                 .filter { it.address.size == 4 }
                 .filter { !it.isLoopbackAddress }
                 .map { it.hostAddress + "/" + it.hostName }
