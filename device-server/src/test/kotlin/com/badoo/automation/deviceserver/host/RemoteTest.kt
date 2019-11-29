@@ -31,7 +31,7 @@ class RemoteTest {
 
     @Test
     fun isReachable() {
-        val successfulResult = CommandResult("", "", ByteArray(0), 0)
+        val successfulResult = CommandResult("", "", 0)
         whenever(remoteExecutor.exec(anyList(), anyMap(), anyType(), anyBoolean(), anyType(), anyType()))
             .thenReturn(successfulResult)
 

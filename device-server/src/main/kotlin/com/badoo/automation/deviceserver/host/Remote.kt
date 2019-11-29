@@ -69,12 +69,14 @@ class Remote(
     }
 
     //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
-    override fun captureFile(file: File): CommandResult {
-        return remoteExecutor.exec(
-            listOf("cat", file.absolutePath),
-            returnFailure = true,
-            processListener = ShellCommandListener(INITIAL_BUFFER_SIZE) //FIXME: probably better to send just size, not the listener
-        )
+    override fun captureFile(file: File): ByteArray {
+        val tempFile = File.createTempFile("remoteFile", ".bin")
+        try {
+            scpFromRemoteHost(file.absolutePath, tempFile.absolutePath, Duration.ofMinutes(2));
+            return tempFile.readBytes()
+        } finally {
+            tempFile.delete()
+        }
     }
 
     private enum class Signal(val signal: Int) {
@@ -120,11 +122,21 @@ class Remote(
         }
     }
 
-    override fun scp(from: String, to: String, timeOut: Duration) {
+    override fun scpToRemoteHost(from: String, to: String, timeOut: Duration) {
         val result = localExecutor.exec(listOf("/usr/bin/scp", "-r", from, "$userAtHost:$to"), timeOut = timeOut, returnFailure = true)
 
         ensure(result.isSuccess) {
             val message = "Copying files to remote host failed with ${result.stdErr}"
+            logger.error(logMarker, message)
+            RuntimeException(message)
+        }
+    }
+
+    override fun scpFromRemoteHost(from: String, to: String, timeOut: Duration) {
+        val result = localExecutor.exec(listOf("/usr/bin/scp", "-r", "$userAtHost:$from", to), timeOut = timeOut, returnFailure = true)
+
+        ensure(result.isSuccess) {
+            val message = "Copying files from remote host failed with ${result.stdErr}"
             logger.error(logMarker, message)
             RuntimeException(message)
         }

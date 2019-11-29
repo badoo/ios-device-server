@@ -338,7 +338,7 @@ class Simulator (
         if (remote.isLocalhost()) {
             remote.shell("cp $trustStoreFile $keyChainLocation", returnOnFailure = false)
         } else {
-            remote.scp(trustStoreFile, keyChainLocation)
+            remote.scpToRemoteHost(trustStoreFile, keyChainLocation)
         }
 
         logger.info(logMarker, "Copied trust store to ${this@Simulator}")

@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver.ios.simulator.data
 
-import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.util.withDefers
@@ -45,7 +44,7 @@ class Media(
             } else {
                 val remoteMediaDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
                 defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remoteMediaDir)) }
-                remote.scp(tmpFile.absolutePath, remoteMediaDir)
+                remote.scpToRemoteHost(tmpFile.absolutePath, remoteMediaDir)
                 File(remoteMediaDir, tmpFile.name).absolutePath
             }
 
