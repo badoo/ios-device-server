@@ -26,15 +26,15 @@ class SimulatorBackupTest {
     private val udid: UDID = "M-Y-P-H-O-N-E"
     private val deviceSetPath = "/home/user/backup"
     private val captor = ArgumentCaptor.forClass(listOf("").javaClass)
-    private val resultStub = CommandResult("", "", ByteArray(0), 0)
-    private val resultFailureStub = CommandResult("", "", ByteArray(0), 1)
+    private val resultStub = CommandResult("", "", 0)
+    private val resultFailureStub = CommandResult("", "", 1)
 
     @Before fun setUp() {
         MockitoAnnotations.initMocks(this)
     }
 
     @Test fun shouldExistBackup() {
-        val resultWithMeta = CommandResult(metaJson, "", ByteArray(0), 0)
+        val resultWithMeta = CommandResult(metaJson, "", 0)
 
         whenever(remote.isDirectory(anyString())).thenReturn(true)
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultWithMeta)

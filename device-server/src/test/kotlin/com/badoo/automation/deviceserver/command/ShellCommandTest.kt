@@ -13,9 +13,11 @@ import kotlin.test.assertFailsWith
 class ShellCommandTest {
     private lateinit var systemErr: PrintStream
     private lateinit var systemOut: PrintStream
+    private lateinit var shellCommand: ShellCommand
 
     @Before fun setUp() {
         hideTestOutput() // comment out to debug
+        shellCommand = ShellCommand(mapOf())
     }
 
     private fun hideTestOutput() {
@@ -27,8 +29,9 @@ class ShellCommandTest {
         System.setOut(testOut)
     }
 
+
     @Test fun testCommandWithRealProcess() {
-        val result = ShellCommand().exec(listOf("ls", "-lah"))
+        val result = shellCommand.exec(listOf("ls", "-lah"))
         assertThat("Wrong exit code", result.exitCode, equalTo(0))
         assertThat("StdOut should not be empty", result.stdOut, not(emptyString()))
         assertThat("StdErr should be empty", result.stdErr, emptyString())
@@ -37,20 +40,20 @@ class ShellCommandTest {
     @Test
     fun testCommandThrowsErrorWithRealProcess() {
         assertFailsWith<ShellCommandException> {
-            ShellCommand().exec(listOf("/bin/cp"), returnFailure = false)
+            shellCommand.exec(listOf("/bin/cp"), returnFailure = false)
         }
     }
 
     @Test @Ignore("Flaky in docker container")
     fun testCommandThrowsErrorWhenCommandNotFound() {
         assertFailsWith<ShellCommandException> {
-            ShellCommand().exec(listOf("/usr/bin/not_existing_command"), returnFailure = false)
+            shellCommand.exec(listOf("/usr/bin/not_existing_command"), returnFailure = false)
         }
     }
 
     @Test(expected = ShellCommandException::class)
     fun testTimeOutLongRunningCommand() {
-        val result = ShellCommand().exec(listOf("sleep", "600"), timeOut = Duration.ofMillis(100), returnFailure = false)
+        val result = shellCommand.exec(listOf("sleep", "600"), timeOut = Duration.ofMillis(100), returnFailure = false)
         assertThat("Wrong exit code", result.exitCode, equalTo(0))
         assertThat("StdOut should not be empty", result.stdOut, not(emptyString()))
         assertThat("StdErr should be empty", result.stdErr, emptyString())

@@ -11,7 +11,6 @@ class CommandResultTest {
         val actualResult = CommandResult(
                 stdOut = "out",
                 stdErr = "err",
-                stdOutBytes = "out".toByteArray(),
                 exitCode = 0,
                 cmd = listOf("rm", "-rf", "/")
         ).toString()

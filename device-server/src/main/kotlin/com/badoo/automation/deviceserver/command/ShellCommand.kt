@@ -1,66 +1,71 @@
 package com.badoo.automation.deviceserver.command
 
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.ios.proc.LongRunningProcessListener
 import com.badoo.automation.deviceserver.util.ensure
-import com.zaxxer.nuprocess.NuProcess
-import com.zaxxer.nuprocess.NuProcessBuilder
-import com.zaxxer.nuprocess.NuProcessHandler
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
+import java.io.BufferedReader
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.lang.StringBuilder
+import java.nio.charset.StandardCharsets
 import java.time.Duration
+import java.util.concurrent.Callable
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 open class ShellCommand(
-        private val builderFactory: (cmd: List<String>, env: Map<String, String>) -> NuProcessBuilder = ::defaultNuProcessBuilder, //for testing
-        private val commonEnvironment: Map<String, String> = mapOf()
+        private val commonEnvironment: Map<String, String>
     ) : IShellCommand {
     protected val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     protected open val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to "localhost"))
-
-    companion object {
-        fun defaultNuProcessBuilder(cmd: List<String>, env: Map<String, String>): NuProcessBuilder = NuProcessBuilder(cmd, env)
-    }
+    private val executor = ThreadPoolExecutor(60, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, SynchronousQueue<Runnable>());
 
     override fun exec(command: List<String>, environment: Map<String, String>, timeOut: Duration,
-                      returnFailure: Boolean, logMarker: Marker?, processListener: IShellCommandListener): CommandResult {
-        val process: NuProcess = startProcessInternal(command, environment, processListener)
-
-        var exitCode = Int.MIN_VALUE
-
+                      returnFailure: Boolean, logMarker: Marker?, processBuilder: ProcessBuilder): CommandResult {
         val commandString = command.joinToString(" ")
+        logger.debug(this.logMarker, "Executing command: $commandString")
+        processBuilder.command(command)
+        processBuilder.environment().clear()
+        processBuilder.environment().putAll(commonEnvironment)
+        processBuilder.environment().putAll(environment)
 
-        try {
-            exitCode = process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
-        } catch (e: InterruptedException) {
-            logger.warn(logMarker, "Error while running command: $commandString", e)
+        val process: Process = processBuilder.start()
+        val stdOut = executor.submit(lineReader(process.inputStream))
+        val stdErr = executor.submit(lineReader(process.errorStream))
+        val finishedSuccessfully = process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
+
+        val exitCode = if (finishedSuccessfully) {
+            process.exitValue()
+        } else {
+            Int.MIN_VALUE
         }
 
         if (exitCode == Int.MIN_VALUE) { // waiting timed out
             logger.error(logMarker, "Command has failed to complete in time. Command: $commandString")
 
             try {
-                process.destroy(false)
+                process.destroy()
             } catch (e: RuntimeException) {
                 logger.warn(logMarker, "Error while terminating command: $commandString", e)
             }
             try {
-                process.destroy(true)
+                process.destroyForcibly()
             } catch (e: RuntimeException) {
                 logger.warn(logMarker, "Error while terminating command forcibly: $commandString", e)
             }
         }
 
         val result = CommandResult(
-                stdOut = processListener.stdOut,
-                stdErr = processListener.stdErr,
-                stdOutBytes = processListener.bytes,
-                exitCode = processListener.exitCode,
+                stdOut = stdOut.get(),
+                stdErr = stdErr.get(),
+                exitCode = exitCode,
                 cmd = command // Store actual command - including ssh stuff.
         )
-        ensure(processListener.exitCode == 0 || returnFailure) {
+        ensure(exitCode == 0 || returnFailure) {
             val errorMessage = "Error while running command: $commandString Result=$result"
             logger.error(logMarker, errorMessage)
             ShellCommandException(errorMessage)
@@ -68,19 +73,36 @@ open class ShellCommand(
         return result
     }
 
-    override fun startProcess(command: List<String>, environment: Map<String, String>, logMarker: Marker?, processListener: LongRunningProcessListener) {
-        startProcessInternal(command, environment, processListener)
+    private fun lineReader(inputStream: InputStream): Callable<String> {
+        return Callable<String> {
+            inputStream.use {
+                val inputStreamReader = InputStreamReader(it, StandardCharsets.UTF_8)
+                val builder = StringBuilder()
+                val reader = BufferedReader(inputStreamReader, 65356)
+
+                var line: String? = reader.readLine()
+
+                while (line != null) {
+                    builder.append(line)
+                    builder.append("\n")
+                    line = reader.readLine()
+                }
+
+                builder.toString()
+            }
+        }
+    }
+
+    override fun startProcess(command: List<String>, environment: Map<String, String>, logMarker: Marker?, processBuilder: ProcessBuilder ): Process {
+        logger.debug(this.logMarker, "Executing command: ${command.joinToString(" ")}")
+        processBuilder.command(command)
+        processBuilder.environment().clear()
+        processBuilder.environment().putAll(commonEnvironment)
+        processBuilder.environment().putAll(environment)
+        return processBuilder.start()
     }
 
     override fun escape(value: String): String {
         return value
-    }
-
-    private fun startProcessInternal(command: List<String>, environment: Map<String, String>, processListener: NuProcessHandler): NuProcess {
-        logger.debug(logMarker, "Executing command: ${command.joinToString(" ")}")
-        val cmdEnv = environment + commonEnvironment
-        val processBuilder = builderFactory(command, cmdEnv)
-        processBuilder.setProcessListener(processListener)
-        return processBuilder.start()
     }
 }

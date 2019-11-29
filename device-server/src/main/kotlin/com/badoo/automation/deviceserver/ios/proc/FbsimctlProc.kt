@@ -5,7 +5,6 @@ import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.util.ensure
 import com.badoo.automation.deviceserver.util.uriWithPath
-import java.io.File
 import java.net.URI
 
 open class FbsimctlProc(
@@ -32,8 +31,8 @@ open class FbsimctlProc(
         ensure(childProcess == null) { FbsimctlProcError("Previous fbsimctl process $childProcess has not been killed") }
         logger.debug(logMarker, "$this — Starting child process")
 
-        val outReader: (String) -> Unit = { logger.trace(logMarker, it.trim()) }
-        val errReader: (String) -> Unit = { logger.debug(logMarker, it.trim()) }
+        val outWriter: (String) -> Unit = { logger.debug(logMarker, it.trim()) }
+        val errWriter: (String) -> Unit = { logger.warn(logMarker, it.trim()) }
 
         childProcess = childFactory(
                 remote.hostName,
@@ -41,7 +40,7 @@ open class FbsimctlProc(
                 getFbsimctlCommand(headless),
                 mapOf(),
                 null, // outReader, // TODO: write to file o.txt
-                errReader  // TODO: write to file e.txt
+                errWriter  // TODO: write to file e.txt
         )
 
         logger.debug(logMarker, "$this FBSimCtl: $childProcess")

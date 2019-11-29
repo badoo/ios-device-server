@@ -99,7 +99,7 @@ class SimulatorsNode(
         val remoteAppDir = remoteAppDirectoryContainer(appBundle.appFile!!)
 
         val nanos = measureNanoTime {
-            remote.scp(appBundle.appFile!!.absolutePath, remoteAppDir)
+            remote.scpToRemoteHost(appBundle.appFile!!.absolutePath, remoteAppDir)
         }
 
         val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)

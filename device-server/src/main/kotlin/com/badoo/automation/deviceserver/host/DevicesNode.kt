@@ -399,7 +399,7 @@ class DevicesNode(
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
         remote.rm(remoteWdaBundleRoot.absolutePath)
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteWdaBundleRoot.absolutePath))
-        remote.scp(wdaBundlePath.absolutePath, remoteWdaBundleRoot.absolutePath)
+        remote.scpToRemoteHost(wdaBundlePath.absolutePath, remoteWdaBundleRoot.absolutePath)
     }
 
     private fun cleanup() {

@@ -1,8 +1,6 @@
 package com.badoo.automation.deviceserver.command
 
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.ios.proc.LongRunningProcessListener
-import com.zaxxer.nuprocess.NuProcessBuilder
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Marker
 import java.time.Duration
@@ -11,11 +9,10 @@ import java.util.concurrent.TimeUnit
 class RemoteShellCommand(
     private val remoteHost: String,
     userName: String,
-    builderFactory: (cmd: List<String>, env: Map<String, String>) -> NuProcessBuilder = ::defaultNuProcessBuilder,
     commonEnvironment: Map<String, String> = mapOf(),
     isVerboseMode: Boolean = false,
     connectionTimeout: Int = 15
-) : ShellCommand(builderFactory, commonEnvironment) {
+) : ShellCommand(commonEnvironment) {
     private val userAtHost: String = if (userName.isBlank()) { remoteHost } else { "$userName@$remoteHost" }
     override val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
     private val sshEnv: Map<String, String>
@@ -51,11 +48,10 @@ class RemoteShellCommand(
     }
 
     override fun exec(command: List<String>, environment: Map<String, String>, timeOut: Duration,
-                      returnFailure: Boolean, logMarker: Marker?,
-                      processListener: IShellCommandListener): CommandResult {
+                      returnFailure: Boolean, logMarker: Marker?, processBuilder: ProcessBuilder): CommandResult {
         val cmd = getCommandWithSSHPrefix(command)
         val startTime = System.nanoTime()
-        val result = super.exec(cmd, getEnvironmentForSSH(), timeOut, returnFailure, logMarker, processListener)
+        val result = super.exec(cmd, getEnvironmentForSSH(), timeOut, returnFailure, logMarker, processBuilder)
         val elapsedTime = System.nanoTime() - startTime
         val elapsedMillis = TimeUnit.NANOSECONDS.toMillis(elapsedTime)
         val marker = MapEntriesAppendingMarker(
@@ -77,9 +73,8 @@ class RemoteShellCommand(
         return result
     }
 
-    override fun startProcess(command: List<String>, environment: Map<String, String>, logMarker: Marker?,
-                              processListener: LongRunningProcessListener) {
-        super.startProcess(getCommandWithSSHPrefix(command), getEnvironmentForSSH(), logMarker, processListener)
+    override fun startProcess(command: List<String>, environment: Map<String, String>, logMarker: Marker?, processBuilder: ProcessBuilder): Process {
+        return super.startProcess(getCommandWithSSHPrefix(command), getEnvironmentForSSH(), logMarker, processBuilder)
     }
 
     override fun escape(value: String): String {

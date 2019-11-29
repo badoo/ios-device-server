@@ -4,10 +4,12 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
+import com.badoo.automation.deviceserver.ios.simulator.data.DataContainerException
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.File
+import java.nio.charset.StandardCharsets
 
 class SystemLog(
     private val remote: IRemote,
@@ -38,14 +40,12 @@ class SystemLog(
         val path = remote.fbsimctl.diagnose(udid).sysLogLocation
                 ?: throw RuntimeException("Could not determine System Log path")
 
-        val result = remote.captureFile(File(path))
-
-        if (!result.isSuccess) {
-            val message = "Could not read System Log: $result"
+        try {
+            return String(remote.captureFile(File(path)), StandardCharsets.UTF_8)
+        } catch (e: RuntimeException) {
+            val message = "Could not read System Log. Cause: ${e.message}"
             logger.error(logMarker, message)
-            throw RuntimeException(message)
+            throw RuntimeException(message, e)
         }
-
-        return result.stdOut
     }
 }

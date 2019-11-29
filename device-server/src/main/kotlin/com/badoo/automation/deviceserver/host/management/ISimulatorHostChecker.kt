@@ -39,7 +39,7 @@ class SimulatorHostChecker(
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
         remote.rm(remoteWdaBundleRoot.absolutePath)
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteWdaBundleRoot.absolutePath))
-        remote.scp(wdaBundle.absolutePath, remoteWdaBundleRoot.absolutePath)
+        remote.scpToRemoteHost(wdaBundle.absolutePath, remoteWdaBundleRoot.absolutePath)
     }
 
     override fun killDiskCleanupThread() {

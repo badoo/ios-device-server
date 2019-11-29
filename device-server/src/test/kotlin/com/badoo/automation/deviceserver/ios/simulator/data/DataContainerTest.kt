@@ -27,7 +27,7 @@ class DataContainerTest {
 
     @Test
     fun shouldListFiles() {
-        val cmdResult = CommandResult("Caches/\nImage Cache/\nfile.ext\n", "", ByteArray(0), 0)
+        val cmdResult = CommandResult("Caches/\nImage Cache/\nfile.ext\n", "", 0)
 
         whenever(
             remote.execIgnoringErrors(
@@ -55,7 +55,7 @@ class DataContainerTest {
 
     @Test
     fun shouldReturnEmptyListForEmptyDirectory() {
-        val cmdResult = CommandResult("", "", ByteArray(0), 0)
+        val cmdResult = CommandResult("", "", 0)
 
         whenever(
             remote.execIgnoringErrors(
@@ -78,11 +78,7 @@ class DataContainerTest {
     @Test
     fun shouldReadFileAsByteArray() {
         val expected = "123".toByteArray()
-        val cmdResult = CommandResult("", "", expected, 0)
-
-        whenever(remote.captureFile(Paths.get(containerPathStub, "Library/Caches/file.txt").toFile())).thenReturn(
-            cmdResult
-        )
+        whenever(remote.captureFile(Paths.get(containerPathStub, "Library/Caches/file.txt").toFile())).thenReturn(expected)
 
         val container = DataContainer(
             remote = remote,

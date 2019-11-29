@@ -62,7 +62,7 @@ open class WebDriverAgent(
                 launchXctestCommand,
                 mapOf("MJPEG_SERVER_FRAMERATE" to "4"),
                 null,
-                { message -> logger.debug(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
+                { message -> logger.warn(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
         )
 
         Thread.sleep(5000) // 5 should be ok

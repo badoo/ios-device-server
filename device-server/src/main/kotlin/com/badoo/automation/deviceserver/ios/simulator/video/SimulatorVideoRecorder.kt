@@ -70,7 +70,7 @@ class SimulatorVideoRecorder(
 
             childProcess = childFactory(remote.hostName, remote.userName, cmd, mapOf(),
                 { logger.debug(logMarker, "$udid: VideoRecorder <o>: ${it.trim()}") },
-                { logger.debug(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
+                { logger.warn(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
             )
 
             logger.info(logMarker, "Started video recording")
@@ -116,14 +116,15 @@ class SimulatorVideoRecorder(
         // TODO: is there a better way to read binary file over ssh without rsyncing?
         // We should get rid of ssh and move to having 1 http server per 1 host and some proxy node to tie them together
         // once we have proper deployment solution for our macOS machines
-        val result = remote.captureFile(videoFile)
-        if (!result.isSuccess) {
-            val message = "Could not read video file. Result stdErr: ${result.stdErr}"
+        try {
+            val bytes = remote.captureFile(videoFile)
+            logger.info(logMarker, "Received video recording. Size ${bytes.size} bytes")
+            return bytes
+        } catch (e: RuntimeException) {
+            val message = "Could not read video file. Cause: ${e.message}"
             logger.error(message)
             throw SimulatorVideoRecordingException(message)
         }
-        logger.info(logMarker, "Received video recording. Size ${result.stdOutBytes.size} bytes")
-        return result.stdOutBytes
     }
 
     override fun dispose() {
