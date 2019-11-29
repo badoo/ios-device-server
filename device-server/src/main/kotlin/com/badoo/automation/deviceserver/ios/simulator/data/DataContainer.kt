@@ -7,6 +7,7 @@ import com.badoo.automation.deviceserver.util.withDefers
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.lang.RuntimeException
 import java.nio.file.Path
 
 class DataContainer(
@@ -33,11 +34,11 @@ class DataContainer(
     fun readFile(path: Path): ByteArray {
         val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
 
-        val result = remote.captureFile(File(expandedPath))
-        if (!result.isSuccess) {
-            throw DataContainerException("Could not read file $path for $bundleId: $result")
+        try {
+            return remote.captureFile(File(expandedPath))
+        } catch (e: RuntimeException) {
+            throw DataContainerException("Could not read file $path for $bundleId", e)
         }
-        return result.stdOutBytes
     }
 
     fun writeFile(file: File, data: ByteArray) {
@@ -51,7 +52,7 @@ class DataContainer(
                 val tmpFile = File.createTempFile("${file.nameWithoutExtension}.", ".${file.extension}")
                 defer { tmpFile.delete() }
                 tmpFile.writeBytes(data)
-                remote.scp(tmpFile.absolutePath, dataContainerFile.absolutePath)
+                remote.scpToRemoteHost(tmpFile.absolutePath, dataContainerFile.absolutePath)
                 logger.debug(logMarker, "Successfully wrote data to remote file ${dataContainerFile.absolutePath}")
             }
         }

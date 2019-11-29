@@ -22,7 +22,7 @@ class SimulatorProcessTest {
     @Test
     fun testSimulatorProcessFound() {
         val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
-        val simulatorFoundCommandResult = CommandResult(stdOutWithSimulatorPid, "", ByteArray(0), 0)
+        val simulatorFoundCommandResult = CommandResult(stdOutWithSimulatorPid, "", 0)
 
         whenever(remote.execIgnoringErrors(any(), any(), any()))
             .thenReturn(simulatorFoundCommandResult)
@@ -33,7 +33,7 @@ class SimulatorProcessTest {
     @Test
     fun testSimulatorProcessNotFound() {
         val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
-        val noSimulatorFoundCommandResult = CommandResult("", "", ByteArray(0), 0)
+        val noSimulatorFoundCommandResult = CommandResult("", "", 0)
 
         whenever(remote.execIgnoringErrors(any(), any(), any()))
             .thenReturn(noSimulatorFoundCommandResult)
@@ -46,8 +46,8 @@ class SimulatorProcessTest {
         val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
         whenever(remote.execIgnoringErrors(any(), any(), any()))
-            .thenReturn(CommandResult(stdOutWithSimulatorPid, "", ByteArray(0), 0))
-            .thenReturn(CommandResult("", "", ByteArray(0), 0))
+            .thenReturn(CommandResult(stdOutWithSimulatorPid, "", 0))
+            .thenReturn(CommandResult("", "", 0))
 
         simulatorProcess.terminateChildProcess("SafariViewService")
 

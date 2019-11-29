@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver.command
 
-import com.badoo.automation.deviceserver.ios.proc.LongRunningProcessListener
 import org.slf4j.Marker
 import java.time.Duration
 
@@ -21,15 +20,15 @@ interface IShellCommand {
         timeOut: Duration = Duration.ofSeconds(60),
         returnFailure: Boolean = true,
         logMarker: Marker? = null,
-        processListener: IShellCommandListener = ShellCommandListener()
+        processBuilder: ProcessBuilder = ProcessBuilder(listOf())
     ): CommandResult
 
     fun startProcess(
         command: List<String>,
         environment: Map<String, String>,
         logMarker: Marker? = null,
-        processListener: LongRunningProcessListener
-    )
+        processBuilder: ProcessBuilder = ProcessBuilder(listOf())
+    ): Process
 
     /**
      * Escape exec argument string if needed
