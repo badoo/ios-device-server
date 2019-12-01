@@ -10,7 +10,8 @@ data class CommandResult(
     val stdErr: String,
     val exitCode: Int,
     val isSuccess: Boolean = exitCode == 0,
-    val cmd: List<String> = listOf()
+    val cmd: List<String> = listOf(),
+    val pid: Long
 ) {
     override fun toString(): String {
         val sb = StringBuilder(javaClass.simpleName)

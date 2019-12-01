@@ -106,6 +106,7 @@ fun Application.module() {
     deviceManager.cleanupTemporaryFiles()
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchAutoReleaseLoop()
+    deviceManager.launchZombieReaper()
 
     val devicesController = DevicesController(deviceManager)
     val statusController = StatusController(deviceManager)

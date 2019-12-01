@@ -102,7 +102,7 @@ class SimulatorHostChecker(
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )
 
-        val cleanUpRunnable: Runnable = Runnable {
+        val cleanUpRunnable = Runnable {
             caches.forEach { path ->
                 removeOldFiles(path, 120)
             }
@@ -121,8 +121,8 @@ class SimulatorHostChecker(
                 "find $path -maxdepth 0 -mmin +$minutes -exec rm -rf {} \\;",
                 returnOnFailure = true
             ) // find returns non zero if nothing found
-            if (!r.isSuccess || r.stdErr.isNotEmpty() || r.stdOut.isNotEmpty()) {
-                logger.debug(logMarker, "[disc cleaner] $this returned non-empty. Result stdErr: ${r.stdErr}")
+            if (!r.isSuccess && r.exitCode != 1 && (r.stdErr.trim().isNotEmpty() || r.stdOut.trim().isNotEmpty())) {
+                logger.debug(logMarker, "[disc cleaner] @ ${remote.publicHostName} returned non-empty. Result: ${r}")
             }
         } catch (e: RuntimeException) {
             logger.debug(logMarker, "[disc cleaner] $this got exception while cleaning caches: ${e.message}", e)

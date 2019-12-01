@@ -2,14 +2,16 @@ package com.badoo.automation.deviceserver.command
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.util.ensure
+import com.sun.jna.ptr.IntByReference
+import com.zaxxer.nuprocess.internal.LibC
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.lang.StringBuilder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.util.concurrent.Callable
@@ -22,55 +24,105 @@ open class ShellCommand(
     ) : IShellCommand {
     protected val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     protected open val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to "localhost"))
-    private val executor = ThreadPoolExecutor(60, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, SynchronousQueue<Runnable>());
+    private val executor = ThreadPoolExecutor(60, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, SynchronousQueue<Runnable>())
 
     override fun exec(command: List<String>, environment: Map<String, String>, timeOut: Duration,
                       returnFailure: Boolean, logMarker: Marker?, processBuilder: ProcessBuilder): CommandResult {
         val commandString = command.joinToString(" ")
-        logger.debug(this.logMarker, "Executing command: $commandString")
         processBuilder.command(command)
         processBuilder.environment().clear()
         processBuilder.environment().putAll(commonEnvironment)
         processBuilder.environment().putAll(environment)
 
-        val process: Process = processBuilder.start()
-        val stdOut = executor.submit(lineReader(process.inputStream))
-        val stdErr = executor.submit(lineReader(process.errorStream))
-        val finishedSuccessfully = process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
+        try {
+            val process: Process = processBuilder.start()
+            val pid = process.pid()
+            logger.debug(MapEntriesAppendingMarker(mapOf("PID" to pid)), "Executing command: $commandString, PID: $pid")
+            val stdOut = executor.submit(lineReader(process.inputStream))
+            val stdErr = executor.submit(lineReader(process.errorStream))
 
-        val exitCode = if (finishedSuccessfully) {
-            process.exitValue()
-        } else {
-            Int.MIN_VALUE
+            val hasFinishedSuccessfully = try {
+                process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
+            } catch (e: InterruptedException) {
+                logger.error(logMarker, "InterruptedException while running command: $commandString, PID: $pid")
+                false
+            }
+
+            val exitCode = if (hasFinishedSuccessfully) {
+                process.exitValue()
+            } else {
+                Int.MIN_VALUE
+            }
+
+            if (!hasFinishedSuccessfully) {
+                logger.error(logMarker, "Command has failed to complete in time. Command: $commandString, PID: $pid")
+                executor.submit {
+                    waitForProcessToComplete(process, logMarker, commandString, pid.toInt(), timeOut)
+                }
+            }
+
+            val result = CommandResult(
+                    stdOut = stdOut.get(),
+                    stdErr = stdErr.get(),
+                    exitCode = exitCode,
+                    cmd = command, // Store actual command - including ssh stuff.
+                    pid = pid
+            )
+            ensure(exitCode == 0 || returnFailure) {
+                val errorMessage = "Error while running command: $commandString Result=$result"
+                logger.error(logMarker, errorMessage)
+                ShellCommandException(errorMessage)
+            }
+            return result
+        } catch (e: IOException) {
+            logger.error(logMarker, "Failed to execute command $command. Error: ${e.javaClass} ${e.message}", e)
+            val message = e.message ?: "Failed to execute command. ${e.javaClass}"
+            return CommandResult(
+                    stdOut = message,
+                    stdErr = message,
+                    exitCode = -1,
+                    cmd = command,
+                    pid = -1
+            )
         }
+    }
 
-        if (exitCode == Int.MIN_VALUE) { // waiting timed out
-            logger.error(logMarker, "Command has failed to complete in time. Command: $commandString")
+    private fun waitForProcessToComplete(process: Process, logMarker: Marker?, commandString: String, pid: Int, timeOut: Duration) {
+        logger.debug(logMarker, "Trying to kill failed command. Command: $commandString, PID: $pid")
+        LibC.kill(pid, LibC.SIGTERM)
+        waitForProcess(process, timeOut, logMarker, commandString, pid)
 
+        if (process.isAlive) {
             try {
+                logger.debug(logMarker, "Trying to destroy failed command. Command: $commandString, PID: $pid")
                 process.destroy()
-            } catch (e: RuntimeException) {
-                logger.warn(logMarker, "Error while terminating command: $commandString", e)
-            }
-            try {
-                process.destroyForcibly()
-            } catch (e: RuntimeException) {
-                logger.warn(logMarker, "Error while terminating command forcibly: $commandString", e)
+                waitForProcess(process, timeOut, logMarker, commandString, pid)
+                logger.debug(logMarker, "Destroyed failed command. Command: $commandString, PID: $pid")
+            } catch (e: Exception) {
+                logger.warn(logMarker, "Error while terminating command: $commandString, PID: $pid", e)
             }
         }
 
-        val result = CommandResult(
-                stdOut = stdOut.get(),
-                stdErr = stdErr.get(),
-                exitCode = exitCode,
-                cmd = command // Store actual command - including ssh stuff.
-        )
-        ensure(exitCode == 0 || returnFailure) {
-            val errorMessage = "Error while running command: $commandString Result=$result"
-            logger.error(logMarker, errorMessage)
-            ShellCommandException(errorMessage)
+        if (process.isAlive) {
+            try {
+                logger.debug(logMarker, "Trying to destroy forcibly failed command. Command: $commandString, PID: $pid")
+                process.destroyForcibly()
+                waitForProcess(process, timeOut, logMarker, commandString, pid)
+                logger.debug(logMarker, "Destroyed forcibly failed command. Command: $commandString, PID: $pid")
+            } catch (e: Exception) {
+                logger.warn(logMarker, "Error while terminating command forcibly: $commandString, PID: $pid", e)
+            }
         }
-        return result
+
+        waitForProcess(process, timeOut, logMarker, commandString, pid)
+    }
+
+    private fun waitForProcess(process: Process, timeOut: Duration, logMarker: Marker?, commandString: String, pid: Int) {
+        try {
+            process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            logger.error(logMarker, "InterruptedException while running command: $commandString, PID: $pid")
+        }
     }
 
     private fun lineReader(inputStream: InputStream): Callable<String> {

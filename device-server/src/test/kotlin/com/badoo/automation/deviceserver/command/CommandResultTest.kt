@@ -12,7 +12,8 @@ class CommandResultTest {
                 stdOut = "out",
                 stdErr = "err",
                 exitCode = 0,
-                cmd = listOf("rm", "-rf", "/")
+                cmd = listOf("rm", "-rf", "/"),
+                pid = 1
         ).toString()
 
         Assert.assertEquals("Wrong result string", expectedResult, actualResult)
