@@ -85,6 +85,12 @@ class DeviceManager(
         autoreleaseLooper.autoreleaseLoop(this)
     }
 
+    private val zombieReaper = ZombieReaper()
+
+    fun launchZombieReaper() {
+        zombieReaper.launchReapingZombies()
+    }
+
     fun getStatus(): Map<String, Any> {
         return mapOf(
             "initialized" to nodeRegistry.getInitialRegistrationComplete(),

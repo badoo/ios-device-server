@@ -61,7 +61,7 @@ class RemoteShellCommand(
             )
         )
         logger.debug(
-            marker, "Execution of SSH command took $elapsedMillis ms. Command: $cmd")
+            marker, "Execution of SSH command took $elapsedMillis ms. Command: ${cmd.joinToString(" ")}, PID: ${result.pid}")
 
         if (result.exitCode == SSH_ERROR) {
             // FIXME: Check stdout and stderr, if they are empty – ssh timeout, otherwise, it is likely to be command error
