@@ -27,7 +27,7 @@ class DataContainerTest {
 
     @Test
     fun shouldListFiles() {
-        val cmdResult = CommandResult("Caches/\nImage Cache/\nfile.ext\n", "", 0)
+        val cmdResult = CommandResult("Caches/\nImage Cache/\nfile.ext\n", "", 0, pid = 1)
 
         whenever(
             remote.execIgnoringErrors(
@@ -55,7 +55,7 @@ class DataContainerTest {
 
     @Test
     fun shouldReturnEmptyListForEmptyDirectory() {
-        val cmdResult = CommandResult("", "", 0)
+        val cmdResult = CommandResult("", "", 0, pid = 1)
 
         whenever(
             remote.execIgnoringErrors(
