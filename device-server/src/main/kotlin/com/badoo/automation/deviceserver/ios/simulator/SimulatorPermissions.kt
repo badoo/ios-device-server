@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.data.PermissionSet
 import com.badoo.automation.deviceserver.data.PermissionType
 import com.badoo.automation.deviceserver.host.IRemote
 import java.io.File
+import java.nio.file.Paths
 
 class SimulatorPermissions(
     private val remote: IRemote,
@@ -82,6 +83,7 @@ class SimulatorPermissions(
     }
 
     private val appleSimUtils = "/usr/local/bin/applesimutils"
+    private val plUtil = "/usr/bin/plutil"
 
     @Suppress("UNUSED_PARAMETER")
     private fun setNotificationsPermission(bundleId: String, allowed: PermissionAllowed) {
@@ -109,5 +111,19 @@ class SimulatorPermissions(
         if (!rv.isSuccess){
             throw RuntimeException("Could not set location permission: $rv")
         }
+
+        val plistPath = Paths.get(deviceSetPath, simulator.udid, "data", "Library", "Caches", "locationd", "clients.plist").toFile().absolutePath
+        val printCmd = listOf(plUtil, "-p", plistPath)
+        val result = remote.execIgnoringErrors(printCmd)
+
+        when (allowed) {
+            PermissionAllowed.Unset -> if (result.stdOut.contains(bundleId)) {
+                throw RuntimeException("Resetting location permissions did not work. The $bundleId is present in $plistPath")
+            }
+            else -> if (!result.stdOut.contains(bundleId)) {
+                throw RuntimeException("Setting location permissions did not work. The $bundleId is not present in $plistPath")
+            }
+        }
+
     }
 }
