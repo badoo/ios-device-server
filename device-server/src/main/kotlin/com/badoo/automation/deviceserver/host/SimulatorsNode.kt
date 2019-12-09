@@ -14,7 +14,6 @@ import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.newDeviceRef
 import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.newFixedThreadPoolContext
 import kotlinx.coroutines.experimental.runBlocking
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
@@ -22,6 +21,7 @@ import java.io.File
 import java.net.URL
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
@@ -116,7 +116,7 @@ class SimulatorsNode(
 
     private val supportedArchitectures = listOf("x86_64")
     private val deviceSetPath: String by lazy { remote.fbsimctl.defaultDeviceSet() }
-    private val concurrentBoot = newFixedThreadPoolContext(concurrentBoots, "sim_boot_${remote.hostName}")
+    private val concurrentBoot: ExecutorService = Executors.newFixedThreadPool(concurrentBoots)
 
     private fun getDeviceFor(ref: DeviceRef): ISimulator {
         return devicePool[ref]!! //FIXME: replace with explicit unwrapping
