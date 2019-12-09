@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
+import java.io.File
 import java.net.URL
 
 interface ISimulatorsNode {
@@ -50,9 +51,8 @@ interface ISimulatorsNode {
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)
     fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>)
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String)
-    fun installApplicationAsync(deviceRef: DeviceRef, appBundle: ApplicationBundle)
-    fun appInstallProgress(deviceRef: DeviceRef): String
+    fun installApplication(deviceRef: DeviceRef, appBundle: AppBundleDto)
     fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO)
-
     val publicHostName: String
+    fun deployApplication(appBundle: ApplicationBundle)
 }

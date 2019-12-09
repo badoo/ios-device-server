@@ -40,6 +40,8 @@ class SimulatorsNode(
         private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {},
         private val locationPermissionsLock: ReentrantLock = ReentrantLock(true)
 ) : ISimulatorsNode {
+    private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
+
     override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
         val applicationContainer = getDeviceFor(ref).applicationContainer(plistEntry.bundleId)
         val path = File(plistEntry.file_name).toPath()
@@ -53,88 +55,43 @@ class SimulatorsNode(
             applicationContainer.addPlistValue(path, key, value, type)
         }
     }
-
-    override fun appInstallProgress(deviceRef: DeviceRef): String {
-        val udid = getDeviceFor(deviceRef).udid
-
-        return appInstaller.installProgress(udid)
-    }
-
-    private val appsCache: MutableMap<String, ApplicationBundle> = ConcurrentHashMap(200)
-    private val appBinaries: MutableMap<String, File> = ConcurrentHashMap(200)
     private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(1), remote)
 
-    override fun installApplicationAsync(deviceRef: DeviceRef, appBundle: ApplicationBundle) {
-        logger.info(logMarker, "Ready to install app ${appBundle.bundleId} on device $deviceRef")
+    override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
+        logger.info(logMarker, "Ready to install app ${appBundleDto.bundleId} on device $deviceRef")
+        val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
+            ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
 
-        synchronized(this) {
-            val udid = getDeviceFor(deviceRef).udid
-            logger.info(logMarker, "Started to install app ${appBundle.bundleId} on device $deviceRef")
-
-            val cachedBundle = appsCache[appBundle.appUrl]
-
-            if (cachedBundle == null || !appDirExists(appBinaries[cachedBundle.appUrl])) {
-                if (remote.isLocalhost()) {
-                    appBinaries[appBundle.appUrl] = appBundle.appFile!! // nothing else to do here
-                } else {
-                    appBinaries[appBundle.appUrl] = copyAppToRemoteHost(udid, appBundle, deviceRef)
-                }
-
-                appsCache[appBundle.appUrl] = appBundle
-            }
-
-            appInstaller.installApplicationAsync(udid, appBundle, appBinaries[appBundle.appUrl]!!)
-        }
+        val udid = getDeviceFor(deviceRef).udid
+        appInstaller.installApplication(udid, appBundleDto.bundleId, appBinaryPath)
     }
 
-    private fun copyAppToRemoteHost(udid: UDID, appBundle: ApplicationBundle, deviceRef: DeviceRef): File {
-        val markerData = mapOf(
-            HOSTNAME to remote.publicHostName,
-            DEVICE_REF to newDeviceRef(udid, remote.publicHostName),
-            UDID to udid
-        )
+    override fun deployApplication(appBundle: ApplicationBundle) {
+        val appDirectory = if (remote.isLocalhost()) {
+            appBundle.appDirectory!!
+        } else {
+            copyAppToRemoteHost(appBundle)
+        }
+        val key = appBundle.appUrl.toExternalForm()
+        appBinariesCache[key] = appDirectory
+    }
 
-        logger.debug(MapEntriesAppendingMarker(markerData), "Copying application ${appBundle.bundleId} on simulator $deviceRef.")
+    private fun copyAppToRemoteHost(appBundle: ApplicationBundle): File {
+        val marker = MapEntriesAppendingMarker(mapOf(HOSTNAME to remote.publicHostName, "action_name" to "scp_application"))
+        logger.debug(marker, "Copying application ${appBundle.bundleId} to $this")
 
-        val remoteAppDir = remoteAppDirectoryContainer(appBundle.appFile!!)
+        val remoteDirectory = File(ApplicationConfiguration().appBundleCacheRemotePath, UUID.randomUUID().toString()).absolutePath
+        remote.exec(listOf("/bin/rm", "-rf", remoteDirectory), mapOf(), false, 90).stdOut.trim()
+        remote.exec(listOf("/bin/mkdir", "-p", remoteDirectory), mapOf(), false, 90).stdOut.trim()
 
         val nanos = measureNanoTime {
-            remote.scpToRemoteHost(appBundle.appFile!!.absolutePath, remoteAppDir)
+            remote.scpToRemoteHost(appBundle.appDirectory!!.absolutePath, remoteDirectory)
         }
-
         val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
-        val measurement = mapOf(
-            HOSTNAME to remote.publicHostName,
-            DEVICE_REF to newDeviceRef(udid, remote.publicHostName),
-            UDID to udid,
-            "action_name" to "scp_application",
-            "duration" to seconds,
-            "app_size" to appBundle.appFile!!.length()
-        )
+        val measurement = mapOf(HOSTNAME to remote.publicHostName, "action_name" to "scp_application", "duration" to seconds)
 
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.bundleId} on simulator $deviceRef. Took $seconds seconds")
-
-        return File(remoteAppDir, appBundle.appFile!!.name)
-    }
-
-    private fun appDirExists(file: File?): Boolean {
-        if (file == null) {
-            return false
-        }
-
-        return if (remote.isLocalhost()) {
-            file.exists()
-        } else {
-            val result = remote.exec(listOf("/bin/test", file.absolutePath), mapOf(), true, 60L)
-            result.exitCode == 0
-        }
-    }
-
-    private fun remoteAppDirectoryContainer(appFile: File): String {
-        val remoteDirectory = File(ApplicationConfiguration().appBundleCacheRemotePath, UUID.randomUUID().toString()).absolutePath
-        val command = listOf("/bin/mkdir", "-p", remoteDirectory)
-        remote.exec(command, mapOf(), false, 90).stdOut.trim()
-        return remoteDirectory
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.bundleId} to $this. Took $seconds seconds")
+        return File(remoteDirectory, appBundle.appDirectory!!.name)
     }
 
     override val remoteAddress: String get() = publicHostName

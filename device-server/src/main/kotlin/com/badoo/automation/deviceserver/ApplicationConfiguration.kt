@@ -27,8 +27,8 @@ class ApplicationConfiguration {
 
     val trustStorePath: String = System.getProperty("trust.store.path", "")
     val assetsPath: String = System.getProperty("media.assets.path", "")
-    val appBundleCachePath: String = System.getProperty("app.bundle.cache.path", File(System.getenv("HOME"), "app_bundle_cache").absolutePath)
-    val appBundleCacheRemotePath: String = System.getProperty("app.bundle.cache.remote.path", File("/Users/qa", "app_bundle_cache").absolutePath)
+    val appBundleCachePath: File = File(System.getProperty("app.bundle.cache.path", System.getenv("HOME")), "app_bundle_cache")
+    val appBundleCacheRemotePath: File = File(System.getProperty("app.bundle.cache.remote.path", "/Users/qa/app_bundle_cache"))
     val videoRecorderClassName = System.getProperty("video.recorder", SimulatorVideoRecorder::class.qualifiedName)
     val simulatorWdaClassName = System.getProperty("simulator.wda", SimulatorWebDriverAgent::class.qualifiedName)
 }
