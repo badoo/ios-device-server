@@ -267,8 +267,10 @@ class DeviceManager(
     }
 
     private fun acquireBundle(dto: AppBundleDto, marker: MapEntriesAppendingMarker): ApplicationBundle {
-        val appBundle = ApplicationBundle(URL(dto.appUrl), dto.bundleId)
-        downloadApplicationBinary(marker, appBundle)
+        val appBundle = ApplicationBundle(URL(dto.appUrl))
+        if (!appBundle.isDownloaded) {
+            downloadApplicationBinary(marker, appBundle)
+        }
         appBundle.unpack(logger, marker)
         return appBundle
     }
@@ -276,18 +278,17 @@ class DeviceManager(
     private fun downloadApplicationBinary(marker: MapEntriesAppendingMarker, appBundle: ApplicationBundle) {
         var size: Long = 0
         val nanos = measureNanoTime {
-            logger.debug(marker, "Downloading app bundle to cache ${appBundle.bundleId}. Url: ${appBundle.appUrl}")
+            logger.debug(marker, "Downloading app bundle to cache ${appBundle.appUrl}. Url: ${appBundle.appUrl}")
             appBundle.downloadApp(logger, marker)
             size = appBundle.bundleZip.length()
         }
         val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
         val measurement = mutableMapOf(
             "action_name" to "download_application",
-            "app_bundle_id" to appBundle.bundleId,
             "duration" to seconds,
             "app_size" to size.shr(20) // Bytes to Megabytes
         )
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully downloaded application ${appBundle.bundleId} size: $size bytes. Took $seconds seconds")
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully downloaded application ${appBundle.appUrl} size: $size bytes. Took $seconds seconds")
     }
 
     fun updateApplicationPlist(deviceRef: String, plistEntry: PlistEntryDTO) {
