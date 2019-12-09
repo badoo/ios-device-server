@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.host
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
@@ -9,16 +10,16 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
-import com.badoo.automation.deviceserver.util.AppInstaller
+import com.badoo.automation.deviceserver.util.newDeviceRef
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
+import org.slf4j.Marker
 import java.io.File
 import java.net.URL
 import java.time.Duration
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
+import java.util.*
+import java.util.concurrent.*
+import kotlin.system.measureNanoTime
 
 class DevicesNode(
     private val remote: IRemote,
@@ -30,32 +31,11 @@ class DevicesNode(
     private val uninstallApps: Boolean,
     private val wdaBundlePath: File,
     private val remoteWdaBundleRoot: File,
-    private val fbsimctlVersion: String
+    private val fbsimctlVersion: String,
+    private val appInstallerExecutorService: ExecutorService = Executors.newFixedThreadPool(4)
 ) : ISimulatorsNode {
     override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun appInstallProgress(deviceRef: DeviceRef): String {
-        val device = slotByExternalRef(deviceRef).device
-        val udid = device.udid
-        return appInstaller.installProgress(udid)
-    }
-
-    private val apps: MutableMap<String, ApplicationBundle> = ConcurrentHashMap(200)
-    private val appBinaries: MutableMap<String, File> = ConcurrentHashMap(200)
-    private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(3), remote)
-
-    override fun installApplicationAsync(deviceRef: DeviceRef, appBundle: ApplicationBundle) {
-        val device = slotByExternalRef(deviceRef).device
-        val udid = device.udid
-        // TODO: add date of syncing for future deleting cleanup
-        if (!apps.contains(appBundle.appUrl)) { // FIXME: check if app is deleted in one hour
-            appBinaries[appBundle.appUrl] = appBundle.appFile!!
-            apps[appBundle.appUrl] = appBundle
-        }
-
-        appInstaller.installApplicationAsync(udid, appBundle, appBinaries[appBundle.appUrl]!!)
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -64,6 +44,86 @@ class DevicesNode(
             LogMarkers.HOSTNAME to remote.hostName
         )
     )
+
+    private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
+
+    override fun deployApplication(appBundle: ApplicationBundle) {
+        val appDirectory = if (remote.isLocalhost()) {
+            appBundle.appDirectory!!
+        } else {
+            copyAppToRemoteHost(appBundle)
+        }
+        val key = appBundle.appUrl.toExternalForm()
+        appBinariesCache[key] = appDirectory
+    }
+
+    private fun copyAppToRemoteHost(appBundle: ApplicationBundle): File {
+        val marker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remote.publicHostName, "action_name" to "scp_application"))
+        logger.debug(marker, "Copying application ${appBundle.appUrl} to $this")
+
+        val remoteDirectory = File(ApplicationConfiguration().appBundleCacheRemotePath, UUID.randomUUID().toString()).absolutePath
+        remote.exec(listOf("/bin/rm", "-rf", remoteDirectory), mapOf(), false, 90).stdOut.trim()
+        remote.exec(listOf("/bin/mkdir", "-p", remoteDirectory), mapOf(), false, 90).stdOut.trim()
+
+        val nanos = measureNanoTime {
+            remote.scpToRemoteHost(appBundle.appDirectory!!.absolutePath, remoteDirectory)
+        }
+        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+        val measurement = mapOf(LogMarkers.HOSTNAME to remote.publicHostName, "action_name" to "scp_application", "duration" to seconds)
+
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.appUrl} to $this. Took $seconds seconds")
+        return File(remoteDirectory, appBundle.appDirectory!!.name)
+    }
+
+    override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
+        logger.info(logMarker, "Ready to install app ${appBundleDto.bundleId} on device $deviceRef")
+        val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
+            ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
+
+        val device = slotByExternalRef(deviceRef).device
+        val udid = device.udid
+        val installTask = appInstallerExecutorService.submit(Callable<Boolean> {
+            return@Callable performInstall(logMarker, udid, appBinaryPath, appBundleDto.bundleId)
+        })
+
+        installTask.get()
+    }
+
+    private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, bundleId: String): Boolean {
+        logger.debug(logMarker, "Installing application $bundleId on device $udid")
+
+        val nanos = measureNanoTime {
+            logger.debug(logMarker, "Will install application $bundleId on device $udid using fbsimctl install ${appBinaryPath.absolutePath}")
+            try {
+                remote.fbsimctl.installApp(udid, appBinaryPath)
+            } catch (e: RuntimeException) {
+                logger.error(logMarker, "Error happened while installing the app $bundleId on $udid", e)
+                return false
+            }
+        }
+
+        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+        val measurement = mutableMapOf(
+            "action_name" to "install_application",
+            "duration" to seconds
+        )
+        measurement.putAll(logMarkerDetails(udid))
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed application $bundleId on simulator $udid. Took $seconds seconds")
+        return true
+    }
+
+    private val commonLogMarkerDetails = mapOf(
+        LogMarkers.HOSTNAME to remote.hostName
+    )
+
+    private fun logMarkerDetails(udid: UDID): Map<String, String> {
+        return commonLogMarkerDetails + mapOf(
+            LogMarkers.DEVICE_REF to newDeviceRef(
+                udid,
+                remote.publicHostName
+            ), LogMarkers.UDID to udid
+        )
+    }
 
     private val deviceRegistrationInterval = Duration.ofMinutes(1)
 

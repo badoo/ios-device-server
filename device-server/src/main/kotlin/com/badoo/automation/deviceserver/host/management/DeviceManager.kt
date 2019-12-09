@@ -2,7 +2,6 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
-import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
@@ -11,13 +10,10 @@ import com.badoo.automation.deviceserver.ios.ActiveDevices
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.lang.RuntimeException
 import java.net.URL
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 import kotlin.system.measureNanoTime
 
 private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
@@ -66,7 +62,7 @@ class DeviceManager(
             }
         }
 
-        val appCache = File(ApplicationConfiguration().appBundleCachePath)
+        val appCache = ApplicationConfiguration().appBundleCachePath
         appCache.deleteRecursively()
         appCache.mkdirs()
 
@@ -253,48 +249,45 @@ class DeviceManager(
 
     private val applicationsCache: ConcurrentHashMap<String, ApplicationBundle> = ConcurrentHashMap()
 
-    private val appInstallLock = ReentrantLock()
-
     fun installApplication(ref: String, dto: AppBundleDto) {
-        val marker = MapEntriesAppendingMarker(mapOf(LogMarkers.DEVICE_REF to ref))
-
-        val bundleKey = dto.appUrl
-        applicationsCache.putIfAbsent(bundleKey, ApplicationBundle.fromAppBundleDto(dto))
-        val appBundle = applicationsCache.get(bundleKey)!!
-
-        appInstallLock.withLock {
-            logger.debug(marker, "Starting application install ${appBundle.bundleId} on device $ref")
-
-            if (appBundle.isAppDownloaded) {
-                logger.debug(marker, "Using cached app bundle ${appBundle.bundleId} on device $ref. Url: ${appBundle.appUrl}")
-            } else {
-                var size: Long = 0
-                var sizeMB: Long = 0
-                val nanos = measureNanoTime {
-                    logger.debug(marker, "Downloading app bundle to cache ${appBundle.bundleId} on device $ref. Url: ${appBundle.appUrl}")
-                    val applicationBinary = appBundle.downloadApp(logger, marker)
-
-                    size = applicationBinary.length()
-                    sizeMB = size.shr(20) // TODO: Retries
-                }
-
-                val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
-                val measurement = mutableMapOf(
-                    "action_name" to "download_application",
-                    "app_bundle_id" to appBundle.bundleId,
-                    "duration" to seconds,
-                    "app_size" to sizeMB
-                )
-
-                logger.debug(MapEntriesAppendingMarker(measurement), "Successfully downloaded application ${appBundle.bundleId} size: $size bytes. Took $seconds seconds")
-            }
-        }
-
-        nodeRegistry.activeDevices.getNodeFor(ref).installApplicationAsync(ref, appBundle)
+        nodeRegistry.activeDevices.getNodeFor(ref).installApplication(ref, dto)
     }
 
-    fun appInstallProgress(deviceRef: DeviceRef): String {
-        return nodeRegistry.activeDevices.getNodeFor(deviceRef).appInstallProgress(deviceRef)
+    fun deployApplication(dto: AppBundleDto) {
+        val marker = MapEntriesAppendingMarker(mapOf("operation" to "app_deploy"))
+        val appBundle = applicationsCache.computeIfAbsent(dto.appUrl) { acquireBundle(dto, marker) }
+
+        logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
+
+        nodeRegistry.getAll().parallelStream().forEach { nodeWrapper ->
+            nodeWrapper.node.deployApplication(appBundle)
+        }
+
+        logger.debug(marker, "Successfully deployed application ${dto.appUrl}")
+    }
+
+    private fun acquireBundle(dto: AppBundleDto, marker: MapEntriesAppendingMarker): ApplicationBundle {
+        val appBundle = ApplicationBundle(URL(dto.appUrl), dto.bundleId)
+        downloadApplicationBinary(marker, appBundle)
+        appBundle.unpack(logger, marker)
+        return appBundle
+    }
+
+    private fun downloadApplicationBinary(marker: MapEntriesAppendingMarker, appBundle: ApplicationBundle) {
+        var size: Long = 0
+        val nanos = measureNanoTime {
+            logger.debug(marker, "Downloading app bundle to cache ${appBundle.bundleId}. Url: ${appBundle.appUrl}")
+            appBundle.downloadApp(logger, marker)
+            size = appBundle.bundleZip.length()
+        }
+        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+        val measurement = mutableMapOf(
+            "action_name" to "download_application",
+            "app_bundle_id" to appBundle.bundleId,
+            "duration" to seconds,
+            "app_size" to size.shr(20) // Bytes to Megabytes
+        )
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully downloaded application ${appBundle.bundleId} size: $size bytes. Took $seconds seconds")
     }
 
     fun updateApplicationPlist(deviceRef: String, plistEntry: PlistEntryDTO) {
