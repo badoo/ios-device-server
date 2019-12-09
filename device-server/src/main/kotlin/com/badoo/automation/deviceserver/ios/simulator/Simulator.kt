@@ -32,19 +32,20 @@ import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
 import java.time.Duration
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.system.measureNanoTime
 
-class Simulator (
+class Simulator(
         private val deviceRef: DeviceRef,
         private val remote: IRemote,
         private val deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
         wdaRunnerXctest: File,
-        private val concurrentBootsPool: ThreadPoolDispatcher,
+        private val concurrentBootsPool: ExecutorService,
         headless: Boolean,
         private val useWda: Boolean,
         override val fbsimctlSubject: String,
@@ -157,25 +158,16 @@ class Simulator (
 
     //region prepareAsync
     override fun prepareAsync() {
-        if (deviceState == DeviceState.CREATING || deviceState == DeviceState.RESETTING) {
-            throw java.lang.IllegalStateException("Simulator $udid is already in state $deviceState")
-        }
-
         executeCritical {
+            if (deviceState == DeviceState.CREATING || deviceState == DeviceState.RESETTING) {
+                throw java.lang.IllegalStateException("Simulator $udid is already in state $deviceState")
+            }
             deviceState = DeviceState.CREATING
-        }
 
-        executeCriticalAsync {
             val nanos = measureNanoTime {
                 try {
                     stopPeriodicHealthCheck()
-                    val prepareJob = async(context = concurrentBootsPool) {
-                        prepare(clean = true)
-                    }
-                    runBlocking {
-                        prepareJob.await()
-                    }
-
+                    prepare(clean = true)
                 } catch (e: Exception) { // catching most wide exception
                     deviceState = DeviceState.FAILED
                     logger.error(logMarker, "Failed to prepare device ${this@Simulator}", e)
@@ -388,49 +380,53 @@ class Simulator (
     private fun boot() {
         logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
         truncateSystemLogIfExists()
-
         logger.info(logMarker, "Starting fbsimctl on ${this@Simulator}")
-        fbsimctlProc.start() // boots simulator
-
         var lastState: String? = null
+        var systemLogPath = ""
 
-        try {
+        val bootProc = {
+            fbsimctlProc.start() // boots simulator
+
+            try {
+                pollFor(
+                    Duration.ofSeconds(90),
+                    retryInterval = Duration.ofSeconds(10),
+                    reasonName = "${this@Simulator} initial boot",
+                    shouldReturnOnTimeout = false,
+                    logger = logger,
+                    marker = logMarker
+                ) {
+                    val simulatorInfo = remote.fbsimctl.listDevice(udid)
+                    lastState = simulatorInfo?.state
+                    lastState == FBSimctlDeviceState.BOOTED.value
+                }
+            } catch (e: WaitTimeoutError) {
+                throw WaitTimeoutError("${e.message}. Simulator is in wrong state of $lastState", e)
+            }
+
             pollFor(
-                Duration.ofSeconds(90),
+                Duration.ofSeconds(60),
                 retryInterval = Duration.ofSeconds(10),
-                reasonName = "${this@Simulator} initial boot",
-                shouldReturnOnTimeout = false,
+                reasonName = "${this@Simulator} system log appeared",
+                shouldReturnOnTimeout = true,
                 logger = logger,
                 marker = logMarker
             ) {
-                val simulatorInfo = remote.fbsimctl.listDevice(udid)
-                lastState = simulatorInfo?.state
-                lastState == FBSimctlDeviceState.BOOTED.value
+                val diagnosticInfo = remote.fbsimctl.diagnose(udid)
+                val location = diagnosticInfo.sysLogLocation
+                if (location != null) {
+                    systemLogPath = location
+                    logger.info(logMarker, "Device ${this@Simulator} system log appeared")
+                    true
+                } else {
+                    logger.warn(logMarker, "Device ${this@Simulator} system log NOT appeared")
+                    false
+                }
             }
-        } catch (e: WaitTimeoutError) {
-            throw WaitTimeoutError("${e.message}. Simulator is in wrong state of $lastState", e)
-        }
 
-        var systemLogPath = ""
-
-        pollFor(Duration.ofSeconds(60),
-            retryInterval = Duration.ofSeconds(10),
-            reasonName = "${this@Simulator} system log appeared",
-            shouldReturnOnTimeout = true,
-            logger = logger,
-            marker = logMarker
-        ) {
-            val diagnosticInfo = remote.fbsimctl.diagnose(udid)
-            val location = diagnosticInfo.sysLogLocation
-            if (location != null) {
-                systemLogPath = location
-                logger.info(logMarker, "Device ${this@Simulator} system log appeared")
-                true
-            } else {
-                logger.warn(logMarker, "Device ${this@Simulator} system log NOT appeared")
-                false
-            }
         }
+        val bootTask = concurrentBootsPool.submit(bootProc)
+        bootTask.get()
 
         pollFor(Duration.ofSeconds(60),
             retryInterval = Duration.ofSeconds(10),
@@ -558,12 +554,7 @@ class Simulator (
                 resetFromBackup()
                 try {
                     stopPeriodicHealthCheck()
-                    val resetAsyncAndPrepareJob = async(context = concurrentBootsPool) {
-                        prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
-                    }
-                    runBlocking {
-                        resetAsyncAndPrepareJob.await()
-                    }
+                    prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
                 } catch (e: Exception) { // catching most wide exception
                     deviceState = DeviceState.FAILED
                     logger.error(logMarker, "Failed to reset and prepare device ${this@Simulator}", e)
