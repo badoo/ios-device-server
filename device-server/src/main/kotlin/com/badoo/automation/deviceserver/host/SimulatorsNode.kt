@@ -58,12 +58,12 @@ class SimulatorsNode(
     private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(1), remote)
 
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
-        logger.info(logMarker, "Ready to install app ${appBundleDto.bundleId} on device $deviceRef")
+        logger.info(logMarker, "Ready to install app ${appBundleDto.appUrl} on device $deviceRef")
         val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
             ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
 
         val udid = getDeviceFor(deviceRef).udid
-        appInstaller.installApplication(udid, appBundleDto.bundleId, appBinaryPath)
+        appInstaller.installApplication(udid, appBundleDto.appUrl, appBinaryPath)
     }
 
     override fun deployApplication(appBundle: ApplicationBundle) {
@@ -78,7 +78,7 @@ class SimulatorsNode(
 
     private fun copyAppToRemoteHost(appBundle: ApplicationBundle): File {
         val marker = MapEntriesAppendingMarker(mapOf(HOSTNAME to remote.publicHostName, "action_name" to "scp_application"))
-        logger.debug(marker, "Copying application ${appBundle.bundleId} to $this")
+        logger.debug(marker, "Copying application ${appBundle.appUrl} to $this")
 
         val remoteDirectory = File(ApplicationConfiguration().appBundleCacheRemotePath, UUID.randomUUID().toString()).absolutePath
         remote.exec(listOf("/bin/rm", "-rf", remoteDirectory), mapOf(), false, 90).stdOut.trim()
@@ -90,7 +90,7 @@ class SimulatorsNode(
         val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
         val measurement = mapOf(HOSTNAME to remote.publicHostName, "action_name" to "scp_application", "duration" to seconds)
 
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.bundleId} to $this. Took $seconds seconds")
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.appUrl} to $this. Took $seconds seconds")
         return File(remoteDirectory, appBundle.appDirectory!!.name)
     }
 

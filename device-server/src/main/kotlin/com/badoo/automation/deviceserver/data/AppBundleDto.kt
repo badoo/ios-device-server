@@ -7,10 +7,7 @@ data class AppBundleDto(
     val appUrl: String,
 
     @JsonProperty("dsym_url")
-    val dsymUrl: String?,
-
-    @JsonProperty("bundle_id")
-    val bundleId: String
+    val dsymUrl: String?
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

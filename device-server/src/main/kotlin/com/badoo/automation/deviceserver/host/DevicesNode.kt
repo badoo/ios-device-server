@@ -76,28 +76,28 @@ class DevicesNode(
     }
 
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
-        logger.info(logMarker, "Ready to install app ${appBundleDto.bundleId} on device $deviceRef")
+        logger.info(logMarker, "Ready to install app ${appBundleDto.appUrl} on device $deviceRef")
         val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
             ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
 
         val device = slotByExternalRef(deviceRef).device
         val udid = device.udid
         val installTask = appInstallerExecutorService.submit(Callable<Boolean> {
-            return@Callable performInstall(logMarker, udid, appBinaryPath, appBundleDto.bundleId)
+            return@Callable performInstall(logMarker, udid, appBinaryPath, appBundleDto.appUrl)
         })
 
         installTask.get()
     }
 
-    private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, bundleId: String): Boolean {
-        logger.debug(logMarker, "Installing application $bundleId on device $udid")
+    private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, appUrl: String): Boolean {
+        logger.debug(logMarker, "Installing application $appUrl on device $udid")
 
         val nanos = measureNanoTime {
-            logger.debug(logMarker, "Will install application $bundleId on device $udid using fbsimctl install ${appBinaryPath.absolutePath}")
+            logger.debug(logMarker, "Will install application $appUrl on device $udid using fbsimctl install ${appBinaryPath.absolutePath}")
             try {
                 remote.fbsimctl.installApp(udid, appBinaryPath)
             } catch (e: RuntimeException) {
-                logger.error(logMarker, "Error happened while installing the app $bundleId on $udid", e)
+                logger.error(logMarker, "Error happened while installing the app $appUrl on $udid", e)
                 return false
             }
         }
@@ -108,7 +108,7 @@ class DevicesNode(
             "duration" to seconds
         )
         measurement.putAll(logMarkerDetails(udid))
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed application $bundleId on simulator $udid. Took $seconds seconds")
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed application $appUrl on device $udid. Took $seconds seconds")
         return true
     }
 

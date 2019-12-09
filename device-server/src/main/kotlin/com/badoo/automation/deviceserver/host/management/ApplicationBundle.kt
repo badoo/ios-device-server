@@ -17,8 +17,7 @@ import java.util.zip.ZipFile
 import kotlin.system.measureNanoTime
 
 class ApplicationBundle(
-    val appUrl: URL,
-    val bundleId: String
+    val appUrl: URL
 ) {
     val bundleZip: File by lazy {
         val file = File(appUrl.file)
@@ -31,6 +30,9 @@ class ApplicationBundle(
         .followRedirects(true)
         .callTimeout(Duration.ofMinutes(10)) // TODO: case when timed out
         .build()
+
+    private var bundleZipSize: Long = -1
+    val isDownloaded: Boolean get() = bundleZip.exists() && bundleZipSize > 0 && bundleZipSize == bundleZip.length()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -115,6 +117,8 @@ class ApplicationBundle(
                 if (contentLength > 0 && downloadLength != contentLength.toLong()) {
                     throw IOException("Downloaded file size ($downloadLength) different from Content-Length ($contentLength)")
                 }
+
+                bundleZipSize = downloadLength
             }
         } catch (e: IOException) {
             bundleZip.delete()
