@@ -1,7 +1,6 @@
 package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
-import com.badoo.automation.deviceserver.data.AppBundleDto
 import com.badoo.automation.deviceserver.util.CustomHttpClient
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import okhttp3.Request
@@ -13,20 +12,25 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import java.util.zip.ZipFile
+import kotlin.system.measureNanoTime
 
 class ApplicationBundle(
-    val appUrl: String,
-    val dsymUrl: String?, // TODO: maybe null
+    val appUrl: URL,
     val bundleId: String
 ) {
-    @Volatile
-    var appFile: File? = null
-    var appFileLength: Long = -1 // if file does not exist, file.length() will return 0L
-
-    val isAppDownloaded: Boolean get() {
-        val file = appFile
-        return file != null && file.exists() && file.length() == appFileLength // FIXME: add checksum
+    val bundleZip: File by lazy {
+        val file = File(appUrl.file)
+        File.createTempFile("${file.nameWithoutExtension}.", ".${file.extension}", ApplicationConfiguration().appBundleCachePath)
     }
+    private val unzipDirectory by lazy { File(bundleZip.parent, bundleZip.nameWithoutExtension) }
+    var appDirectory: File? = null
+    private val httpClient = CustomHttpClient.client
+        .newBuilder()
+        .followRedirects(true)
+        .callTimeout(Duration.ofMinutes(10)) // TODO: case when timed out
+        .build()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -43,40 +47,59 @@ class ApplicationBundle(
         return appUrl.hashCode()
     }
 
-    fun downloadApp(logger: Logger, marker: MapEntriesAppendingMarker): File {
-        val url = appUrl.toUrl()
-        val downloadedFile = try {
-            download(url)
+    fun downloadApp(logger: Logger, marker: MapEntriesAppendingMarker) {
+        try {
+            download(appUrl)
         } catch (e: IOException) {
-            logger.error(marker, "Failed to download app from url [$url]. Retrying...")
-            download(url)
+            logger.error(marker, "Failed to download app from url [$appUrl]. Retrying...")
+            download(appUrl)
         }
-
-        appFile = downloadedFile
-        appFileLength = downloadedFile.length()
-
-        return downloadedFile
     }
 
-    private val httpClient = CustomHttpClient.client
-        .newBuilder()
-        .followRedirects(true)
-        .callTimeout(Duration.ofMinutes(10)) // TODO: case when timed out
-        .build()
+    fun unpack(logger: Logger, marker: MapEntriesAppendingMarker) {
+        unzipDirectory.deleteRecursively()
 
-    private fun download(url: URL): File {
+        val nanos = measureNanoTime {
+            unzipApp(bundleZip, unzipDirectory)
+        }
+
+        logger.debug(marker, "Unzipped app successfully. Took ${TimeUnit.NANOSECONDS.toSeconds(nanos)} seconds")
+
+        val unzipped = unzipDirectory.list()
+        if (unzipped.size != 1) {
+            throw RuntimeException("Unzipped archive contains too many entries")
+        }
+
+        appDirectory = File(unzipDirectory, unzipped.first())
+    }
+
+    private fun unzipApp(zipFile: File, unzipDirectory: File) {
+        unzipDirectory.mkdirs()
+
+        ZipFile(zipFile.absolutePath).use { zip ->
+            zip.entries().asSequence().forEach { zipEntry ->
+                val unzippedFile = File(unzipDirectory, zipEntry.name)
+
+                if (zipEntry.isDirectory) {
+                    unzippedFile.mkdirs()
+                } else {
+                    zip.getInputStream(zipEntry).use { input ->
+                        unzippedFile.outputStream().use { out -> input.copyTo(out) }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun download(url: URL) {
         val request: Request = Request.Builder()
             .get()
             .url(url)
             .build()
 
-        val file = File(url.path)
-        val cacheDirectory = File(ApplicationConfiguration().appBundleCachePath)
-        val localFile: File = File.createTempFile("${file.name}.", ".${file.extension}", cacheDirectory)
-
         try {
             val httpCall = httpClient.newCall(request)
-            val outPath = localFile.toPath()
+            val outPath = bundleZip.toPath()
 
             httpCall.execute().use { response ->
                 if (response.code != 200) {
@@ -88,28 +111,14 @@ class ApplicationBundle(
                     Files.copy(inputStream, outPath, StandardCopyOption.REPLACE_EXISTING)
                 }
 
-                val downloadLength = localFile.length()
+                val downloadLength = bundleZip.length()
                 if (contentLength > 0 && downloadLength != contentLength.toLong()) {
                     throw IOException("Downloaded file size ($downloadLength) different from Content-Length ($contentLength)")
                 }
             }
-
-            return localFile
         } catch (e: IOException) {
-            localFile.delete()
-
+            bundleZip.delete()
             throw e
         }
     }
-
-    companion object {
-        fun fromAppBundleDto(dto: AppBundleDto): ApplicationBundle {
-            return ApplicationBundle(
-                dto.appUrl,
-                dto.dsymUrl,
-                dto.bundleId
-            )
-        }
-    }
 }
-private fun String.toUrl(): URL = URL(this)

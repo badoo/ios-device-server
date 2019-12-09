@@ -181,6 +181,10 @@ fun Application.module() {
                     call.respond(devicesController.releaseDevices(user))
                 }
             }
+            post("deploy_app") {
+                val appBundle = jsonContent<AppBundleDto>(call)
+                call.respond(devicesController.deployApplication(appBundle))
+            }
             post("-/capacity") {
                 call.respond(devicesController.getTotalCapacity(jsonContent<DesiredCapabilities>(call)))
             }
@@ -249,10 +253,6 @@ fun Application.module() {
                         val ref = param(call, "ref")
                         val appBundle = jsonContent<AppBundleDto>(call)
                         call.respond(devicesController.installApplication(ref, appBundle))
-                    }
-                    get("install_progress") {
-                        val ref = param(call, "ref")
-                        call.respond(devicesController.appInstallProgress(ref))
                     }
                     post("update_plist") {
                         val ref = param(call, "ref")
