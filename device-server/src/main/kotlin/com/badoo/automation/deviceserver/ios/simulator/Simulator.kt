@@ -101,7 +101,6 @@ class Simulator(
     @Volatile private var deviceState: DeviceState = DeviceState.NONE // writing from separate thread
     @Volatile private var lastException: Exception? = null // writing from separate thread
 
-    private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
@@ -545,10 +544,6 @@ class Simulator(
 
         executeCritical {
             deviceState = DeviceState.RESETTING
-        }
-
-        executeCriticalAsync {
-            // FIXME: check for it.isActive to help to cancel long running tasks
 
             val nanos = measureNanoTime {
                 resetFromBackup()
@@ -596,19 +591,7 @@ class Simulator(
     //endregion
 
     //region helper functions — execute critical and async
-    private fun executeCriticalAsync(function: (context: CoroutineScope) -> Unit) {
-        criticalAsyncPromise = launch(context = simulatorsThreadPool) {
-            executeCritical {
-                function(this)
-            }
-        }
-    }
-
     private fun executeCritical(action: () -> Unit) {
-        if (deviceLock.isLocked) {
-            logger.info(logMarker, "Awaiting for previous action. Likely a criticalAsyncPromise $criticalAsyncPromise on ${this@Simulator}")
-        }
-
         deviceLock.withLock {
             try {
                 action()
@@ -689,17 +672,6 @@ class Simulator(
     override fun release(reason: String) {
         stopPeriodicHealthCheck()
         logger.info(logMarker, "Releasing device $this because $reason")
-
-        // FIXME: add background thread to clear up junk we failed to delete
-        if (deviceLock.isLocked) {
-            logger.warn(logMarker, "Going to kill previous promise $criticalAsyncPromise running on $this")
-        }
-
-        if (criticalAsyncPromise.isActive) {
-            // FIXME: unlike in Ruby canceling is not immediate, consider using thread instead of async
-            criticalAsyncPromise.cancel(CancellationException("Killing previous $criticalAsyncPromise running on $this due to release of the device"))
-        }
-
         disposeResources()
         shutdown()
         logger.info(logMarker, "Released device $this")

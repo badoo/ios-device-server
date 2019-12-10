@@ -330,7 +330,7 @@ class SimulatorsNodeTest {
         createDeviceForTest()
 
         simulatorsNode.resetAsync(ref1)
-
+        Thread.sleep(1000)
         verify(simulatorMock).resetAsync()
     }
 
@@ -389,6 +389,7 @@ class SimulatorsNodeTest {
     @Test
     fun videoRecorderStop() {
         createDeviceForTest()
+        Thread.sleep(1000)
 
         whenever(simulatorMock.videoRecorder).thenReturn(videoRecorderMock)
 
