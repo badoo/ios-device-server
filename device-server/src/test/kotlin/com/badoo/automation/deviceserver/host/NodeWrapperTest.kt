@@ -5,10 +5,7 @@ import com.badoo.automation.deviceserver.host.management.IHostFactory
 import com.badoo.automation.deviceserver.host.management.NodeRegistry
 import com.badoo.automation.deviceserver.host.management.NodeWrapper
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.times
-import com.nhaarman.mockito_kotlin.verify
-import com.nhaarman.mockito_kotlin.whenever
+import com.nhaarman.mockito_kotlin.*
 import org.junit.Test
 import org.mockito.Mockito
 import java.time.Duration
@@ -35,7 +32,7 @@ class NodeWrapperTest {
         nodeWrapper.stop()
         Thread.sleep(nodeCheckInterval * 2) // to ensure that healthChecking thread is not terminated by jvm, but by the nodeWrapper
 
-        verify(nodeWrapper, times(1)).isAlive()
+        verify(nodeMock, times(2)).isReachable()
     }
 
     @Test
@@ -72,14 +69,12 @@ class NodeWrapperTest {
     @Test
     fun unregistersSelfIfUnreachableLongEnough() {
         whenever(hostFactory.getHostFromConfig(any())).thenReturn(nodeMock)
-        whenever(nodeMock.isReachable()).thenReturn(true)
+        whenever(nodeMock.isReachable()).thenReturn(true, false, false, false, false)
         val nodeWrapper = getWrapperWithMocks()
         nodeWrapper.start()
-
-        whenever(nodeMock.isReachable()).thenReturn(false)
         nodeWrapper.startPeriodicHealthCheck()
 
-        Thread.sleep(100)
+        Thread.sleep(1000)
         verify(registry).removeIfPresent(nodeWrapper)
     }
 

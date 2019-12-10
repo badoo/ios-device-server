@@ -259,8 +259,11 @@ class DeviceManager(
 
         logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
 
-        nodeRegistry.getAll().parallelStream().forEach { nodeWrapper ->
-            nodeWrapper.node.deployApplication(appBundle)
+        if (!appBundle.isDeployed) {
+            nodeRegistry.getAll().parallelStream().forEach { nodeWrapper ->
+                nodeWrapper.node.deployApplication(appBundle)
+            }
+            appBundle.isDeployed = true
         }
 
         logger.debug(marker, "Successfully deployed application ${dto.appUrl}")
@@ -270,8 +273,8 @@ class DeviceManager(
         val appBundle = ApplicationBundle(URL(dto.appUrl))
         if (!appBundle.isDownloaded) {
             downloadApplicationBinary(marker, appBundle)
+            appBundle.unpack(logger, marker)
         }
-        appBundle.unpack(logger, marker)
         return appBundle
     }
 

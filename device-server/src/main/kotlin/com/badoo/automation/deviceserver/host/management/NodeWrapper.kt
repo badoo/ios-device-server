@@ -35,8 +35,9 @@ class NodeWrapper(
     var lastError: Exception? = null
     @Volatile var isEnabled: Boolean = true
         private set
+    @Volatile private var isReachable: Boolean = false
 
-    fun isAlive(): Boolean = isStarted && node.isReachable()
+    fun isAlive(): Boolean = isStarted && isReachable
 
     override fun toString(): String = "NodeWrapper for ${config.publicHost}"
 
@@ -48,9 +49,11 @@ class NodeWrapper(
             }
 
             if (!node.isReachable()) {
+                isReachable = false
                 logger.error(logMarker, "Failed to start the node from config: $config. Reason: unreachable node: $node.")
                 return false
             }
+            isReachable = true
 
             logger.info(logMarker, "Starting the node from config: $config")
             try {
@@ -95,20 +98,27 @@ class NodeWrapper(
         if (!isStarted) {
             throw RuntimeException("Can not start polling stopped node. Call start() on node first")
         }
+        logger.info(logMarker, "Started startPeriodicHealthCheck")
 
         val executor = Executors.newSingleThreadExecutor()
         var healthCheckAttempts = 0
         healthCheckPeriodicTask = executor.submit({
             while (!Thread.currentThread().isInterrupted) {
+                logger.info(logMarker, "Started startPeriodicHealthCheck 1")
                 Thread.sleep(nodeCheckInterval.toMillis())
+                logger.info(logMarker, "Started startPeriodicHealthCheck 2")
 
-                if (isAlive()) {
+                if (isStarted && node.isReachable()) {
                     healthCheckAttempts = 0
+                    isReachable = true
+                    logger.info(logMarker, "Started startPeriodicHealthCheck 3")
                 } else {
+                    logger.info(logMarker, "Started startPeriodicHealthCheck 4")
                     healthCheckAttempts++
                     logger.debug(logMarker, "Node $this is down for last $healthCheckAttempts tries")
 
                     if (healthCheckAttempts >= maxHealthCheckAttempts) {
+                        isReachable = false
                         registry.removeIfPresent(this)
                         val message =
                             "Removing node [${node.remoteAddress}]: cannot reach the node for $maxHealthCheckAttempts tries"
