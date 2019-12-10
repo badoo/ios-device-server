@@ -79,6 +79,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
                 ?: throw NoAliveNodesException("No alive nodes are available to create device at the moment")
 
         val dto = node.createDeviceAsync(desiredCapabilities)
+        logger.info("Create device dto ${dto} ")
 
         val logMarker: Marker = MapEntriesAppendingMarker(mutableMapOf(
                 LogMarkers.DEVICE_REF to dto.ref,
