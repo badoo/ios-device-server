@@ -98,22 +98,17 @@ class NodeWrapper(
         if (!isStarted) {
             throw RuntimeException("Can not start polling stopped node. Call start() on node first")
         }
-        logger.info(logMarker, "Started startPeriodicHealthCheck")
 
         val executor = Executors.newSingleThreadExecutor()
         var healthCheckAttempts = 0
-        healthCheckPeriodicTask = executor.submit({
+        healthCheckPeriodicTask = executor.submit {
             while (!Thread.currentThread().isInterrupted) {
-                logger.info(logMarker, "Started startPeriodicHealthCheck 1")
                 Thread.sleep(nodeCheckInterval.toMillis())
-                logger.info(logMarker, "Started startPeriodicHealthCheck 2")
 
                 if (isStarted && node.isReachable()) {
                     healthCheckAttempts = 0
                     isReachable = true
-                    logger.info(logMarker, "Started startPeriodicHealthCheck 3")
                 } else {
-                    logger.info(logMarker, "Started startPeriodicHealthCheck 4")
                     healthCheckAttempts++
                     logger.debug(logMarker, "Node $this is down for last $healthCheckAttempts tries")
 
@@ -128,7 +123,7 @@ class NodeWrapper(
                 }
 
             }
-        })
+        }
         executor.shutdown()
     }
 
