@@ -41,7 +41,7 @@ class SimulatorXcrunWebDriverAgent(
 
     private val hostApp = wdaRunnerXctest.parentFile.parentFile.absolutePath
 
-    private val wdaBundleId = "com.facebook.WebDriverAgentRunner.dev2.xctrunner"
+    private val wdaBundleId = "com.facebook.WebDriverAgentRunner.dev.xctrunner"
     private val uri: URI = uriWithPath(wdaEndpoint, "status")
     private val client: CustomHttpClient = CustomHttpClient()
 
