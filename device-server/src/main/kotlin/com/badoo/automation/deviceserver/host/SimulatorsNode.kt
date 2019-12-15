@@ -12,7 +12,7 @@ import com.badoo.automation.deviceserver.host.management.errors.OverCapacityExce
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import com.badoo.automation.deviceserver.util.AppInstaller
-import com.badoo.automation.deviceserver.util.newDeviceRef
+import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -140,7 +140,7 @@ class SimulatorsNode(
                 throw RuntimeException(message)
             }
 
-            val ref = newDeviceRef(fbSimctlDevice.udid, remote.publicHostName)
+            val ref = deviceRefFromUDID(fbSimctlDevice.udid, remote.publicHostName)
             val ports = portAllocator.allocateDAP()
             allocatedPorts[ref] = ports
 

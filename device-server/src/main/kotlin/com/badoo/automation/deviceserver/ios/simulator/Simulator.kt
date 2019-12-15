@@ -60,7 +60,7 @@ class Simulator(
     }
 
     override val ref = deviceRef
-    override val udid = deviceInfo.udid
+    override val udid: UDID = deviceInfo.udid
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.wdaPort}/")
     override val userPorts = allocatedPorts

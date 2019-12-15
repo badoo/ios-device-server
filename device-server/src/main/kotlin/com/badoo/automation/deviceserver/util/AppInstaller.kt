@@ -104,7 +104,7 @@ class AppInstaller(
 
     private fun logMarkerDetails(udid: UDID): Map<String, String> {
         return commonLogMarkerDetails + mapOf(
-            LogMarkers.DEVICE_REF to newDeviceRef(
+            LogMarkers.DEVICE_REF to deviceRefFromUDID(
                 udid,
                 remote.publicHostName
             ), LogMarkers.UDID to udid
