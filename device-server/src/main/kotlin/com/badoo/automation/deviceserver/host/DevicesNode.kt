@@ -10,7 +10,7 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
-import com.badoo.automation.deviceserver.util.newDeviceRef
+import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
@@ -118,7 +118,7 @@ class DevicesNode(
 
     private fun logMarkerDetails(udid: UDID): Map<String, String> {
         return commonLogMarkerDetails + mapOf(
-            LogMarkers.DEVICE_REF to newDeviceRef(
+            LogMarkers.DEVICE_REF to deviceRefFromUDID(
                 udid,
                 remote.publicHostName
             ), LogMarkers.UDID to udid
