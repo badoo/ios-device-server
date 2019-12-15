@@ -8,10 +8,8 @@ import java.net.URI
 import java.time.Clock
 import java.time.Duration
 import java.time.LocalDateTime
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
+import java.util.*
+import java.util.concurrent.*
 
 fun <T> executeWithTimeout(timeout: Duration, name: String, action: () -> T): T {
     val executor = Executors.newSingleThreadExecutor()
@@ -77,4 +75,5 @@ fun uriWithPath(uri: URI, path: String): URI {
     return URI(listOf(uri.toString(), path).joinToString("/")).normalize()
 }
 
-fun newDeviceRef(udid: String, hostName: String): DeviceRef = "$udid-$hostName".replace(Regex("[^-\\w]"), "-")
+fun deviceRefFromUDID(udid: String, hostName: String): DeviceRef = "$udid-$hostName".replace(Regex("[^-\\w]"), "-")
+fun deviceRef(): DeviceRef = UUID.randomUUID().toString()

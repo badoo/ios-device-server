@@ -4,7 +4,7 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.*
-import com.badoo.automation.deviceserver.util.newDeviceRef
+import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
@@ -14,7 +14,7 @@ class FileSystem(
     private val udid: UDID
 ) {
     private val logger = LoggerFactory.getLogger(DataContainer::class.java.simpleName)
-    private val deviceRef = newDeviceRef(udid, remote.publicHostName)
+    private val deviceRef = deviceRefFromUDID(udid, remote.publicHostName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
         LogMarkers.HOSTNAME to remote.hostName,
         LogMarkers.UDID to udid,

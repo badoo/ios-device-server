@@ -11,7 +11,7 @@ import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.executeWithTimeout
-import com.badoo.automation.deviceserver.util.newDeviceRef
+import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import com.badoo.automation.deviceserver.util.pollFor
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
@@ -55,7 +55,7 @@ class Device(
     val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     val calabashPort = calabashProxy.localPort
-    val videoRecorder: VideoRecorder = MJPEGVideoRecorder(deviceInfo, remote, wdaEndpoint, mjpegServerPort, newDeviceRef(deviceInfo.udid, remote.publicHostName), deviceInfo.udid)
+    val videoRecorder: VideoRecorder = MJPEGVideoRecorder(deviceInfo, remote, wdaEndpoint, mjpegServerPort, deviceRefFromUDID(deviceInfo.udid, remote.publicHostName), deviceInfo.udid)
 
     @Volatile
     var lastException: Exception? = null
