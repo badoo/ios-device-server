@@ -124,7 +124,6 @@ class Simulator(
                 deviceInfo.udid,
                 wdaEndpoint,
                 mjpegServerPort,
-                simulatorProcess,
                 deviceRef
             )
             else -> throw IllegalArgumentException(
