@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.proc
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.data.UDID
@@ -24,8 +25,8 @@ class SimulatorXcrunWebDriverAgent(
     private val udid: UDID,
     private val wdaEndpoint: URI,
     private val mjpegServerPort: Int,
-    private val simulatorProcess: SimulatorProcess,
-    deviceRef: DeviceRef
+    deviceRef: DeviceRef,
+    applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
 ) : IWebDriverAgent {
     private val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
@@ -37,11 +38,8 @@ class SimulatorXcrunWebDriverAgent(
         LogMarkers.UDID to udid,
         LogMarkers.HOSTNAME to remote.hostName
     )
-
-
     private val hostApp = wdaRunnerXctest.parentFile.parentFile.absolutePath
-
-    private val wdaBundleId = "com.facebook.WebDriverAgentRunner.dev.xctrunner"
+    private val wdaBundleId = applicationConfiguration.wdaSimulatorBundleId
     private val uri: URI = uriWithPath(wdaEndpoint, "status")
     private val client: CustomHttpClient = CustomHttpClient()
 
