@@ -179,7 +179,7 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).state(ref)
     }
 
-    fun createDeviceAsync(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
+    fun createDeviceAsync(desiredCaps: DesiredCapabilities, userId: String?): DeviceRef {
         try {
             return nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, userId)
         } catch(e: NoNodesRegisteredException) {

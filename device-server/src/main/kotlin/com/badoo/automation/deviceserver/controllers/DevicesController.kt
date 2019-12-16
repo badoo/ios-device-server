@@ -17,7 +17,7 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.getDeviceRefs()
     }
 
-    fun createDevice(desiredCapabilities: DesiredCapabilities, user: UserIdPrincipal?): DeviceDTO {
+    fun createDevice(desiredCapabilities: DesiredCapabilities, user: UserIdPrincipal?): DeviceRef {
         return deviceManager.createDeviceAsync(desiredCapabilities, user?.name)
     }
 
