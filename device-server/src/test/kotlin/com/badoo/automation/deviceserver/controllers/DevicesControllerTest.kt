@@ -74,14 +74,6 @@ class DevicesControllerTest {
     }
 
     @Test
-    fun deleteDevice() {
-        val actualResult = deviceServer.deleteReleaseDevice(deviceRef)
-
-        verify(deviceManager, times(1)).deleteReleaseDevice(deviceRef, "httpRequest")
-        assertThat(actualResult, equalTo(happyEmpty))
-    }
-
-    @Test
     fun getDeviceContactDetails() {
         whenever(deviceManager.getGetDeviceDTO(deviceRef)).thenReturn(expectedDeviceDTO)
 

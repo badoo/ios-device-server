@@ -362,31 +362,6 @@ class SimulatorsNodeTest {
     }
 
     @Test
-    fun videoRecorderGet() {
-        createDeviceForTest()
-
-        whenever(simulatorMock.videoRecorder).thenReturn(videoRecorderMock)
-        val bytes = ByteArray(23)
-
-        whenever(videoRecorderMock.getRecording()).thenReturn(bytes)
-
-        val byteArray = simulatorsNode.videoRecordingGet(ref1)
-
-        assertThat(byteArray, sameInstance(bytes))
-    }
-
-    @Test
-    fun videoRecorderStart() {
-        createDeviceForTest()
-
-        whenever(simulatorMock.videoRecorder).thenReturn(videoRecorderMock)
-
-        simulatorsNode.videoRecordingStart(ref1)
-
-        verify(videoRecorderMock).start()
-    }
-
-    @Test
     fun videoRecorderStop() {
         createDeviceForTest()
         Thread.sleep(1000)
