@@ -24,11 +24,11 @@ class ZombieReaper {
     }
 
     private fun reapZombies(pids: List<Int>) {
-        logger.debug("Launching reaping zombie processes")
+        logger.trace("Launching reaping zombie processes")
         pids.parallelStream().forEach { pid ->
             reapZombie(pid)
         }
-        logger.debug("Finished reaping zombie processes")
+        logger.trace("Finished reaping zombie processes")
     }
 
     private fun reapZombie(pid: Int) {
@@ -38,7 +38,7 @@ class ZombieReaper {
             val status = exitCode.value
             val wExitStatus = LibC.WEXITSTATUS(status)
             val cleanExit = waitpidRC == pid && LibC.WIFEXITED(status) && wExitStatus == 0
-            logger.debug(MapEntriesAppendingMarker(mapOf("zombiePID" to pid)), "Reaped zombie process $pid. Exit status: $wExitStatus. Exit status is clean: $cleanExit.")
+            logger.trace(MapEntriesAppendingMarker(mapOf("zombiePID" to pid)), "Reaped zombie process $pid. Exit status: $wExitStatus. Exit status is clean: $cleanExit.")
         } catch (t: Throwable) {
             logger.error("Failed to reap zombie process $pid. Error: ${t.javaClass}, ${t.message}", t)
         }
@@ -51,7 +51,7 @@ class ZombieReaper {
             val zombiesPids = zombies.map {
                 it.trim().split(" ").first().trim().toInt()
             }
-            logger.debug(MapEntriesAppendingMarker(mapOf("zombies" to zombies.size)), "Found zombie processes: ${zombies.joinToString(",")}")
+            logger.trace(MapEntriesAppendingMarker(mapOf("zombies" to zombies.size)), "Found zombie processes: ${zombies.joinToString(",")}")
             zombiesPids
         } catch (t: Throwable) {
             logger.error("Failed to find zombie processes. Error: ${t.javaClass}, ${t.message}", t)
