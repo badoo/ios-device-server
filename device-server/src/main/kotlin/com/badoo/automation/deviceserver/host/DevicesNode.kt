@@ -10,6 +10,7 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
+import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
@@ -217,7 +218,7 @@ class DevicesNode(
             wda_status = status.wda_status,
             fbsimctl_status = status.fbsimctl_status,
             state = status.state,
-            last_error = if (status.last_error == null) null else exceptionToDto(status.last_error)
+            last_error = status.last_error
         )
     }
 
@@ -241,7 +242,7 @@ class DevicesNode(
 
     override fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO {
         val device = slotByExternalRef(deviceRef).device
-        return deviceToDto(deviceRef, device)
+        return deviceToDto(device)
     }
 
     override fun totalCapacity(desiredCaps: DesiredCapabilities): Int {
@@ -265,19 +266,15 @@ class DevicesNode(
     }
 
     override fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO {
-        var slot: DeviceSlot? = null
-        var ref: DeviceRef? = null
+        lateinit var slot: DeviceSlot
 
         synchronized(this) {
             slot = slots.reserve(desiredCaps)
-            ref = newRef(slot!!.udid)
-
-            activeRefs[ref!!] = slot!!.udid
+            activeRefs[slot.device.ref] = slot.device.udid
         }
 
-        slot!!.device.renewAsync(whitelistedApps = whitelistedApps, uninstallApps = uninstallApps)
-
-        return deviceToDto(ref!!, device = slot!!.device)
+        slot.device.renewAsync(whitelistedApps = whitelistedApps, uninstallApps = uninstallApps)
+        return deviceToDto(slot.device)
     }
 
     override fun prepareNode() {
@@ -330,7 +327,7 @@ class DevicesNode(
                     disconnected.add(ref)
                     return@map null
                 } else {
-                    return@map deviceToDto(ref, slot.device)
+                    return@map deviceToDto(slot.device)
                 }
             }
 
@@ -345,7 +342,7 @@ class DevicesNode(
 
     override fun lastCrashLog(deviceRef: DeviceRef): CrashLog {
         val device = slotByExternalRef(deviceRef).device
-        return device.lastCrashLog() ?: CrashLog("", "")
+        return device.lastCrashLog()
     }
 
     override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
@@ -382,14 +379,16 @@ class DevicesNode(
     override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray = throw(NotImplementedError())
     // endregion
 
+    private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(1), remote)
+
     override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
         val device = slotByExternalRef(deviceRef).device
-        device.uninstallApplication(bundleId)
+        device.uninstallApplication(bundleId, appInstaller)
     }
 
-    private fun deviceToDto(deviceRef: DeviceRef, device: Device): DeviceDTO {
+    private fun deviceToDto(device: Device): DeviceDTO {
         return DeviceDTO(
-            ref = deviceRef,
+            ref = device.ref,
             state = device.deviceState,
             fbsimctl_endpoint = device.fbsimctlEndpoint,
             wda_endpoint = device.wdaEndpoint,
@@ -404,11 +403,6 @@ class DevicesNode(
                 videoCapture = true
             )
         )
-    }
-
-    private fun newRef(udid: UDID): DeviceRef {
-        val unsafe = Regex("[^\\-_a-zA-Z\\d]") // TODO: Replace with UUID 4
-        return "$udid-${remote.publicHostName}".replace(unsafe, "-")
     }
 
     private fun slotByExternalRef(deviceRef: DeviceRef): DeviceSlot {
