@@ -3,7 +3,6 @@ package com.badoo.automation.deviceserver.host.management
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.data.*
-import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.host.management.util.AutoreleaseLooper
 import com.badoo.automation.deviceserver.ios.ActiveDevices
@@ -190,12 +189,7 @@ class DeviceManager(
     }
 
     fun deleteReleaseDevice(ref: DeviceRef, reason: String) {
-        try { // using try-catch here not to expose tryGetNodeFor
-            nodeRegistry.activeDevices.releaseDevice(ref, reason)
-        } catch (e: DeviceNotFoundException) {
-            logger.warn("Skipping $ref release because no node knows about it")
-            return
-        }
+        nodeRegistry.deleteReleaseDevice(ref, reason)
     }
 
     fun getDeviceRefs() : List<DeviceDTO> {

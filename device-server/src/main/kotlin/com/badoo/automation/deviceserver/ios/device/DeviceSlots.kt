@@ -92,7 +92,7 @@ class DeviceSlots(
     }
 
     fun tryGetSlot(udid: UDID): DeviceSlot? {
-        return activeSlots.firstOrNull { it.udid == udid }
+        return activeSlots.firstOrNull { it.device.udid == udid }
     }
 
     fun reserve(desiredCapabilities: DesiredCapabilities): DeviceSlot {
@@ -122,7 +122,7 @@ class DeviceSlots(
 
     fun dispose() {
         activeSlots.forEach {
-            it.device.dispose()
+            it.device.release("Disposing")
         }
         activeSlots.clear()
     }
@@ -140,7 +140,7 @@ class DeviceSlots(
     private data class Diff(val added: Set<UDID>, val removed: Set<UDID>)
 
     private fun diff(deviceInfos: List<DeviceInfo>): Diff {
-        val current = activeSlots.map { it.udid }.toSet()
+        val current = activeSlots.map { it.device.udid }.toSet()
         val new = deviceInfos.map { it.udid }.toSet()
 
         val added = new - current
@@ -152,7 +152,7 @@ class DeviceSlots(
     private fun addSlot(deviceInfo: DeviceInfo) {
         val udid = deviceInfo.udid
 
-        if (activeSlots.any { it.udid == udid }) {
+        if (activeSlots.any { it.device.udid == udid }) {
             throw RuntimeException("Device $udid is already registered")
         }
 
@@ -161,7 +161,7 @@ class DeviceSlots(
         val device = Device(
             remote =remote,
             deviceInfo = deviceInfo,
-            allocatedPorts = allocatedPorts,
+            userPorts = allocatedPorts,
             wdaRunnerXctest = wdaRunnerXctest
         )
 
@@ -172,7 +172,7 @@ class DeviceSlots(
     }
 
     private fun removeSlotBy(udid: UDID) {
-        val slot = activeSlots.find { it.udid == udid }
+        val slot = activeSlots.find { it.device.udid == udid }
 
         if (slot == null) {
             throw DeviceNotFoundException("Device $udid is already unregistered")
@@ -182,13 +182,13 @@ class DeviceSlots(
     }
 
     private fun removeSlot(slot: DeviceSlot) {
-        val allocatedPorts = slot.device.allocatedPorts
+        val allocatedPorts = slot.device.userPorts
 
-        slot.device.dispose()
+        slot.device.release("Removing slot")
         portAllocator.deallocateDAP(allocatedPorts)
         activeSlots.remove(slot)
 
-        removedSlots.add(RemovedSlot(slot.udid))
+        removedSlots.add(RemovedSlot(slot.device.udid))
         if (removedSlots.size > 1000) {
             removedSlots.remove()
         }

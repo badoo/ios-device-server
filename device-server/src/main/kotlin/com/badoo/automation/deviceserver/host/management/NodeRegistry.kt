@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.host.ISimulatorsNode
+import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
@@ -97,5 +98,14 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
         val list: List<Job> = nodeWrappers.map { launch(simulatorsThreadPool) { it.stop() } }
         runBlocking { list.forEach { it.join() } }
         nodeWrappers.clear()
+    }
+
+    fun deleteReleaseDevice(ref: DeviceRef, reason: String) {
+        try { // using try-catch here not to expose tryGetNodeFor
+            activeDevices.releaseDevice(ref, reason)
+        } catch (e: DeviceNotFoundException) {
+            logger.warn("Skipping $ref release because no node knows about it")
+            return
+        }
     }
 }

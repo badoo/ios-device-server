@@ -9,3 +9,12 @@ data class SimulatorStatusDTO (
 )
 
 data class ExceptionDTO(val type: String, val message: String, val stackTrace: List<String>)
+
+fun Exception.toDTO(): ExceptionDTO {
+
+        return ExceptionDTO(
+                type = this.javaClass.name,
+                message = this.message ?: "",
+                stackTrace = stackTrace.map { it.toString() }
+        )
+}

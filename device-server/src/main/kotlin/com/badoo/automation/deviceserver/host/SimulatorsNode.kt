@@ -153,7 +153,7 @@ class SimulatorsNode(
             logger.debug(simLogMarker, "Will create simulator $ref")
 
             val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath,
-                    wdaRunnerXctest, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, fbSimctlDevice.toString())
+                    wdaRunnerXctest, concurrentBoot, desiredCaps.headless, desiredCaps.useWda)
 
             val prepareTask = prepareTasks[ref]
             if (prepareTask != null && !prepareTask.isDone) {
@@ -209,14 +209,14 @@ class SimulatorsNode(
         with(device) {
             return DeviceDTO(
                 ref,
-                state,
+                deviceState,
                 fbsimctlEndpoint,
                 wdaEndpoint,
                 calabashPort,
                 mjpegServerPort,
                 device.userPorts.toSet(),
-                device.info,
-                device.lastError?.toDto(),
+                device.deviceInfo,
+                device.lastException?.toDto(),
                 capabilities = ActualCapabilities(
                     setLocation = true,
                     terminateApp = true,

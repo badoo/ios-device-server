@@ -128,8 +128,7 @@ class SimulatorsNodeTest {
                 eq(File("some/file/from/wdaPathProc")),
                 any(),
                 eq(false),
-                eq(false),
-                eq("FBSimctlDevice(arch=Arch, state=State, model=Model, name=Name, udid=Udid1, os=Os)")
+                eq(false)
         )
         verify(simulatorMock).prepareAsync()
 
@@ -159,7 +158,7 @@ class SimulatorsNodeTest {
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
 
-        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
         simulatorMocks.forEach { pair ->
             simfac = simfac.thenReturn(pair.first)
         }
@@ -167,14 +166,13 @@ class SimulatorsNodeTest {
         simulatorMocks.forEachIndexed { index, pair ->
             val it = pair.first
             whenever(it.ref).thenReturn("someref$index")
-            whenever(it.state).thenReturn(DeviceState.CREATING)
-            whenever(it.info).thenReturn(DeviceInfo("","","","",""))
+            whenever(it.deviceState).thenReturn(DeviceState.CREATING)
+            whenever(it.deviceInfo).thenReturn(DeviceInfo("","","","",""))
             whenever(it.userPorts).thenReturn(DeviceAllocatedPorts(1,2,3, 4))
             whenever(it.fbsimctlEndpoint).thenReturn(URI("http://fbsimctl"))
             whenever(it.wdaEndpoint).thenReturn(URI("http://wda"))
             whenever(it.calabashPort).thenReturn(4444 + index)
             whenever(it.mjpegServerPort).thenReturn(5555 + index)
-            whenever(it.fbsimctlSubject).thenReturn("string representation of simulatorMock $index")
         }
     }
 

@@ -4,12 +4,13 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.ios.DeviceStatus
+import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.WdaClient
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
+import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import com.badoo.automation.deviceserver.util.pollFor
@@ -26,43 +27,47 @@ import java.util.concurrent.Future
 
 class Device(
     private val remote: IRemote,
-    val deviceInfo: DeviceInfo,
-    val allocatedPorts: DeviceAllocatedPorts,
+    override val deviceInfo: DeviceInfo,
+    override val userPorts: DeviceAllocatedPorts,
     wdaRunnerXctest: File,
     usbProxy: UsbProxyFactory = UsbProxyFactory(remote)
-) {
-    val udid: String = deviceInfo.udid
+) : IDevice {
+    override val udid: String = deviceInfo.udid
+    override val ref: DeviceRef by lazy {
+        val unsafe = Regex("[^\\-_a-zA-Z\\d]")
+        "${udid}-${remote.publicHostName}".replace(unsafe, "-")
+    }
 
     private val calabashProxy = usbProxy.create(
         udid = deviceInfo.udid,
-        localPort = allocatedPorts.calabashPort,
+        localPort = userPorts.calabashPort,
         devicePort = CALABASH_PORT
     )
 
     private val wdaProxy = usbProxy.create(
         udid = deviceInfo.udid,
-        localPort = allocatedPorts.wdaPort,
+        localPort = userPorts.wdaPort,
         devicePort = WDA_PORT
     )
 
-    val mjpegServerPort = allocatedPorts.mjpegServerPort
+    override val mjpegServerPort = userPorts.mjpegServerPort
     private val mjpegProxy = usbProxy.create(
         udid = deviceInfo.udid,
         localPort = mjpegServerPort,
         devicePort = mjpegServerPort
     )
 
-    val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
-    val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
-    val calabashPort = calabashProxy.localPort
-    val videoRecorder: VideoRecorder = MJPEGVideoRecorder(deviceInfo, remote, wdaEndpoint, mjpegServerPort, deviceRefFromUDID(deviceInfo.udid, remote.publicHostName), deviceInfo.udid)
+    override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}/$udid/")
+    override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
+    override val calabashPort = calabashProxy.localPort
+    override val videoRecorder: VideoRecorder = MJPEGVideoRecorder(deviceInfo, remote, wdaEndpoint, mjpegServerPort, deviceRefFromUDID(deviceInfo.udid, remote.publicHostName), deviceInfo.udid)
 
     @Volatile
-    var lastException: Exception? = null
+    override var lastException: Exception? = null
         private set
 
     @Volatile
-    var deviceState = DeviceState.NONE
+    override var deviceState = DeviceState.NONE
         private set(value) {
             val oldState = field
             field = value
@@ -93,15 +98,15 @@ class Device(
 
     override fun toString(): String = "<Device: $udid>"
 
-    fun status(): DeviceStatus {
+    override fun status(): SimulatorStatusDTO {
         refreshStatus()
 
-        return DeviceStatus(
+        return SimulatorStatusDTO(
             ready = status.isReady,
             state = deviceState.value, // FIXME: why get rid of type here
             wda_status = status.wdaStatus,
             fbsimctl_status = status.fbsimctlStatus,
-            last_error = lastException
+            last_error = lastException?.toDTO()
         )
     }
 
@@ -153,18 +158,18 @@ class Device(
         status.wdaStatus = wdaStatus
     }
 
-    fun endpointFor(port: Int): URL {
-        val ports = allocatedPorts.toSet()
+    override fun endpointFor(port: Int): URL {
+        val ports = userPorts.toSet()
         require(ports.contains(port)) { "Port $port is not in user ports range $ports" }
 
         return URL("http://${remote.publicHostName}:$port/")
     }
 
-    fun dispose() {
+    override fun release(reason: String) {
         renewPromise?.cancel(true)
         preparePromise?.cancel(true)
 
-        logger.debug("Disposing device $this")
+        logger.debug("Disposing device $this for reason $reason")
         disposeResources()
     }
 
@@ -184,9 +189,8 @@ class Device(
         }
     }
 
-    fun lastCrashLog(): CrashLog? {
-        // TODO unlike for simulators, crash logs for physical devices are not at $HOME/Library/Logs/DiagnosticReports
-        return null
+    override fun lastCrashLog(): CrashLog {
+        return crashLogs(null).lastOrNull() ?: CrashLog("", "")
     }
 
     fun crashLogs(appName: String?): List<CrashLog> {
@@ -223,7 +227,7 @@ class Device(
         return future
     }
 
-    fun prepareAsync() {
+    override fun prepareAsync() {
         if (preparePromise != null) {
             return
         }
@@ -409,7 +413,7 @@ class Device(
         }
     }
 
-    fun uninstallApplication(bundleId: String) {
+    override fun uninstallApplication(bundleId: String, appInstaller: AppInstaller) {
         remote.fbsimctl.uninstallApp(udid, bundleId)
     }
 

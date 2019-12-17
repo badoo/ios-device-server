@@ -41,14 +41,13 @@ import kotlin.system.measureNanoTime
 class Simulator(
         private val deviceRef: DeviceRef,
         private val remote: IRemote,
-        private val deviceInfo: DeviceInfo,
+        override val deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
         wdaRunnerXctest: File,
         private val concurrentBootsPool: ExecutorService,
         headless: Boolean,
         private val useWda: Boolean,
-        override val fbsimctlSubject: String,
         private val trustStoreFile: String = ApplicationConfiguration().trustStorePath,
         private val assetsPath: String = ApplicationConfiguration().assetsPath
 ) : ISimulator
@@ -64,7 +63,6 @@ class Simulator(
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.wdaPort}/")
     override val userPorts = allocatedPorts
-    override val info = deviceInfo
     override val calabashPort: Int = allocatedPorts.calabashPort
     override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
 
@@ -98,8 +96,11 @@ class Simulator(
 
     //region instance state variables
     private val deviceLock = ReentrantLock()
-    @Volatile private var deviceState: DeviceState = DeviceState.NONE // writing from separate thread
-    @Volatile private var lastException: Exception? = null // writing from separate thread
+    @Volatile override var deviceState: DeviceState = DeviceState.NONE // writing from separate thread
+        private set
+
+    @Volatile override var lastException: Exception? = null // writing from separate thread
+        private set
 
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
@@ -146,11 +147,6 @@ class Simulator(
     //endregion
 
     override val media: Media = Media(remote, udid, deviceSetPath)
-
-    //region properties from ruby with backing mutable field
-    override val state get() = deviceState
-    override val lastError get() = lastException
-    //endregion
 
     override fun toString() = "<Simulator: $deviceRef>"
 
@@ -624,15 +620,6 @@ class Simulator(
                 last_error = lastException?.toDTO()
         )
     }
-
-    private fun Exception.toDTO(): ExceptionDTO {
-
-        return ExceptionDTO(
-            type = this.javaClass.name,
-            message = this.message ?: "",
-            stackTrace = stackTrace.map { it.toString() }
-        )
-    }
     //endregion
 
     override fun endpointFor(port: Int): URL {
@@ -786,7 +773,7 @@ class Simulator(
 
         val result = remote.shell(cmd, returnOnFailure = true)
         if (!result.isSuccess) {
-            SimulatorError("Failed to list crash logs for $this: $result")
+            throw SimulatorError("Failed to list crash logs for $this: $result")
         }
         return result.stdOut
             .lineSequence()
