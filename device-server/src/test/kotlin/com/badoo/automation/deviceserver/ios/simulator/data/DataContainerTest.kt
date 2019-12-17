@@ -8,6 +8,7 @@ import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito
+import java.io.File
 import java.nio.file.Paths
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -18,7 +19,7 @@ class DataContainerTest {
     private val fbsimctl: FBSimctl = mockThis()
 
     private val containerPathStub =
-        "/Users/qa/Library/Developer/CoreSimulator/Devices/UDID/data/Containers/Data/Application/A2C79BEC-FD2C-4676-BA9B-B6A62AFE193A"
+        File("/Users/qa/Library/Developer/CoreSimulator/Devices/UDID/data/Containers/Data/Application/A2C79BEC-FD2C-4676-BA9B-B6A62AFE193A")
 
     @Before
     fun setUp() {
@@ -39,7 +40,7 @@ class DataContainerTest {
 
         val container = DataContainer(
             remote = remote,
-            basePath = Paths.get(containerPathStub),
+            basePath = containerPathStub,
             bundleId = "test.bundle"
         )
         val actual = container.listFiles(Paths.get("Library/Caches"))
@@ -67,7 +68,7 @@ class DataContainerTest {
 
         val container = DataContainer(
             remote = remote,
-            basePath = Paths.get(containerPathStub),
+            basePath = containerPathStub,
             bundleId = "test.bundle"
         )
         val actual = container.listFiles(Paths.get("Library/Caches"))
@@ -78,11 +79,11 @@ class DataContainerTest {
     @Test
     fun shouldReadFileAsByteArray() {
         val expected = "123".toByteArray()
-        whenever(remote.captureFile(Paths.get(containerPathStub, "Library/Caches/file.txt").toFile())).thenReturn(expected)
+        whenever(remote.captureFile(File(containerPathStub, "Library/Caches/file.txt"))).thenReturn(expected)
 
         val container = DataContainer(
             remote = remote,
-            basePath = Paths.get(containerPathStub),
+            basePath = containerPathStub,
             bundleId = "test.bundle"
         )
         val actual = container.readFile(Paths.get("Library/Caches/file.txt"))
@@ -94,7 +95,7 @@ class DataContainerTest {
     fun shouldRejectPathOutsideContainer() {
         val container = DataContainer(
             remote = remote,
-            basePath = Paths.get(containerPathStub),
+            basePath = containerPathStub,
             bundleId = "test.bundle"
         )
 
