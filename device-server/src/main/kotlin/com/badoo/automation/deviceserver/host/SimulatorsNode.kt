@@ -54,7 +54,7 @@ class SimulatorsNode(
             applicationContainer.addPlistValue(path, key, value, type)
         }
     }
-    private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(1), remote)
+    private val appInstaller: AppInstaller = AppInstaller(remote)
 
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
         logger.info(logMarker, "Ready to install app ${appBundleDto.appUrl} on device $deviceRef")

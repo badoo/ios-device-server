@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
@@ -26,7 +27,7 @@ class FbsimctlProcTest {
         whenever(endpoint.port).thenReturn(1)
     }
 
-    @Test
+    @Test @Ignore
     fun startHeadless() {
         val headless = true
         FbsimctlProc(remote, udid, endpoint, headless, this::childFactory).start()
