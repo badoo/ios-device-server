@@ -12,7 +12,7 @@ import java.nio.file.Path
 
 class DataContainer(
     private val remote: IRemote,
-    internal val basePath: Path,
+    internal val basePath: File,
     private val bundleId: String
 ) {
     private val logger = LoggerFactory.getLogger(DataContainer::class.java.simpleName)
@@ -42,7 +42,7 @@ class DataContainer(
     }
 
     fun writeFile(file: File, data: ByteArray) {
-        val dataContainerFile = File(basePath.toFile().absolutePath, file.name)
+        val dataContainerFile = File(basePath.absolutePath, file.name)
 
         if (remote.isLocalhost()) {
             dataContainerFile.writeBytes(data)
@@ -77,8 +77,8 @@ class DataContainer(
     }
 
     private fun expandPath(path: Path): Path {
-        val expanded = basePath.resolve(path).normalize()
-        if (!expanded.startsWith(basePath)) {
+        val expanded = basePath.toPath().resolve(path).normalize()
+        if (!expanded.startsWith(basePath.absolutePath)) {
             throw DataContainerException("$path points outside the container of $bundleId")
         }
 

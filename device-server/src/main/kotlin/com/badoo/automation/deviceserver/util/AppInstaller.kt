@@ -12,8 +12,9 @@ import java.util.concurrent.*
 import kotlin.system.measureNanoTime
 
 class AppInstaller(
-    private val executorService: ExecutorService,
-    private val remote: IRemote
+    private val remote: IRemote,
+    private val installExecutor: ExecutorService = Executors.newFixedThreadPool(10),
+    private val uninstallExecutor: ExecutorService = Executors.newFixedThreadPool(10)
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
@@ -25,7 +26,7 @@ class AppInstaller(
         val logMarker = logMarker(udid)
         logger.info(logMarker, "Installing app $appUrl on device $udid")
 
-        val installTask = executorService.submit(Callable {
+        val installTask = installExecutor.submit(Callable {
             try {
                 return@Callable performInstall(logMarker, udid, appBinaryPath, appUrl)
             } catch (e: RuntimeException) {
@@ -59,7 +60,7 @@ class AppInstaller(
 
         terminateApplication(logMarker, bundleId, udid)
 
-        val uninstallTask = executorService.submit(Callable {
+        val uninstallTask = uninstallExecutor.submit(Callable {
             try {
                 logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $udid")
                 val uninstallResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "uninstall", udid, bundleId), mapOf(), false, 60)

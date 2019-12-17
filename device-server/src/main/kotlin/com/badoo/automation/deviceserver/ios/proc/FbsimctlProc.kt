@@ -69,9 +69,9 @@ open class FbsimctlProc(
             "boot"
         )
 
-        if (headless) {
-            cmd.add("--direct-launch")
-        }
+//        if (headless) {
+//            cmd.add("--direct-launch")
+//        }
 
         cmd.addAll(listOf(
             "--",

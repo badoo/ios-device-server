@@ -379,7 +379,7 @@ class DevicesNode(
     override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray = throw(NotImplementedError())
     // endregion
 
-    private val appInstaller: AppInstaller = AppInstaller(Executors.newFixedThreadPool(1), remote)
+    private val appInstaller: AppInstaller = AppInstaller(remote)
 
     override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
         val device = slotByExternalRef(deviceRef).device
