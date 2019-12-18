@@ -10,6 +10,7 @@ import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.*
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
+import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupError
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.FileSystem
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
@@ -33,7 +34,9 @@ import java.net.URL
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.system.measureNanoTime
@@ -150,6 +153,38 @@ class Simulator(
 
     override fun toString() = "<Simulator: $deviceRef>"
 
+    @Volatile
+    private var installTask: Future<Boolean>? = null
+
+    override fun installApplication(
+        appInstaller: AppInstaller,
+        appBundleId: String,
+        appBinaryPath: File
+    ) {
+        deviceLock.withLock {
+            val existingTask: Future<Boolean>? = installTask
+
+            if (existingTask != null && !existingTask.isDone) {
+                val message = "Failed to install app $appBundleId to simulator $udid due to previous task is not finished"
+                logger.error(logMarker, message)
+                throw RuntimeException(message)
+            }
+
+            val task: Future<Boolean> = appInstaller.installApplication(udid, appBundleId, appBinaryPath)
+            installTask = task
+        }
+    }
+
+    override fun appInstallationStatus(): Map<String, Boolean> {
+        val task = installTask
+        val status = mapOf<String, Boolean>(
+            "task_exists" to (task != null),
+            "task_complete" to (task != null && task.isDone),
+            "success" to (task != null && task.isDone && task.get())
+        )
+        return status
+    }
+
     //region prepareAsync
     override fun prepareAsync() {
         executeCritical {
@@ -193,7 +228,13 @@ class Simulator(
 
             if (backup.isExist()) {
                 if (clean) {
-                    backup.restore()
+                    try {
+                        backup.restore()
+                    } catch (e: SimulatorBackupError) {
+                        logger.warn(logMarker, "Will erase simulator and re-create backup for ${this@Simulator}")
+                        backup.delete()
+                        eraseSimulatorAndCreateBackup()
+                    }
                 }
             } else {
                 eraseSimulatorAndCreateBackup()
