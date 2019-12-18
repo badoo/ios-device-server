@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.simulator.backup
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.JsonMapper
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.CommandResult
@@ -18,10 +19,11 @@ import java.time.Duration
 class SimulatorBackup(
         private val remote: IRemote,
         private val udid: UDID,
-        deviceSetPath: String
+        deviceSetPath: String,
+        config: ApplicationConfiguration = ApplicationConfiguration()
 ) : ISimulatorBackup {
     private val srcPath: String = File(deviceSetPath, udid).absolutePath
-    private val backupPath: String = File(deviceSetPath, udid).absolutePath + "_BACKUP"
+    private val backupPath: String = File(config.simulatorBackupPath ?: deviceSetPath , udid).absolutePath + "_BACKUP"
     private val metaFilePath: String = File(backupPath, "data/device_server/meta.json").absolutePath
     private val metaFileDirectory = File(metaFilePath).parent
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -112,7 +114,7 @@ class SimulatorBackup(
         if (!deleteResult.isSuccess) {
             logger.error(logMarker, "Failed to delete at path: [$srcPath]. Result: $deleteResult")
 
-            val r = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", srcPath), timeOutSeconds = 90L);
+            val r = remote.execIgnoringErrors(listOf("/usr/bin/sudo", "/bin/rm", "-rf", srcPath), timeOutSeconds = 90L);
 
             if (!r.isSuccess) {
                 val undeletedFiles = remote.execIgnoringErrors(listOf("/usr/bin/find", srcPath), timeOutSeconds = 90L);
@@ -125,7 +127,7 @@ class SimulatorBackup(
         if (!result.isSuccess) {
             logger.error(logMarker, "Failed to restore from backup at path: [$backupPath] to path: [$result]")
 
-            val secondTry = remote.execIgnoringErrors(listOf("cp", "-Rfp", backupPath, srcPath), timeOutSeconds = 120L)
+            val secondTry = remote.execIgnoringErrors(listOf("/bin/cp", "-Rfp", backupPath, srcPath), timeOutSeconds = 120L)
 
             if (!secondTry.isSuccess) {
                 val errorMessage = "Failed second attempt to restore from backup at path: [$backupPath] to path: [$secondTry]"
@@ -138,7 +140,7 @@ class SimulatorBackup(
     }
 
     override fun delete() {
-        val result = remote.execIgnoringErrors("rm -rf $backupPath".split(" "))
+        val result = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", backupPath))
 
         ensureSuccess(result, "$this failed to delete backup $backupPath: $result")
         logger.debug(logMarker, "Deleted backup for simulator $udid at path: [$backupPath]")

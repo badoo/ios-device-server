@@ -476,6 +476,9 @@ class DevicesNode(
         return true
     }
 
+    override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Boolean> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
     override fun hashCode(): Int {
         return publicHostName.hashCode()
     }

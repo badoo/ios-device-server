@@ -247,6 +247,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).installApplication(ref, dto)
     }
 
+    fun appInstallationStatus(ref: String): Map<String, Boolean> {
+        return nodeRegistry.activeDevices.getNodeFor(ref).appInstallationStatus(ref)
+    }
+
     fun deployApplication(dto: AppBundleDto) {
         val marker = MapEntriesAppendingMarker(mapOf("operation" to "app_deploy"))
         val appBundle = applicationsCache.computeIfAbsent(dto.appUrl) { acquireBundle(dto, marker) }

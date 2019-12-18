@@ -256,6 +256,11 @@ fun Application.module() {
                         val appBundle = jsonContent<AppBundleDto>(call)
                         call.respond(devicesController.installApplication(ref, appBundle))
                     }
+                    get("install_status") {
+                        val ref = param(call, "ref")
+                        call.respond(devicesController.appInstallationStatus(ref))
+                    }
+
                     post("update_plist") {
                         val ref = param(call, "ref")
                         val plistEntries = jsonContent<PlistEntryDTO>(call)

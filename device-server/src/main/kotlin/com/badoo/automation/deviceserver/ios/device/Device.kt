@@ -173,6 +173,14 @@ class Device(
         disposeResources()
     }
 
+    override fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun appInstallationStatus(): Map<String, Boolean> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
     private fun disposeResources() {
         ignoringDisposeErrors { fbsimctlProc.kill() }
         ignoringDisposeErrors { wdaProc.kill() }

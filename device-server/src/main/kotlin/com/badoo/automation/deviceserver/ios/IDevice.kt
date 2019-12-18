@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.ios
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.AppInstaller
+import java.io.File
 import java.net.URI
 import java.net.URL
 
@@ -24,4 +25,6 @@ interface IDevice {
     fun lastCrashLog(): CrashLog
     fun endpointFor(port: Int): URL
     fun release(reason: String)
+    fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File)
+    fun appInstallationStatus(): Map<String, Boolean>
 }
