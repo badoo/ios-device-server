@@ -61,8 +61,12 @@ class SimulatorsNode(
         val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
             ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
 
-        val udid = getDeviceFor(deviceRef).udid
-        appInstaller.installApplication(udid, appBundleDto.appUrl, appBinaryPath)
+        val device: ISimulator = getDeviceFor(deviceRef)
+        device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath)
+    }
+
+    override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Boolean> {
+        return getDeviceFor(deviceRef).appInstallationStatus()
     }
 
     override fun deployApplication(appBundle: ApplicationBundle) {

@@ -184,6 +184,10 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
+    fun appInstallationStatus(ref: String): Map<String, Boolean> {
+        return deviceManager.appInstallationStatus(ref)
+    }
+
     fun updateApplicationPlist(deviceRef: String, plistEntry: PlistEntryDTO): Any {
         deviceManager.updateApplicationPlist(deviceRef, plistEntry)
         return happy

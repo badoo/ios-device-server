@@ -13,8 +13,8 @@ import kotlin.system.measureNanoTime
 
 class AppInstaller(
     private val remote: IRemote,
-    private val installExecutor: ExecutorService = Executors.newFixedThreadPool(10),
-    private val uninstallExecutor: ExecutorService = Executors.newFixedThreadPool(10)
+    private val installExecutor: ExecutorService = Executors.newFixedThreadPool(15),
+    private val uninstallExecutor: ExecutorService = Executors.newFixedThreadPool(15)
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
@@ -22,7 +22,7 @@ class AppInstaller(
         LogMarkers.HOSTNAME to remote.hostName
     )
 
-    fun installApplication(udid: UDID, appUrl: String, appBinaryPath: File): Boolean {
+    fun installApplication(udid: UDID, appUrl: String, appBinaryPath: File): Future<Boolean> {
         val logMarker = logMarker(udid)
         logger.info(logMarker, "Installing app $appUrl on device $udid")
 
@@ -35,11 +35,7 @@ class AppInstaller(
             }
         })
 
-        val result = installTask.get()
-        if (!result) {
-            logger.error(logMarker, "Install application $appUrl to $udid was unsuccessful.")
-        }
-        return result
+        return installTask
     }
 
     private fun terminateApplication(logMarker: Marker, bundleId: String, udid: UDID) {
@@ -52,14 +48,7 @@ class AppInstaller(
 
     fun uninstallApplication(udid: UDID, bundleId: String) {
         val logMarker = logMarker(udid)
-
-        if (!isAppInstalledOnSimulator(udid, bundleId)) {
-            logger.debug(logMarker, "Application $bundleId is not installed on Simulator $udid")
-            return
-        }
-
         terminateApplication(logMarker, bundleId, udid)
-
         val uninstallTask = uninstallExecutor.submit(Callable {
             try {
                 logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $udid")
