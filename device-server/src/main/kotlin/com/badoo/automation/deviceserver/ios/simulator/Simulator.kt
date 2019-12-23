@@ -36,7 +36,6 @@ import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.system.measureNanoTime
@@ -386,7 +385,7 @@ class Simulator(
     }
 
     private fun isSimulatorShutdown(): Boolean {
-        return listDevices().lines().filter { it.contains(udid) && it.contains("(Shutdown)") }.any()
+        return listDevices().lines().find { it.contains(udid) && it.contains("(Shutdown)") } != null
     }
 
     private fun shutdown() {
@@ -400,7 +399,7 @@ class Simulator(
         ignoringErrors { fbsimctlProc.kill() }
 
         pollFor(
-            timeOut = Duration.ofSeconds(60),
+            timeOut = Duration.ofSeconds(120),
             retryInterval = Duration.ofSeconds(10),
             reasonName = "${this@Simulator} to shutdown",
             logger = logger,
@@ -701,7 +700,25 @@ class Simulator(
         logger.info(logMarker, "Releasing device $this because $reason")
         disposeResources()
         shutdown()
+        deleteSimulatorKeepingMetadata()
         logger.info(logMarker, "Released device $this")
+    }
+
+    private fun deleteSimulatorKeepingMetadata() {
+        val simulatorPath: String = File(File(deviceSetPath, udid), "data").absolutePath
+
+        val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", simulatorPath), timeOutSeconds = 120L)
+
+        if (!deleteResult.isSuccess) {
+            logger.error(logMarker, "Failed to delete at path: [$simulatorPath]. Result: $deleteResult")
+
+            val r = remote.execIgnoringErrors(listOf("/usr/bin/sudo", "/bin/rm", "-rf", simulatorPath), timeOutSeconds = 120L);
+
+            if (!r.isSuccess) {
+                val undeletedFiles = remote.execIgnoringErrors(listOf("/usr/bin/find", simulatorPath), timeOutSeconds = 90L);
+                logger.error(logMarker, "Failed to delete at path: [$simulatorPath]. Not deleted files: ${undeletedFiles.stdOut}")
+            }
+        }
     }
 
     private fun disposeResources() {
