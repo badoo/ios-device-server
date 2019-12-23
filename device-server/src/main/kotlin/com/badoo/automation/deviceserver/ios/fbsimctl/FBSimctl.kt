@@ -14,7 +14,7 @@ class FBSimctl(
         private val parser: IFBSimctlResponseParser = FBSimctlResponseParser()
 ) : IFBSimctl {
     companion object {
-        private val SIMULATOR_SHUTDOWN_TIMEOUT: Duration = Duration.ofSeconds(60)
+        private val SIMULATOR_SHUTDOWN_TIMEOUT: Duration = Duration.ofSeconds(90)
         const val FBSIMCTL_BIN = "/usr/local/bin/fbsimctl"
         const val RESPONSE_FORMAT = "--json"
     }
