@@ -424,7 +424,7 @@ class Simulator(
             try {
                 pollFor(
                     Duration.ofSeconds(90),
-                    retryInterval = Duration.ofSeconds(10),
+                    retryInterval = Duration.ofSeconds(3),
                     reasonName = "${this@Simulator} initial boot",
                     shouldReturnOnTimeout = false,
                     logger = logger,
@@ -440,7 +440,7 @@ class Simulator(
 
             pollFor(
                 Duration.ofSeconds(60),
-                retryInterval = Duration.ofSeconds(10),
+                retryInterval = Duration.ofSeconds(3),
                 reasonName = "${this@Simulator} system log appeared",
                 shouldReturnOnTimeout = true,
                 logger = logger,
@@ -463,7 +463,7 @@ class Simulator(
         bootTask.get()
 
         pollFor(Duration.ofSeconds(60),
-            retryInterval = Duration.ofSeconds(10),
+            retryInterval = Duration.ofSeconds(3),
             reasonName = "${this@Simulator} to be sufficiently booted",
             shouldReturnOnTimeout = true,
             logger = logger,
@@ -482,7 +482,7 @@ class Simulator(
         )
 
         pollFor(Duration.ofMinutes(2),
-            retryInterval = Duration.ofSeconds(15),
+            retryInterval = Duration.ofSeconds(5),
             reasonName = "${this@Simulator} to load required services",
             shouldReturnOnTimeout = true,
             logger = logger,
@@ -501,7 +501,7 @@ class Simulator(
                 "PredictiveGenerationLastRun"
             )
             pollFor(Duration.ofMinutes(2),
-                retryInterval = Duration.ofSeconds(15),
+                retryInterval = Duration.ofSeconds(5),
                 reasonName = "${this@Simulator} to load required services for iOS 13",
                 shouldReturnOnTimeout = true,
                 logger = logger,
@@ -518,7 +518,7 @@ class Simulator(
 
         pollFor(
             Duration.ofSeconds(60),
-            retryInterval = Duration.ofSeconds(10),
+            retryInterval = Duration.ofSeconds(3),
             reasonName = "${this@Simulator} FbSimCtl health check",
             logger = logger,
             marker = logMarker
