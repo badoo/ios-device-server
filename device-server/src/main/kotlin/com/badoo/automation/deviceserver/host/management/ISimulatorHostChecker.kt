@@ -143,11 +143,12 @@ class SimulatorHostChecker(
 
     override fun setupHost() {
         // disable node hardware keyboard, i.e. use on-screen one
-        remote.execIgnoringErrors("defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false".split(" "))
+        remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false".split(" "))
+        remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator PasteboardAutomaticSync -bool false".split(" "))
 
         // disable simulator location
-        remote.execIgnoringErrors("defaults write com.apple.iphonesimulator LocationMode \"3101\"".split(" "))
-        remote.execIgnoringErrors("defaults write com.apple.iphonesimulator ShowChrome -bool false".split(" "))
+        remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator LocationMode \"3101\"".split(" "))
+        remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator ShowChrome -bool false".split(" "))
         //  other options that might be useful are:
         //  EnableKeyboardSync = 0;
         //  GraphicsQualityOverride = 10;
