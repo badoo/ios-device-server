@@ -60,7 +60,7 @@ class FbSimctlResponseParserTest {
     }
 
     @Test fun parseCreateDevice() {
-        val parsedValue = FBSimctlResponseParser().parseDeviceCreation(simulatorCreateStrings, false)
+        val parsedValue = FBSimctlResponseParser().parseDeviceCreation(simulatorCreateStrings)
         assertEquals("7CA9DCE7-22A2-434B-A9EE-3E2A497E3881", parsedValue.udid)
     }
 
