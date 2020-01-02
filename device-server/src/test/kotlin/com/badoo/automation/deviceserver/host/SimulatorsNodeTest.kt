@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.host
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.JsonMapper
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
@@ -15,6 +16,7 @@ import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.net.URI
@@ -33,7 +35,7 @@ class SimulatorsNodeTest {
 
     private val wdaPath = File("some/file/from/wdaPathProc")
 
-    private val iSimulatorProvider: ISimulatorProvider = mockThis()
+    private val iSimulatorProvider: SimulatorProvider = mockThis()
 
     private val ref1: DeviceRef = "Udid1-rem-ote-node"
 
@@ -57,6 +59,7 @@ class SimulatorsNodeTest {
 
     private val configuredSimulatorLimit = 3
 
+    private val applicationConfiguration: ApplicationConfiguration = mockThis()
     private val simulatorFactory: ISimulatorFactory = mockThis()
     private val publicHostName = "hostname"
     private val simulatorsNode1 = SimulatorsNode(
@@ -66,6 +69,7 @@ class SimulatorsNodeTest {
             configuredSimulatorLimit,
             2,
             wdaPath,
+            applicationConfiguration,
             iSimulatorProvider,
             portAllocator,
             simulatorFactory,
@@ -92,6 +96,12 @@ class SimulatorsNodeTest {
     )
     private val expectedDeviceDTOJson = JsonMapper().toJson(expectedDeviceDTO)
 
+    @Before
+    fun setup() {
+        whenever(applicationConfiguration.simulatorBackupPath).thenReturn("/node/specific/device/set")
+        whenever(iSimulatorProvider.deviceSetPath).thenReturn("/node/specific/device/set")
+    }
+
     @Test
     fun shouldPrepareNodeOnlyOnce() {
         simulatorsNode1.prepareNode()
@@ -111,7 +121,7 @@ class SimulatorsNodeTest {
 
     @Test(expected = RuntimeException::class)
     fun createDeviceAsyncFailsIfNoMatch() {
-        whenever(iSimulatorProvider.match(desiredCapabilities, emptySet())).thenReturn(null)
+        whenever(iSimulatorProvider.provideSimulator(desiredCapabilities, emptySet())).thenReturn(null)
         simulatorsNode.createDeviceAsync(desiredCapabilities)
     }
 
@@ -131,8 +141,6 @@ class SimulatorsNodeTest {
                 eq(false)
         )
         verify(simulatorMock).prepareAsync()
-
-        assertThat(simulatorsNode.count(), equalTo(1))
     }
 
     private fun createDeviceForTest(): DeviceDTO =
@@ -153,7 +161,7 @@ class SimulatorsNodeTest {
         whenever(iRemote.publicHostName).thenReturn("rem.ote.node")
         whenever(iRemote.fbsimctl).thenReturn(fbSimctl)
         whenever(fbSimctl.defaultDeviceSet()).thenReturn("/node/specific/device/set")
-        var fbsimmock = whenever(iSimulatorProvider.match(eq(desiredCapabilities), any()))
+        var fbsimmock = whenever(iSimulatorProvider.provideSimulator(eq(desiredCapabilities), any()))
         simulatorMocks.forEach { pair ->
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
@@ -179,7 +187,7 @@ class SimulatorsNodeTest {
 
     @Test
     fun countStartsAtZero() {
-        assertThat(simulatorsNode.count(), equalTo(0))
+        assertThat(simulatorsNode.capacityRemaining(desiredCapabilities), equalTo(1F))
     }
 
     @Test
@@ -312,14 +320,15 @@ class SimulatorsNodeTest {
 
     @Test
     fun deleteReleaseReleasesExistingRef() {
+        assertThat(simulatorsNode.capacityRemaining(desiredCapabilities), equalTo(1F))
         createTwoDevicesForTest()
-        assertThat(simulatorsNode.count(), equalTo(2))
+        assertThat(simulatorsNode.capacityRemaining(desiredCapabilities), equalTo(1F/3))
         assertThat(portAllocator.available(), equalTo(2))
 
         val actual = simulatorsNode.deleteRelease(ref1, "test")
         assertThat(actual, equalTo(true))
         verify(simulatorMock).release(any())
-        assertThat(simulatorsNode.count(), equalTo(1))
+        assertThat(simulatorsNode.capacityRemaining(desiredCapabilities), equalTo(1F/3*2))
         assertThat(portAllocator.available(), equalTo(6))
     }
 

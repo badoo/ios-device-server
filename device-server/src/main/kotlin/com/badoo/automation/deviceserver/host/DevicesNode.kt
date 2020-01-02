@@ -226,11 +226,6 @@ class DevicesNode(
         return remote.isReachable()
     }
 
-    override fun count(): Int {
-        // FIXME: Remove from common interface, it might be needed for simulators node only
-        throw NotImplementedError("An operation is not implemented")
-    }
-
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
         synchronized(this) {
             slotByExternalRef(deviceRef).release()

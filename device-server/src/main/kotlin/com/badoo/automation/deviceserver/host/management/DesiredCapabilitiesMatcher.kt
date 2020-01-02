@@ -4,27 +4,16 @@ import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 
-interface IDesiredCapabilitiesMatcher {
-    fun isMatch(actual: FBSimctlDevice, desiredCaps: DesiredCapabilities): Boolean
-    fun isMatch(actual: DeviceInfo, desiredCaps: DesiredCapabilities): Boolean
-}
+class DesiredCapabilitiesMatcher {
 
-class DesiredCapabilitiesMatcher : IDesiredCapabilitiesMatcher {
-    override fun isMatch(actual: DeviceInfo, desiredCaps: DesiredCapabilities): Boolean {
-        if (desiredCaps.udid != null) {
-            return desiredCaps.udid == actual.udid
-        }
-
+    fun isMatch(actual: DeviceInfo, desiredCaps: DesiredCapabilities): Boolean {
         with(desiredCaps) {
-            return (model == null || model == actual.model) && (os == null || isRuntimeMatch(os, actual.os))
+            return if (udid == null || udid.isBlank()) {
+                (model == null || model == actual.model) && (os == null || isRuntimeMatch(os, actual.os))
+            } else {
+                udid == actual.udid
+            }
         }
-
-    }
-
-    override fun isMatch(actual: FBSimctlDevice, desiredCaps: DesiredCapabilities): Boolean {
-        val deviceInfo = DeviceInfo(actual)
-
-        return isMatch(deviceInfo, desiredCaps)
     }
 
     internal fun isRuntimeMatch(desired: String, actual: String): Boolean {

@@ -29,7 +29,7 @@ interface IFBSimctl {
     fun defaultDeviceSet(): String
 
     fun eraseSimulator(udid: UDID): String
-    fun create(model: String?, os: String?, transitional: Boolean): FBSimctlDevice
+    fun create(model: String?, os: String?): FBSimctlDevice
     fun diagnose(udid: UDID): FBSimctlDeviceDiagnosticInfo
     fun shutdown(udid: UDID): CommandResult
     fun shutdownAllBooted(): String

@@ -51,7 +51,7 @@ interface IRemote {
     val fbsimctl: FBSimctl
     fun isDirectory(path: String): Boolean
     fun rsync(from: String, to: String, flags: Set<String>)
-    fun scpToRemoteHost(from: String, to: String, timout: Duration = Duration.ofMinutes(3))
+    fun scpToRemoteHost(from: String, to: String, timeOut: Duration = Duration.ofMinutes(3))
     fun rm(path: String, timeOut: Duration = Duration.ofMinutes(3))
     fun scpFromRemoteHost(from: String, to: String, timeOut: Duration)
 }
