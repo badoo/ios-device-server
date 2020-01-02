@@ -69,7 +69,7 @@ class FBSimctl(
 
     override fun eraseSimulator(udid: UDID) = fbsimctl(cmd = "erase", udid = udid)
 
-    override fun create(model: String?, os: String?, transitional: Boolean): FBSimctlDevice {
+    override fun create(model: String?, os: String?): FBSimctlDevice {
         val args = mutableListOf("create")
 
         // FIXME: escaping should be part of exec implementation and hidden from caller. Fix in separate ticket.
@@ -87,7 +87,7 @@ class FBSimctl(
             val suggestions = suggestCreationArgs()
             throw(RuntimeException("Could not create simulator \"$model\" \"$os\"\n$suggestions"))
         }
-        return parser.parseDeviceCreation(result, transitional)
+        return parser.parseDeviceCreation(result)
     }
 
     private fun suggestCreationArgs(): String {

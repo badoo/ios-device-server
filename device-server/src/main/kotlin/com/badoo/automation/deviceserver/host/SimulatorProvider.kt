@@ -1,44 +1,70 @@
 package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
+import com.badoo.automation.deviceserver.data.DeviceInfo
+import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.management.DesiredCapabilitiesMatcher
-import com.badoo.automation.deviceserver.host.management.IDesiredCapabilitiesMatcher
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
+import java.io.File
+import java.lang.RuntimeException
 
 class SimulatorProvider(
         val remote: IRemote,
-        private val desiredCapsMatcher: IDesiredCapabilitiesMatcher = DesiredCapabilitiesMatcher()
-) : ISimulatorProvider {
-    private var cache: List<FBSimctlDevice> = emptyList()
+        simulatorBackupsConfiguration: String?,
+        private val desiredCapsMatcher: DesiredCapabilitiesMatcher = DesiredCapabilitiesMatcher()
+) {
+    val deviceSetPath: String by lazy { remote.fbsimctl.defaultDeviceSet() }
+    private val simulatorBackupsPath = File(simulatorBackupsConfiguration ?: deviceSetPath)
 
-    override fun match(desiredCaps: DesiredCapabilities, usedUdids: Set<String>): FBSimctlDevice? {
-        val matchList =
-                when {
-                    desiredCaps.udid != null -> listOfNotNull(findBy(desiredCaps.udid))
-                    desiredCaps.existing -> list().filter { desiredCapsMatcher.isMatch(it, desiredCaps) }
-                    else -> return create(desiredCaps.model, desiredCaps.os, true)
-                }
+    private var cachedSimulatorList: List<FBSimctlDevice> = emptyList()
+    private var cachedBackupsList: List<String> = emptyList()
 
-        val firstMatch = matchList.find { !usedUdids.contains(it.udid) }
+    fun provideSimulator(desiredCaps: DesiredCapabilities, usedUdids: Set<String>): FBSimctlDevice? {
+        val simulators = listSimulators()
 
-        if (firstMatch != null) return firstMatch
+        if (desiredCaps.udid != null && desiredCaps.udid.isNotBlank()) {
+            val matched = simulators.find { fbSimctlDevice -> desiredCaps.udid == fbSimctlDevice.udid }
 
-        return create(desiredCaps.model, desiredCaps.os, false)
-    }
+            if (matched == null) {
+                throw RuntimeException("Unable to find requested device with UDID ${desiredCaps.udid}. List of known devices is $simulators")
+            }
 
-    override fun findBy(udid: String): FBSimctlDevice? {
-        return remote.fbsimctl.listDevice(udid)
-    }
+            if (usedUdids.contains(matched.udid)) {
+                throw RuntimeException("Simulator with UDID ${matched.udid} is already in use. List of used devices is $usedUdids")
+            }
 
-    override fun list(): List<FBSimctlDevice> {
-        if (cache.isEmpty()) {
-            cache = remote.fbsimctl.listSimulators().filter { !it.model.isBlank() && !it.os.isBlank() }
+            return matched
         }
-        return cache
+
+        val matched: FBSimctlDevice? = simulators.find { fbSimctlDevice ->
+            val deviceInfo = DeviceInfo(fbSimctlDevice)
+            desiredCapsMatcher.isMatch(deviceInfo, desiredCaps) && !usedUdids.contains(deviceInfo.udid) && backupExists(deviceInfo.udid)
+        }
+
+        return matched ?: create(desiredCaps.model, desiredCaps.os)
     }
 
-    override fun create(model: String?, os: String?, transitional: Boolean): FBSimctlDevice {
-        cache = emptyList()
-        return remote.fbsimctl.create(model, os, transitional)
+    private fun listSimulators(): List<FBSimctlDevice> {
+        if (cachedSimulatorList.isEmpty()) {
+            cachedSimulatorList = remote.fbsimctl.listSimulators().filter { !it.model.isBlank() && !it.os.isBlank() }
+        }
+        return cachedSimulatorList
+    }
+
+    private fun backupExists(udid: UDID): Boolean {
+        if (cachedBackupsList.isEmpty()) {
+            val command = listOf("/bin/ls", "-1", simulatorBackupsPath.absolutePath)
+            val commandResult = remote.exec(command, mapOf<String, String>(), false, 60L)
+            val stdOut = commandResult.stdOut
+            cachedBackupsList = stdOut.lines()
+        }
+
+        return cachedBackupsList.find { it.contains(udid) } != null
+    }
+
+    private fun create(model: String?, os: String?): FBSimctlDevice {
+        cachedSimulatorList = emptyList()
+        cachedBackupsList = emptyList()
+        return remote.fbsimctl.create(model, os)
     }
 }

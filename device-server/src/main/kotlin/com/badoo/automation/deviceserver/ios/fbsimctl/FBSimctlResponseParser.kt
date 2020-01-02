@@ -63,7 +63,7 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
         )
     }
 
-    override fun parseDeviceCreation(response: String, isTransitional: Boolean): FBSimctlDevice {
+    override fun parseDeviceCreation(response: String): FBSimctlDevice {
         val parsedResponse: FBSimctlCreateDeviceResponse?
 
         try {
