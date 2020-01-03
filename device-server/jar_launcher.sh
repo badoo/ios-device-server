@@ -13,7 +13,7 @@ declare -r NETTY_WORKER_GROUP_SIZE=${NETTY_WORKER_GROUP_SIZE:-''}
 declare -r NETTY_CALL_GROUP_SIZE=${NETTY_CALL_GROUP_SIZE:-''}
 declare -r VIDEO_RECORDER=${VIDEO_RECORDER:-'com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder'}
 declare -r SIMULATOR_WDA_CLASS=${SIMULATOR_WDA_CLASS:-'com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent'}
-declare -r WDA_BUNDLE_ID=${WDA_BUNDLE_ID:-'com.facebook.WebDriverAgentRunner.dev.xctrunner'}
+declare -r WDA_BUNDLE_ID=${WDA_BUNDLE_ID:-'com.facebook.WebDriverAgentRunner.xctrunner'}
 export JAVA_HOME=$(/usr/libexec/java_home -v 10 -F || /usr/libexec/java_home -v 9 -F)
 
 pushd "$( dirname "${BASH_SOURCE[0]}" )"

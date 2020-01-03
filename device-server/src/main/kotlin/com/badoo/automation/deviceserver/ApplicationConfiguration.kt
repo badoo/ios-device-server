@@ -9,7 +9,7 @@ class ApplicationConfiguration {
     val wdaSimulatorBundlePath: String = System.getProperty(wdaSimulatorBundlePathProperty)
             ?: throw RuntimeException("Must set system property: -D$wdaSimulatorBundlePathProperty=" +
                     "/ABSOLUTE/PATH/ios/facebook/simulators/WebDriverAgentRunner-Runner.app")
-    val wdaSimulatorBundleId: String = System.getProperty("wda.bundle.id", "com.facebook.WebDriverAgentRunner.dev.xctrunner")
+    val wdaSimulatorBundleId: String = System.getProperty("wda.bundle.id", "com.facebook.WebDriverAgentRunner.xctrunner")
 
     private val wdaDeviceBundlePathProperty = "wda.device.bundle.path"
     val wdaDeviceBundlePath: String = System.getProperty(wdaDeviceBundlePathProperty)
