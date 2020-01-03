@@ -4,7 +4,6 @@ import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
-import com.badoo.automation.deviceserver.host.management.util.AutoreleaseLooper
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
@@ -20,8 +19,7 @@ private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_V
 class DeviceManager(
         config: DeviceServerConfig,
         nodeFactory: IHostFactory,
-        activeDevices: ActiveDevices = ActiveDevices(),
-        private val autoreleaseLooper: IAutoreleaseLooper = AutoreleaseLooper()
+        activeDevices: ActiveDevices = ActiveDevices()
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val deviceTimeoutInSecs: Duration
@@ -73,11 +71,7 @@ class DeviceManager(
     }
 
     fun restartNodesGracefully(isParallelRestart: Boolean): Boolean {
-        return autoRegistrar.restartNodesGracefully(isParallelRestart, INFINITE_DEVICE_TIMEOUT)
-    }
-
-    fun launchAutoReleaseLoop() {
-        autoreleaseLooper.autoreleaseLoop(this)
+        return autoRegistrar.restartNodesGracefully(isParallelRestart)
     }
 
     private val zombieReaper = ZombieReaper()
@@ -91,14 +85,6 @@ class DeviceManager(
             "initialized" to nodeRegistry.getInitialRegistrationComplete(),
             "sessions" to listOf(nodeRegistry.activeDevices.getStatus()).toString()
         )
-    }
-
-    fun readyForRelease(): List<DeviceRef> {
-        return nodeRegistry.activeDevices.readyForRelease()
-    }
-
-    fun nextReleaseAtSeconds(): Long {
-        return nodeRegistry.activeDevices.nextReleaseAtSeconds()
     }
 
     fun getTotalCapacity(desiredCaps: DesiredCapabilities): Map<String, Int> {

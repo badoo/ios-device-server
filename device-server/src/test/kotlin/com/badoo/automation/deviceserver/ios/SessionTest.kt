@@ -28,14 +28,14 @@ class SessionTest {
 
     @Test
     fun registerDevice() {
-        session.registerDevice(deviceRef1, host1, releaseAfterSecs, null)
+        session.registerDevice(deviceRef1, host1, null)
         assertThat(session.deviceRefs().size, equalTo(1))
     }
 
     @Test
     fun unregisterNodeDevices() {
-        session.registerDevice(deviceRef1, host1, releaseAfterSecs, null)
-        session.registerDevice(deviceRef2, host2, releaseAfterSecs, null)
+        session.registerDevice(deviceRef1, host1, null)
+        session.registerDevice(deviceRef2, host2, null)
 
         session.unregisterNodeDevices(host1)
 
@@ -44,8 +44,8 @@ class SessionTest {
 
     @Test
     fun tryGetNodeForReturnsDeviceIfPresent() {
-        session.registerDevice(deviceRef1, host1, releaseAfterSecs, null)
-        session.registerDevice(deviceRef2, host2, releaseAfterSecs, null)
+        session.registerDevice(deviceRef1, host1, null)
+        session.registerDevice(deviceRef2, host2, null)
         assertThat(session.getNodeFor(deviceRef1), equalTo(host1))
         assertThat(session.getNodeFor(deviceRef2), equalTo(host2))
     }
@@ -57,43 +57,18 @@ class SessionTest {
 
     @Test
     fun getNodeForReturnsDeviceIfPresent() {
-        session.registerDevice(deviceRef1, host1, releaseAfterSecs, null)
-        session.registerDevice(deviceRef2, host2, releaseAfterSecs, null)
+        session.registerDevice(deviceRef1, host1, null)
+        session.registerDevice(deviceRef2, host2, null)
         assertThat(session.getNodeFor(deviceRef1), equalTo(host1))
         assertThat(session.getNodeFor(deviceRef2), equalTo(host2))
     }
 
     @Test
-    fun refreshDevice() {
-        session.registerDevice(deviceRef1, host1, releaseAfterSecs, null)
-        val preReleaseSeconds = session.nextReleaseAtSeconds()
-
-        session.getNodeFor(deviceRef1)
-
-        assertThat(session.nextReleaseAtSeconds(), greaterThan(preReleaseSeconds))
-    }
-
-    @Test
     fun unregisterDeleteDevice() {
-        session.registerDevice(deviceRef1, host1, releaseAfterSecs, null)
-        session.registerDevice(deviceRef2, host2, releaseAfterSecs, null)
+        session.registerDevice(deviceRef1, host1, null)
+        session.registerDevice(deviceRef2, host2, null)
         session.unregisterDeleteDevice(deviceRef2)
         assertThat(session.deviceRefs().size, equalTo(1))
         assertThat(session.deviceRefs().first(), equalTo(deviceRef1))
-    }
-
-    @Test
-    fun readyForRelease() {
-        session.registerDevice(deviceRef1, host1, Duration.ofSeconds(1), null)
-        // Implementation detail: secondsSinceEpoch always increments once per call.
-        session.registerDevice(deviceRef2, host2, Duration.ofSeconds(1), null)
-        val deviceList = session.readyForRelease()
-        assertThat(deviceList.size, equalTo(2))
-    }
-
-    @Test
-    fun nextReleaseAtSeconds() {
-        session.registerDevice(deviceRef1, host1, Duration.ofSeconds(10), null)
-        assertThat(session.nextReleaseAtSeconds(), equalTo(10L + 42L))
     }
 }

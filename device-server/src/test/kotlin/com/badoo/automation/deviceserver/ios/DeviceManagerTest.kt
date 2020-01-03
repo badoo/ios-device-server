@@ -61,8 +61,7 @@ class DeviceManagerTest {
                     setOf()
             ),
             hostFactory,
-            activeDevices,
-            autoreleaseLooper
+            activeDevices
     )
 
     @Test
@@ -188,12 +187,6 @@ class DeviceManagerTest {
         val actual = deviceManager.getDeviceState(ref)
         assertThat(actual, equalTo(deviceOrSimulatorStatusBloodyContradictoryNonsense))
     }
-    }
-
-    @Test
-    fun autoReleaseLoopIsCalledByConstructor() {
-        deviceManager.launchAutoReleaseLoop()
-        verify(autoreleaseLooper).autoreleaseLoop(deviceManager)
     }
 
     @Test
