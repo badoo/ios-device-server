@@ -20,9 +20,9 @@ class ActiveDevicesTest {
         whenever(node.getDeviceDTO("ref2")).thenThrow(DeviceNotFoundException(""))
         whenever(node.getDeviceDTO("ref3")).thenReturn(deviceDTOStub("ref3"))
 
-        activeDevices.registerDevice("ref1", node, Duration.ZERO, null)
-        activeDevices.registerDevice("ref2", node, Duration.ZERO, null)
-        activeDevices.registerDevice("ref3", node, Duration.ZERO, null)
+        activeDevices.registerDevice("ref1", node, null)
+        activeDevices.registerDevice("ref2", node, null)
+        activeDevices.registerDevice("ref3", node, null)
 
         val list = activeDevices.deviceList()
 
