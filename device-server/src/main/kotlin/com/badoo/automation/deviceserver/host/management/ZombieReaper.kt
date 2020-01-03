@@ -8,6 +8,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.streams.toList
 
 class ZombieReaper {
     private val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -17,18 +18,16 @@ class ZombieReaper {
     fun launchReapingZombies() {
         executor.scheduleWithFixedDelay(
                 { reapZombies(findZombies()) },
-                30L,
-                30L,
+                60L,
+                60L,
                 TimeUnit.SECONDS
         )
     }
 
     private fun reapZombies(pids: List<Int>) {
-        logger.trace("Launching reaping zombie processes")
         pids.parallelStream().forEach { pid ->
             reapZombie(pid)
         }
-        logger.trace("Finished reaping zombie processes")
     }
 
     private fun reapZombie(pid: Int) {
@@ -51,8 +50,12 @@ class ZombieReaper {
             val zombiesPids = zombies.map {
                 it.trim().split(" ").first().trim().toInt()
             }
-            logger.trace(MapEntriesAppendingMarker(mapOf("zombies" to zombies.size)), "Found zombie processes: ${zombies.joinToString(",")}")
-            zombiesPids
+
+            val childrenPids = ProcessHandle.current().children().map { it.pid().toInt() }
+            val childrenZombiesPids = childrenPids.filter { zombiesPids.contains(it) }.toList()
+
+            logger.trace(MapEntriesAppendingMarker(mapOf("zombies" to childrenZombiesPids.size)), "Found ${childrenZombiesPids.size} zombie processes: ${childrenZombiesPids.joinToString(",")}")
+            childrenZombiesPids
         } catch (t: Throwable) {
             logger.error("Failed to find zombie processes. Error: ${t.javaClass}, ${t.message}", t)
             listOf()
