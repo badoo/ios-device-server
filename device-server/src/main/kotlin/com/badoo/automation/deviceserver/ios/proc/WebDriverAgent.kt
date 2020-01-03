@@ -36,8 +36,6 @@ open class WebDriverAgent(
             port.toString(),
             "--mjpeg-server-port",
             mjpegServerPort.toString(),
-            "--mjpeg-server-frame-rate",
-            "4",
             "--",
             "listen"
     )
@@ -60,7 +58,7 @@ open class WebDriverAgent(
                 remote.hostName,
                 remote.userName,
                 launchXctestCommand,
-                mapOf("MJPEG_SERVER_FRAMERATE" to "4"),
+                mapOf(),
                 null,
                 { message -> logger.warn(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
         )

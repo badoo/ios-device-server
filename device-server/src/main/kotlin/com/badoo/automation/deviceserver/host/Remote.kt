@@ -70,6 +70,10 @@ class Remote(
 
     //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
     override fun captureFile(file: File): ByteArray {
+        if (isLocalhost()) {
+            return file.readBytes()
+        }
+
         val tempFile = File.createTempFile("remoteFile", ".bin")
         try {
             scpFromRemoteHost(file.absolutePath, tempFile.absolutePath, Duration.ofMinutes(2));
