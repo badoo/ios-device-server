@@ -91,7 +91,7 @@ class NodeRegistryTest {
         nodeRegistry.createDeviceAsync(desiredCapabilities, deviceTimeout, null)
 
         // assert
-        verify(activeDevices).registerDevice("", wrappedNode2, deviceTimeout, null)
+        verify(activeDevices).registerDevice("", wrappedNode2, null)
     }
 
     @Test

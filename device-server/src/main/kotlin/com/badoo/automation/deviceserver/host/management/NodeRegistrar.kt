@@ -74,7 +74,7 @@ class NodeRegistrar(
     }
 
     @Synchronized
-    fun restartNodesGracefully(isParallel: Boolean, infiniteDeviceTimeout: Duration): Boolean {
+    fun restartNodesGracefully(isParallel: Boolean): Boolean {
         val job = restartingJob
 
         if (job == null || job.isDone) {
@@ -82,8 +82,7 @@ class NodeRegistrar(
             restartingJob = executor.submit {
                 nodeRestarter.restartNodeWrappers(
                     nodeRegistry.getAll(),
-                    isParallel,
-                    infiniteDeviceTimeout
+                    isParallel
                 )
             }
             executor.shutdown()
