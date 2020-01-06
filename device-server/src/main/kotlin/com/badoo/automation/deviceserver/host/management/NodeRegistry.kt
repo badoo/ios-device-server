@@ -52,8 +52,8 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
 
     private fun getAlive(): Set<NodeWrapper> {
         val filteredStream: Stream<NodeWrapper> = nodeWrappers
-            .filter { it.isEnabled }
             .parallelStream()
+            .filter { it.isEnabled }
             .filter { it.isAlive() }
         return filteredStream.collect(toSet())
     }
@@ -66,6 +66,17 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
         val count = capacities.reduce(0, Integer::sum)
 
         return mapOf("total" to count)
+    }
+
+    fun hasCapacity(desiredCapabilities: DesiredCapabilities): Boolean {
+        val remainingCapacity = nodeWrappers
+            .parallelStream()
+            .filter { it.isEnabled }
+            .filter { it.isAlive() }
+            .map { it.node.capacityRemaining(desiredCapabilities) }
+            .reduce(0F, java.lang.Float::sum)
+
+        return remainingCapacity > 0F
     }
 
     fun createDeviceAsync(desiredCapabilities: DesiredCapabilities, deviceTimeout: Duration, userId: String?): DeviceRef {
