@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.deviceDTOStub
 import com.badoo.automation.deviceserver.host.ISimulatorsNode
 import com.badoo.automation.deviceserver.host.management.DeviceManager
-import com.badoo.automation.deviceserver.host.management.IAutoreleaseLooper
 import com.badoo.automation.deviceserver.host.management.IHostFactory
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.mockThis
@@ -52,8 +51,6 @@ class DeviceManagerTest {
     }
 
     private val activeDevices: ActiveDevices = mockThis()
-
-    private val autoreleaseLooper: IAutoreleaseLooper = mockThis()
 
     private val deviceManager = DeviceManager(
             DeviceServerConfig(
