@@ -39,7 +39,8 @@ open class WebDriverAgent(
             "--",
             "listen"
     )
-    private val uri: URI = uriWithPath(wdaEndpoint, "1.0/status")
+    private val uri: URI = uriWithPath(wdaEndpoint, "status")
+    private val daUri: URI = uriWithPath(wdaEndpoint, "1.0/status")
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
 
@@ -74,7 +75,8 @@ open class WebDriverAgent(
 
     override fun checkHealth(): Boolean {
         return try {
-            val result = client.get(uri.toURL())
+            val url = if (wdaRunnerXctest.name.contains("DeviceAgent")) daUri.toURL() else uri.toURL()
+            val result = client.get(url)
             return result.isSuccess
         } catch (e: RuntimeException) {
             logger.warn(logMarker, "Failed to determine WDA driver state. Exception: $e")

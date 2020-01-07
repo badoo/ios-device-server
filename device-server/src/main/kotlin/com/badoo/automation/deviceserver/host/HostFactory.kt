@@ -15,7 +15,8 @@ class HostFactory(
     private val fbsimctlVersion: String
 ) : IHostFactory {
     companion object {
-        val WDA_XCTEST = File("PlugIns/DeviceAgent.xctest")
+        val WDA_XCTEST = File("PlugIns/WebDriverAgentRunner.xctest")
+        val DA_XCTEST = File("PlugIns/DeviceAgent.xctest")
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -63,7 +64,8 @@ class HostFactory(
     }
 
     private fun getWdaRunnerXctest(isLocalHost: Boolean, wdaBundle: File, remoteWdaBundleRoot: File): File {
-        val wdaRunnerXctest = File(wdaBundle.name, WDA_XCTEST.path).path
+        val xcTestPath = if (wdaBundle.name.contains("DeviceAgent")) DA_XCTEST.path else WDA_XCTEST.path
+        val wdaRunnerXctest =  File(wdaBundle.name, xcTestPath).path
 
         val wdaBundleRoot = if (isLocalHost) {
             wdaBundle.parentFile

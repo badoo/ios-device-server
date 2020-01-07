@@ -8,6 +8,6 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 10 -F || /usr/libexec/java_home -v 
 pushd "$( dirname "${BASH_SOURCE[0]}" )"
 
 echo "Building Device Server"
-# ./gradlew jar --no-daemon
+./gradlew jar --no-daemon
 
 ./jar_launcher.sh
