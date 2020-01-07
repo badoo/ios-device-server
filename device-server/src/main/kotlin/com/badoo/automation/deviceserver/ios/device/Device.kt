@@ -47,7 +47,7 @@ class Device(
     private val wdaProxy = usbProxy.create(
         udid = deviceInfo.udid,
         localPort = userPorts.wdaPort,
-        devicePort = WDA_PORT
+        devicePort = if (wdaRunnerXctest.name.contains("DeviceAgent")) WDA_PORT else DA_PORT
     )
 
     override val mjpegServerPort = userPorts.mjpegServerPort
@@ -427,7 +427,8 @@ class Device(
 
     private companion object {
         private const val CALABASH_PORT = 37265
-        private const val WDA_PORT = 27753
+        private const val WDA_PORT = 8100
+        private const val DA_PORT = 27753
         private val PREPARE_TIMEOUT = Duration.ofMinutes(4)
     }
 }
