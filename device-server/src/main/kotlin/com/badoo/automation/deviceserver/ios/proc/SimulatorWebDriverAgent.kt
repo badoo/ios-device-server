@@ -75,6 +75,6 @@ class SimulatorWebDriverAgent(
 
     private fun isHostAppInstalled(): Boolean {
         return remote.fbsimctl.listApps(udid)
-            .any { it.bundle.bundle_id.contains("WebDriverAgentRunner-Runner") }
+            .any { it.bundle.bundle_id.contains(wdaRunnerXctest.parentFile.parentFile.nameWithoutExtension) }
     }
 }
