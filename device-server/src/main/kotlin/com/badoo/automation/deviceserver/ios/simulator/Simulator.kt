@@ -25,14 +25,15 @@ import kotlinx.coroutines.experimental.*
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import java.io.*
+import java.lang.StringBuilder
 import java.net.URI
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
@@ -460,7 +461,7 @@ class Simulator(
             "com.apple.bird",
             "com.apple.homed",
             "com.apple.SafariBookmarksSyncAgent",
-            "com.apple.itunesstored",
+//            "com.apple.itunesstored",
             "com.apple.assistant_service",
             "com.apple.cloudd",
             "com.apple.carkitd",
@@ -511,17 +512,14 @@ class Simulator(
 
     private fun bootSimulator() {
         val cmd = listOf("/usr/bin/xcrun", "simctl", "boot", udid) + disabledServices()
-        remote.exec(cmd, mapOf(), false, 120L)
-        Thread.sleep(10 * 1000) // give it time to boot
+        remote.exec(cmd, mapOf(), false, 60L)
     }
 
     private val requiredRecords = listOf(
         "GDRRequestMadeForRelayRepair"
-//            "com.apple.fileproviderd"
     )
     private val requiredRecordsIos13 = requiredRecords + listOf(
         "com.apple.parsecd"
-//                "PredictiveGenerationLastRun"
     )
 
     private fun boot() {
@@ -531,51 +529,34 @@ class Simulator(
 
         val bootProc = {
             bootSimulator()
-            fbsimctlProc.start()
-
-            try {
-                pollFor(
-                    Duration.ofSeconds(30),
-                    retryInterval = Duration.ofSeconds(5),
-                    reasonName = "${this@Simulator} initial boot",
-                    shouldReturnOnTimeout = false,
-                    logger = logger,
-                    marker = logMarker
-                ) {
-                    val cmd = listOf("/usr/bin/xcrun", "simctl", "list", "devices")
-                    val result = remote.exec(cmd, mapOf(), true, 60L)
-                    if (result.isSuccess) {
-                        val simulatorStatusLne = result.stdOut.lines().find { it.contains(udid) }
-                            ?: throw WaitTimeoutError("Unable to find simulator with $udid. Found: ${result.stdOut}")
-                        simulatorStatusLne.contains("Booted")
-                    } else {
-                        logger.debug(logMarker, "Failed to get simulator state. STDOUT: ${result.stdOut}. STDERR: ${result.stdErr}")
-                        false
-                    }
-                }
-            } catch (e: WaitTimeoutError) {
-                throw WaitTimeoutError("${e.message}. Simulator is in wrong state", e)
-            }
+            waitUntilSimulatorBooted()
         }
 
         val bootTask = concurrentBootsPool.submit(bootProc)
         bootTask.get()
 
-        pollFor(Duration.ofSeconds(30),
-            retryInterval = Duration.ofSeconds(3),
-            reasonName = "${this@Simulator} to be sufficiently booted",
-            shouldReturnOnTimeout = true,
-            logger = logger,
-            marker = logMarker
-        ) {
-            val cmd = listOf("/usr/bin/xcrun", "simctl", "spawn", udid, "log", "show")
-            val result = remote.exec(cmd, mapOf(), true, 60L)
-            if (result.isSuccess) {
-                result.stdOut.contains("SpringBoard")
-            } else {
-                logger.debug(logMarker, "Failed to get simulator state. STDOUT: ${result.stdOut}. STDERR: ${result.stdErr}")
-                false
+        try {
+            pollFor(
+                Duration.ofSeconds(60),
+                retryInterval = Duration.ofSeconds(5),
+                reasonName = "${this@Simulator} initial boot",
+                shouldReturnOnTimeout = false,
+                logger = logger,
+                marker = logMarker
+            ) {
+                val cmd = listOf("/usr/bin/xcrun", "simctl", "list", "devices")
+                val result = remote.exec(cmd, mapOf(), true, 30L)
+                if (result.isSuccess) {
+                    val simulatorStatusLne = result.stdOut.lines().find { it.contains(udid) }
+                        ?: throw WaitTimeoutError("Unable to find simulator with $udid. Found: ${result.stdOut}")
+                    simulatorStatusLne.contains("Booted")
+                } else {
+                    logger.debug(logMarker, "Failed to get simulator state. STDOUT: ${result.stdOut}. STDERR: ${result.stdErr}")
+                    false
+                }
             }
+        } catch (e: WaitTimeoutError) {
+            throw WaitTimeoutError("${e.message}. Simulator is in wrong state", e)
         }
 
         val osVersion = Regex("[0-9.]+").find(deviceInfo.os)?.value?.toFloat()
@@ -601,7 +582,82 @@ class Simulator(
             writeSimulatorDefaults("com.apple.Preferences DidShowContinuousPathIntroduction -bool true")
         }
 
+        fbsimctlProc.start()
+
         logger.info(logMarker, "Device ${this@Simulator} is sufficiently booted")
+    }
+
+    private fun waitUntilSimulatorBooted() {
+        val predicate = if (remote.isLocalhost()) {
+            "eventMessage contains 'Bootstrap success' and eventMessage contains 'com.apple.Spotlight'"
+        } else {
+            "\"eventMessage contains 'Bootstrap success' and eventMessage contains 'com.apple.Spotlight'\""
+        }
+
+        val cmd = listOf(
+            "/usr/bin/xcrun", "simctl", "spawn", udid, "log", "stream",
+            "--timeout", "3m",
+            "--color", "none",
+            "--process", "SpringBoard",
+            "--predicate", predicate
+        )
+        val process = remote.remoteExecutor.startProcess(cmd, mapOf(), logMarker)
+
+        val stdOut = StringBuilder()
+        val stdErr = StringBuilder()
+
+        val outReader: ((line: String) -> Unit) = { line: String ->
+            stdOut.append(line)
+            stdOut.append("\n")
+
+            val found = !line.contains("Filtering the log data using") && line.contains("Bootstrap success")
+            if (found) {
+                process.destroy()
+                logger.debug(logMarker, "Simulator $udid sufficiently booted.")
+            }
+        }
+
+        val errReader: ((line: String) -> Unit) = { line: String ->
+            stdErr.append(line)
+            stdErr.append("\n")
+        }
+
+        val executor = Executors.newFixedThreadPool(2)
+        executor.submit(lineReader(process.inputStream, outReader))
+        executor.submit(lineReader(process.errorStream, errReader))
+        executor.shutdown()
+        val finishedGracefully = process.waitFor(3, TimeUnit.MINUTES)
+        val failedExitCodes = listOf(
+            164, // Invalid device (not existing)
+            165 // Invalid device state (not Booted)
+        )
+
+        if (finishedGracefully && failedExitCodes.any { process.exitValue() == it }) {
+            val errorMessage = "Simulator $udid failed to boot. Exit code: ${process.exitValue()}. StdErr: $stdErr. StdOut: $stdOut"
+            logger.error(logMarker, errorMessage)
+            throw RuntimeException(errorMessage)
+        }
+
+        if (finishedGracefully) {
+            logger.info(logMarker, "Simulator $udid successfully booted to sufficient state.")
+        } else {
+            logger.error(logMarker, "Simulator $udid failed to successfully boot to sufficient state. Exit code: ${process.exitValue()}. StdErr: $stdErr. StdOut: $stdOut")
+        }
+    }
+
+    private fun lineReader(inputStream: InputStream, readerProc: ((line: String) -> Unit)): java.lang.Runnable {
+        return Runnable {
+            inputStream.use { stream ->
+                val inputStreamReader = InputStreamReader(stream, StandardCharsets.UTF_8)
+                val reader = BufferedReader(inputStreamReader, 65356)
+                var line: String? = reader.readLine()
+
+                while (line != null) {
+                    readerProc.invoke(line)
+                    line = reader.readLine()
+                }
+            }
+        }
     }
 
     private fun writeSimulatorDefaults(setting: String) {
