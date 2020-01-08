@@ -23,6 +23,7 @@ interface IRemote {
     val userName: String
     val publicHostName: String
     val localExecutor: IShellCommand
+    val remoteExecutor: IShellCommand
     fun isReachable(): Boolean
     fun isLocalhost(): Boolean = isLocalhost(hostName, userName)
 

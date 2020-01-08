@@ -10,10 +10,7 @@ import java.io.InputStreamReader
 import java.lang.RuntimeException
 import java.nio.charset.StandardCharsets
 import java.time.Duration
-import java.util.concurrent.Future
-import java.util.concurrent.SynchronousQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 
 class ChildProcess private constructor(
         command: List<String>,
@@ -26,7 +23,7 @@ class ChildProcess private constructor(
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHostname))
     private val process: Process
-    private val poolExecutor: ThreadPoolExecutor
+    private val poolExecutor: ExecutorService
     val stdOutTask: Future<*>
     val stdErrTask: Future<*>
 
@@ -34,10 +31,9 @@ class ChildProcess private constructor(
         logger.debug(logMarker, "Starting long living process from command [$command]")
         process = executor.startProcess(command, commandEnvironment)
 
-        poolExecutor = ThreadPoolExecutor(2, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, SynchronousQueue<Runnable>());
-         stdOutTask = poolExecutor.submit(lineReader(process.inputStream, outWriter))
-         stdErrTask = poolExecutor.submit(lineReader(process.errorStream, errWriter))
-
+        poolExecutor = Executors.newFixedThreadPool(2)
+        stdOutTask = poolExecutor.submit(lineReader(process.inputStream, outWriter))
+        stdErrTask = poolExecutor.submit(lineReader(process.errorStream, errWriter))
 
         logger.debug(logMarker, "Started long living process $this from command [$command]")
     }
