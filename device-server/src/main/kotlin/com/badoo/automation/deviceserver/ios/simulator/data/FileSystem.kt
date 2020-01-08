@@ -7,7 +7,7 @@ import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.lang.Exception
+import java.io.FileNotFoundException
 
 class FileSystem(
     private val remote: IRemote,
@@ -38,24 +38,26 @@ class FileSystem(
     }
 
     private fun getContainerPath(bundleId: String, containerType: String): File {
-        return try {
-            val result = remote.exec(
-                command = listOf(
-                    "/usr/bin/xcrun",
-                    "simctl",
-                    "get_app_container",
-                    udid,
-                    bundleId,
-                    containerType
-                ),
-                env = mapOf(),
-                returnFailure = false,
-                timeOutSeconds = 30
-            )
+        val result = remote.exec(
+            command = listOf(
+                "/usr/bin/xcrun",
+                "simctl",
+                "get_app_container",
+                udid,
+                bundleId,
+                containerType
+            ),
+            env = mapOf(),
+            returnFailure = true,
+            timeOutSeconds = 30
+        )
+
+        return if (result.isSuccess) {
             File(result.stdOut.trim())
-        } catch (e: RuntimeException) {
-            logger.error(logMarker, "Failed to get container for $containerType for bundle id $bundleId on simulator $udid")
-            throw e
+        } else {
+            val message = "Failed to get container for $containerType for bundle id $bundleId on simulator $udid"
+            logger.error(logMarker, message)
+            throw FileNotFoundException(message)
         }
     }
 }
