@@ -21,7 +21,7 @@ class DeviceFbsimctlProc(
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : FbsimctlProc(remote, udid, fbsimctlEndpoint, headless, childFactory) {
 
-    override fun getFbsimctlCommand(headless: Boolean): List<String> {
+    override fun getFbsimctlCommand(): List<String> {
 
         return listOf(
             FBSimctl.FBSIMCTL_BIN,
