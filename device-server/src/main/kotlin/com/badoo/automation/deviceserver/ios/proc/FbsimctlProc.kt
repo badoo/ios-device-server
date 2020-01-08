@@ -37,7 +37,7 @@ open class FbsimctlProc(
         childProcess = childFactory(
                 remote.hostName,
                 remote.userName,
-                getFbsimctlCommand(headless),
+                getFbsimctlCommand(),
                 mapOf(),
                 null, // outReader, // TODO: write to file o.txt
                 errWriter  // TODO: write to file e.txt
@@ -62,23 +62,14 @@ open class FbsimctlProc(
         }
     }
 
-    protected open fun getFbsimctlCommand(headless: Boolean): List<String> {
-        val cmd = mutableListOf(
+    protected open fun getFbsimctlCommand(): List<String> {
+        val cmd = listOf(
             FBSimctl.FBSIMCTL_BIN,
             udid,
-            "boot"
-        )
-
-//        if (headless) {
-//            cmd.add("--direct-launch")
-//        }
-
-        cmd.addAll(listOf(
-            "--",
             "listen",
             "--http",
             fbsimctlEndpoint.port.toString()
-        ))
+        )
 
         return cmd
     }

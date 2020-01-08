@@ -72,19 +72,19 @@ class SimulatorHostChecker(
     }
 
     override fun cleanup() {
-        if (shutdownSimulators) {
-            cleanupSimulators()
-            cleanupSimulatorServices()
-        }
-
         try {
-            logger.info(logMarker, "Will kill abandoned long living fbsimctl processes")
-            remote.pkill("/usr/local/bin/fbsimctl", true)
             logger.info(logMarker, "Will shutdown booted simulators")
             remote.fbsimctl.shutdownAllBooted()
             logger.info(logMarker, "Done shutting down booted simulators")
+            logger.info(logMarker, "Will kill abandoned long living fbsimctl processes")
+            remote.pkill("/usr/local/bin/fbsimctl", true)
         } catch (e: Exception) {
             logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")
+        }
+
+        if (shutdownSimulators) {
+            cleanupSimulators()
+            cleanupSimulatorServices()
         }
 
         val deviceSetsPath = remote.fbsimctl.defaultDeviceSet()
