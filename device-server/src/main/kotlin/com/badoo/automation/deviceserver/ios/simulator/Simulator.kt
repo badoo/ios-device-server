@@ -135,7 +135,10 @@ class Simulator(
         }
     }
 
-    private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
+    private val simulatorDirectory = File(deviceSetPath, udid)
+    private val simulatorDataDirectory = File(simulatorDirectory, "data")
+
+    private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory)
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val commonLogMarkerDetails = mapOf(
             LogMarkers.DEVICE_REF to deviceRef,
@@ -777,18 +780,17 @@ class Simulator(
     }
 
     private fun deleteSimulatorKeepingMetadata() {
-        val simulatorPath: String = File(File(deviceSetPath, udid), "data").absolutePath
-
-        val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", simulatorPath), timeOutSeconds = 120L)
+        val simulatorDataDirectoryPath = simulatorDataDirectory.absolutePath
+        val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 120L)
 
         if (!deleteResult.isSuccess) {
-            logger.error(logMarker, "Failed to delete at path: [$simulatorPath]. Result: $deleteResult")
+            logger.error(logMarker, "Failed to delete at path: [$simulatorDataDirectoryPath]. Result: $deleteResult")
 
-            val r = remote.execIgnoringErrors(listOf("/usr/bin/sudo", "/bin/rm", "-rf", simulatorPath), timeOutSeconds = 120L);
+            val r = remote.execIgnoringErrors(listOf("/usr/bin/sudo", "/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 120L);
 
             if (!r.isSuccess) {
-                val undeletedFiles = remote.execIgnoringErrors(listOf("/usr/bin/find", simulatorPath), timeOutSeconds = 90L);
-                logger.error(logMarker, "Failed to delete at path: [$simulatorPath]. Not deleted files: ${undeletedFiles.stdOut}")
+                val undeletedFiles = remote.execIgnoringErrors(listOf("/usr/bin/find", simulatorDataDirectoryPath), timeOutSeconds = 90L);
+                logger.error(logMarker, "Failed to delete at path: [$simulatorDataDirectoryPath]. Not deleted files: ${undeletedFiles.stdOut}")
             }
         }
     }
