@@ -20,10 +20,13 @@ class SimulatorBackup(
         private val remote: IRemote,
         private val udid: UDID,
         deviceSetPath: String,
+        private val simulatorDirectory: File,
+        private val simulatorDataDirectory: File,
         config: ApplicationConfiguration = ApplicationConfiguration()
 ) : ISimulatorBackup {
-    private val srcPath: String = File(deviceSetPath, udid).absolutePath
     private val backupPath: String = File(config.simulatorBackupPath ?: deviceSetPath , udid).absolutePath + "_BACKUP"
+    private val backedDataFolder = File(backupPath, "data").absolutePath
+
     private val metaFilePath: String = File(backupPath, "data/device_server/meta.json").absolutePath
     private val metaFileDirectory = File(metaFilePath).parent
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -72,7 +75,7 @@ class SimulatorBackup(
     //region create backup
     override fun create() {
         remote.execIgnoringErrors(listOf("rm", "-rf", backupPath))
-        val result = remote.execIgnoringErrors(listOf("cp", "-R", srcPath, backupPath), timeOutSeconds = 120)
+        val result = remote.execIgnoringErrors(listOf("cp", "-R", simulatorDirectory.absolutePath, backupPath), timeOutSeconds = 120)
 
         ensureSuccess(result, "$this failed to create backup $backupPath: $result")
 
@@ -109,34 +112,35 @@ class SimulatorBackup(
     //endregion
 
     override fun restore() {
-        val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", srcPath), timeOutSeconds = 90L)
+        val simulatorDataDirectoryPath = simulatorDataDirectory.absolutePath
+        val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 90L)
 
         if (!deleteResult.isSuccess) {
-            logger.error(logMarker, "Failed to delete at path: [$srcPath]. Result: $deleteResult")
+            logger.error(logMarker, "Failed to delete at path: [$simulatorDataDirectoryPath]. Result: $deleteResult")
 
-            val r = remote.execIgnoringErrors(listOf("/usr/bin/sudo", "/bin/rm", "-rf", srcPath), timeOutSeconds = 90L);
+            val r = remote.execIgnoringErrors(listOf("/usr/bin/sudo", "/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 90L);
 
             if (!r.isSuccess) {
-                val undeletedFiles = remote.execIgnoringErrors(listOf("/usr/bin/find", srcPath), timeOutSeconds = 90L);
-                logger.error(logMarker, "Failed to delete at path: [$srcPath]. Not deleted files: ${undeletedFiles.stdOut}")
+                val undeletedFiles = remote.execIgnoringErrors(listOf("/usr/bin/find", simulatorDataDirectoryPath), timeOutSeconds = 90L);
+                logger.error(logMarker, "Failed to delete at path: [$simulatorDataDirectoryPath]. Not deleted files: ${undeletedFiles.stdOut}")
             }
         }
 
-        val result = remote.execIgnoringErrors(listOf("/bin/cp", "-Rfp", backupPath, srcPath), timeOutSeconds = 120L)
+        val result = remote.execIgnoringErrors(listOf("/bin/cp", "-Rfp", backedDataFolder, simulatorDirectory.absolutePath), timeOutSeconds = 120L)
 
         if (!result.isSuccess) {
-            logger.error(logMarker, "Failed to restore from backup at path: [$backupPath] to path: [$result]")
+            logger.error(logMarker, "Failed to restore from backup at path: [$backedDataFolder] to path: [$result]")
 
-            val secondTry = remote.execIgnoringErrors(listOf("/bin/cp", "-Rfp", backupPath, srcPath), timeOutSeconds = 120L)
+            val secondTry = remote.execIgnoringErrors(listOf("/bin/cp", "-Rfp", backedDataFolder, simulatorDirectory.absolutePath), timeOutSeconds = 120L)
 
             if (!secondTry.isSuccess) {
-                val errorMessage = "Failed second attempt to restore from backup at path: [$backupPath] to path: [$secondTry]"
+                val errorMessage = "Failed second attempt to restore from backup at path: [$backedDataFolder] to path: [$secondTry]"
                 logger.error(logMarker, errorMessage)
                 throw SimulatorBackupError(errorMessage)
             }
         }
 
-        logger.debug(logMarker, "Restored simulator $udid from backup at path: [$backupPath]")
+        logger.debug(logMarker, "Restored simulator $udid from backup at path: [$backedDataFolder]")
     }
 
     override fun delete() {

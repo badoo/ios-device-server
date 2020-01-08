@@ -18,6 +18,7 @@ import org.mockito.ArgumentCaptor
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
+import java.io.File
 
 class SimulatorBackupTest {
     private val metaJson = """
@@ -31,9 +32,16 @@ class SimulatorBackupTest {
     private val resultStub = CommandResult("", "", 0, pid = 1)
     private val resultFailureStub = CommandResult("", "", 1, pid = 1)
     @Mock private lateinit var config: ApplicationConfiguration
+    @Mock
+    private lateinit var simulatorDirectory: File
+    @Mock
+    private lateinit var simulatorDataDirectory: File
+
 
     @Before fun setUp() {
         MockitoAnnotations.initMocks(this)
+        whenever(simulatorDirectory.absolutePath).thenReturn("simulatorDirectory")
+        whenever(simulatorDataDirectory.absolutePath).thenReturn("simulatorDataDirectory")
     }
 
     @Test fun shouldExistBackup() {
@@ -42,7 +50,7 @@ class SimulatorBackupTest {
         whenever(remote.isDirectory(anyString())).thenReturn(true)
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultWithMeta)
 
-        val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath, config)
+        val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory, config)
 
         assertTrue("Backup should exist", backup.isExist())
     }
@@ -51,7 +59,7 @@ class SimulatorBackupTest {
         whenever(remote.isDirectory(anyString())).thenReturn(true)
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultStub)
 
-        val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath, config)
+        val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory, config)
 
         assertFalse("Backup should not exist", backup.isExist())
     }
@@ -61,7 +69,7 @@ class SimulatorBackupTest {
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultStub)
         whenever(remote.shell(anyString(), anyBoolean())).thenReturn(resultStub)
 
-        SimulatorBackup(remote, udid, deviceSetPath, config).create()
+        SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory, config).create()
 
         verify(remote, times(3)).execIgnoringErrors(captor.capture() ?: emptyList(), anyMap(), anyLong())
 
@@ -79,19 +87,19 @@ class SimulatorBackupTest {
     @Test(expected = SimulatorBackupError::class)
     fun shouldDeleteThrow() {
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultFailureStub)
-        SimulatorBackup(remote, udid, deviceSetPath, config).delete()
+        SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory, config).delete()
     }
 
     @Test(expected = SimulatorBackupError::class)
     fun shouldCreateThrow() {
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultFailureStub)
-        SimulatorBackup(remote, udid, deviceSetPath, config).create()
+        SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory, config).create()
     }
 
     @Test(expected = SimulatorBackupError::class)
     fun shouldRestoreThrow() {
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultFailureStub)
         whenever(remote.shell(anyString(), anyBoolean())).thenReturn(resultFailureStub)
-        SimulatorBackup(remote, udid, deviceSetPath, config).restore()
+        SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory, config).restore()
     }
 }
