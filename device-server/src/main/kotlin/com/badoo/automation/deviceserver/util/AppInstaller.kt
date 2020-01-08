@@ -66,10 +66,26 @@ class AppInstaller(
         }
     }
 
+    private fun cleanup(udid: String, logMarker: Marker) {
+        val stopResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "spawn", udid, "launchctl", "stop", "com.apple.containermanagerd"), mapOf(), true, 60)
+        if (!stopResult.isSuccess){
+            logger.error(logMarker, "Failed to stop com.apple.containermanagerd for $udid")
+        }
+        val deleteResult = remote.exec(listOf("/bin/rm", "-rf", "/Users/qa/$udid/data/Library/Caches/com.apple.containermanagerd"), mapOf(), true, 60)
+        if (!deleteResult.isSuccess){
+            logger.error(logMarker, "Failed to clear cache of com.apple.containermanagerd for $udid")
+        }
+        val startResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "spawn", udid, "launchctl", "start", "com.apple.containermanagerd"), mapOf(), true, 60)
+        if (!startResult.isSuccess){
+            logger.error(logMarker, "Failed to start com.apple.containermanagerd for $udid")
+        }
+    }
+
     private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, appUrl: String): Boolean {
         logger.debug(logMarker, "Installing application $appUrl on simulator $udid")
 
         val nanos = measureNanoTime {
+            cleanup(udid, logMarker)
             logger.debug(logMarker, "Will install application $appUrl on simulator $udid using xcrun simctl install ${appBinaryPath.absolutePath}")
             val result = remote.exec(listOf("/usr/bin/xcrun", "simctl", "install", udid, appBinaryPath.absolutePath), mapOf(), true, 90L)
 
