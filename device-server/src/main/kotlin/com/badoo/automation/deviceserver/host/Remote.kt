@@ -9,6 +9,7 @@ import com.badoo.automation.deviceserver.util.ensure
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.FileNotFoundException
 import java.time.Duration
 
 class Remote(
@@ -71,6 +72,9 @@ class Remote(
     //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
     override fun captureFile(file: File): ByteArray {
         if (isLocalhost()) {
+            if (!file.exists()) {
+                throw FileNotFoundException("File $file is not found.")
+            }
             return file.readBytes()
         }
 
@@ -139,10 +143,15 @@ class Remote(
     override fun scpFromRemoteHost(from: String, to: String, timeOut: Duration) {
         val result = localExecutor.exec(listOf("/usr/bin/scp", "-r", "$userAtHost:$from", to), timeOut = timeOut, returnFailure = true)
 
-        ensure(result.isSuccess) {
+        if (!result.isSuccess) {
             val message = "Copying files from remote host failed with ${result.stdErr}"
             logger.error(logMarker, message)
-            RuntimeException(message)
+
+            throw if (result.stdErr.contains("No such file or directory")) {
+                FileNotFoundException(message)
+            } else {
+                RuntimeException(message)
+            }
         }
     }
 
