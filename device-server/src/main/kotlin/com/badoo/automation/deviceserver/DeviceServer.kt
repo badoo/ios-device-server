@@ -31,6 +31,7 @@ import io.ktor.server.engine.ShutDownUrl
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.FileNotFoundException
 import java.lang.IllegalStateException
 import java.net.NetworkInterface
 import java.util.*
@@ -345,6 +346,7 @@ fun Application.module() {
                 is IllegalArgumentException -> HttpStatusCode(422, "Unprocessable Entity")
                 is IllegalStateException -> HttpStatusCode.Conflict
                 is DeviceNotFoundException -> HttpStatusCode.NotFound
+                is FileNotFoundException -> HttpStatusCode.NotFound
                 is NoAliveNodesException -> HttpStatusCode.TooManyRequests
                 is OverCapacityException -> HttpStatusCode.TooManyRequests
                 is DeviceCreationException -> HttpStatusCode.ServiceUnavailable
