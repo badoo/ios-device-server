@@ -18,6 +18,9 @@ fun <T> executeWithTimeout(timeout: Duration, name: String, action: () -> T): T 
 
     try {
         return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS)
+    } catch (e: InterruptedException) {
+        future.cancel(true)
+        throw e
     } catch (e: TimeoutException) {
         future.cancel(true)
         throw TimeoutException("$name timed out after ${timeout.seconds} seconds")
