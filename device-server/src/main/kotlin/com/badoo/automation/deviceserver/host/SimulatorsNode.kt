@@ -326,15 +326,7 @@ class SimulatorsNode(
     }
 
     override fun resetAsync(deviceRef: DeviceRef) {
-        val prepareTask = prepareTasks[deviceRef]
-        if (prepareTask != null && !prepareTask.isDone) {
-            logger.error(logMarker, "Cancelling async task for Simulator $deviceRef while performing resetAsync")
-            prepareTask.cancel(true)
-        }
-
-        prepareTasks[deviceRef] = simulatorsBootExecutorService.submit {
-            getDeviceFor(deviceRef).resetAsync()
-        }
+        getDeviceFor(deviceRef).resetAsync()
     }
 
     override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
