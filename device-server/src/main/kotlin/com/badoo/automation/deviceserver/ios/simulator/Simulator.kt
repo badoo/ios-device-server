@@ -6,7 +6,10 @@ import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.ios.proc.*
+import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
+import com.badoo.automation.deviceserver.ios.proc.IWebDriverAgent
+import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
+import com.badoo.automation.deviceserver.ios.proc.SimulatorXcrunWebDriverAgent
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupError
@@ -21,12 +24,14 @@ import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.pollFor
-import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.Runnable
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.launch
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.*
-import java.lang.StringBuilder
 import java.net.URI
 import java.net.URL
 import java.nio.charset.StandardCharsets
@@ -722,36 +727,39 @@ class Simulator(
     //endregion
 
     //region reset async
-    override fun resetAsync() {
-        if (deviceState != DeviceState.CREATED && deviceState != DeviceState.FAILED) {
-            val message = "Unable to perform reset. Simulator $udid is in state $deviceState"
+    override fun resetAsync(): Runnable {
+        val state = deviceState
+        if (state != DeviceState.CREATED && state != DeviceState.FAILED) {
+            val message = "Unable to perform reset. Simulator $udid is in state $state"
             logger.error(logMarker, message)
             throw IllegalStateException(message)
         }
 
-        executeCritical {
-            deviceState = DeviceState.RESETTING
+        return Runnable {
+            executeCritical {
+                deviceState = DeviceState.RESETTING
 
-            val nanos = measureNanoTime {
-                resetFromBackup()
-                try {
-                    prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
-                } catch (e: Exception) { // catching most wide exception
-                    deviceState = DeviceState.FAILED
-                    logger.error(logMarker, "Failed to reset and prepare device ${this@Simulator}", e)
-                    throw e
+                val nanos = measureNanoTime {
+                    resetFromBackup()
+                    try {
+                        prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
+                    } catch (e: Exception) { // catching most wide exception
+                        deviceState = DeviceState.FAILED
+                        logger.error(logMarker, "Failed to reset and prepare device ${this@Simulator}", e)
+                        throw e
+                    }
                 }
+
+                val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+
+                val measurement = mutableMapOf(
+                    "action_name" to "resetAsync",
+                    "duration" to seconds
+                )
+                measurement.putAll(commonLogMarkerDetails)
+
+                logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} reset and ready in $seconds seconds")
             }
-
-            val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
-
-            val measurement = mutableMapOf(
-                "action_name" to "resetAsync",
-                "duration" to seconds
-            )
-            measurement.putAll(commonLogMarkerDetails)
-
-            logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} reset and ready in $seconds seconds")
         }
     }
 

@@ -40,6 +40,7 @@ class SimulatorsNode(
 ) : ISimulatorsNode {
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
     private val simulatorsBootExecutorService: ExecutorService = Executors.newFixedThreadPool(simulatorLimit)
+    private val concurrentBoot: ExecutorService = Executors.newFixedThreadPool(concurrentBoots)
     private val prepareTasks = ConcurrentHashMap<String, Future<*>>()
 
     override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
@@ -119,7 +120,6 @@ class SimulatorsNode(
     }
 
     private val supportedArchitectures = listOf("x86_64")
-    private val concurrentBoot: ExecutorService = Executors.newFixedThreadPool(concurrentBoots)
 
     private fun getDeviceFor(ref: DeviceRef): ISimulator {
         return createdSimulators[ref]!! //FIXME: replace with explicit unwrapping
@@ -326,7 +326,16 @@ class SimulatorsNode(
     }
 
     override fun resetAsync(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).resetAsync()
+        getDeviceFor(deviceRef).resetAsync().let { resetProc ->
+            prepareTasks[deviceRef]?.let { oldPrepareTask ->
+                if (!oldPrepareTask.isDone) {
+                    logger.error(logMarker, "Cancelling async task for Simulator $deviceRef while performing resetAsync")
+                    oldPrepareTask.cancel(true)
+                }
+            }
+
+            prepareTasks[deviceRef] = simulatorsBootExecutorService.submit(resetProc)
+        }
     }
 
     override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
