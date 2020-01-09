@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.ios.simulator
 
-import com.badoo.automation.deviceserver.data.*
+import com.badoo.automation.deviceserver.data.CrashLog
+import com.badoo.automation.deviceserver.data.PermissionSet
 import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
@@ -13,7 +14,7 @@ interface ISimulator: IDevice {
     val osLog: OsLog
     val media: Media
 
-    fun resetAsync()
+    fun resetAsync(): Runnable
     fun approveAccess(bundleId: String, locationPermissionsLock: ReentrantLock)
     fun setPermissions(bundleId: String, permissions: PermissionSet, locationPermissionsLock: ReentrantLock)
     fun clearSafariCookies(): Map<String, String>
