@@ -45,10 +45,6 @@ MJPEGVideoRecorder(
         )
     )
 
-    init {
-        delete()
-    }
-
     private val httpClient = CustomHttpClient.client.newBuilder().readTimeout(maxVideoDuration).build()
     private var videoRecordingTask: Future<*>? = null
     private var videoRecordingHttpCall: Call? = null
