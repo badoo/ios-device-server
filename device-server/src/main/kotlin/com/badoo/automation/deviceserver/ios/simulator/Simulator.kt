@@ -156,6 +156,8 @@ class Simulator(
     override fun toString() = "<Simulator: $deviceRef>"
 
     @Volatile
+    private var bootTask: Future<*>? = null
+    @Volatile
     private var installTask: Future<Boolean>? = null
 
     override fun installApplication(
@@ -197,11 +199,12 @@ class Simulator(
 
             val nanos = measureNanoTime {
                 try {
-                    stopPeriodicHealthCheck()
+                    shutdown()
                     prepare(clean = true)
                 } catch (e: Exception) { // catching most wide exception
                     deviceState = DeviceState.FAILED
                     logger.error(logMarker, "Failed to prepare device ${this@Simulator}", e)
+                    shutdown()
                     throw e
                 }
             }
@@ -220,8 +223,6 @@ class Simulator(
     private fun prepare(timeout: Duration = PREPARE_TIMEOUT, clean: Boolean) {
         logger.info(logMarker, "Starting to prepare ${this@Simulator}. Will wait for ${timeout.seconds} seconds")
         lastException = null
-        webDriverAgent.kill()
-        shutdown()
 
         //FIXME: add checks for cancellation of criticalAsyncPromise
         executeWithTimeout(timeout, "Preparing simulator") {
@@ -249,8 +250,8 @@ class Simulator(
             }
 
             logger.info(logMarker, "Finished preparing $this")
-            deviceState = DeviceState.CREATED
             startPeriodicHealthCheck()
+            deviceState = DeviceState.CREATED
         }
     }
 
@@ -264,81 +265,94 @@ class Simulator(
 
         healthChecker = launch {
             while (isActive) {
-                if (fbsimctlProc.isHealthy()) {
-                    fbsimctlFailCount = 0
-                } else {
-                    (1..5).forEach {
-                        if (fbsimctlProc.isHealthy()) {
-                            fbsimctlFailCount = 0
-                            return@forEach
-                        } else {
-                            val message = "Fbsimctl health check failed $fbsimctlFailCount times."
-                            logger.error(logMarker, message)
-                            fbsimctlFailCount += 1
-                            delay(Duration.ofSeconds(2).toMillis())
-                        }
-                    }
-
-                    if (fbsimctlFailCount >= maxFailCount) {
-                        logger.error(logMarker, "Fbsimctl health check failed $fbsimctlFailCount times. Restarting fbsimctl")
-
-                        try {
-                            fbsimctlProc.kill()
-                        } catch (e: RuntimeException) {
-                            logger.error(logMarker, "Failed to kill Fbsimctl. ${e.message}", e)
-                        }
-
-                        try {
-                            fbsimctlProc.start()
-                        } catch (e: RuntimeException) {
-                            logger.error(logMarker, "Failed to restart Fbsimctl. ${e.message}", e)
-                            deviceState = DeviceState.FAILED
-                            throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
-                        }
-                    }
-                }
-
-                if (webDriverAgent.isHealthy()) {
-                    wdaFailCount = 0
-                } else {
-                    (1..5).forEach {
-                        if (webDriverAgent.isHealthy()) {
-                            wdaFailCount = 0
-                            return@forEach
-                        } else {
-                            val message = "WebDriverAgent health check failed $wdaFailCount times."
-                            logger.error(logMarker, message)
-                            wdaFailCount += 1
-                            delay(Duration.ofSeconds(2).toMillis())
-                        }
-                    }
-
-                    if (wdaFailCount >= maxFailCount) {
-                        logger.error(logMarker, "WebDriverAgent health check failed $wdaFailCount times. Restarting WebDriverAgent")
-
-                        try {
-                            webDriverAgent.kill()
-                        } catch (e: RuntimeException) {
-                            logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
-                        }
-
-                        try {
-                            webDriverAgent.start()
-                        } catch (e: RuntimeException) {
-                            logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
-                            deviceState = DeviceState.FAILED
-                            throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
-                        }
-                    }
-                }
-
+                performFBSimctlHealthCheck(fbsimctlFailCount, maxFailCount)
+                performWebDriverAgentHealthCheck(wdaFailCount, maxFailCount)
                 delay(healthCheckInterval)
             }
         }
     }
 
+    private suspend fun performWebDriverAgentHealthCheck(wdaFailCount: Int, maxFailCount: Int) {
+        var wdaFailCount1 = wdaFailCount
+        if (webDriverAgent.isHealthy()) {
+            wdaFailCount1 = 0
+        } else {
+            (1..5).forEach {
+                if (webDriverAgent.isHealthy()) {
+                    wdaFailCount1 = 0
+                    return@forEach
+                } else {
+                    val message = "WebDriverAgent health check failed $wdaFailCount1 times."
+                    logger.error(logMarker, message)
+                    wdaFailCount1 += 1
+                    delay(Duration.ofSeconds(2).toMillis())
+                }
+            }
+
+            if (wdaFailCount1 >= maxFailCount) {
+                logger.error(logMarker, "WebDriverAgent health check failed $wdaFailCount1 times. Restarting WebDriverAgent")
+
+                try {
+                    webDriverAgent.kill()
+                } catch (e: RuntimeException) {
+                    logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
+                }
+
+                try {
+                    webDriverAgent.start()
+                } catch (e: RuntimeException) {
+                    logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
+                    deviceState = DeviceState.FAILED
+                    throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
+                }
+            }
+        }
+    }
+
+    private suspend fun performFBSimctlHealthCheck(fbsimctlFailCount: Int, maxFailCount: Int) {
+        var fbsimctlFailCount1 = fbsimctlFailCount
+        if (fbsimctlProc.isHealthy()) {
+            fbsimctlFailCount1 = 0
+        } else {
+            (1..5).forEach {
+                if (fbsimctlProc.isHealthy()) {
+                    fbsimctlFailCount1 = 0
+                    return@forEach
+                } else {
+                    val message = "Fbsimctl health check failed $fbsimctlFailCount1 times."
+                    logger.error(logMarker, message)
+                    fbsimctlFailCount1 += 1
+                    delay(Duration.ofSeconds(2).toMillis())
+                }
+            }
+
+            if (fbsimctlFailCount1 >= maxFailCount) {
+                logger.error(logMarker, "Fbsimctl health check failed $fbsimctlFailCount1 times. Restarting fbsimctl")
+
+                try {
+                    fbsimctlProc.kill()
+                } catch (e: RuntimeException) {
+                    logger.error(logMarker, "Failed to kill Fbsimctl. ${e.message}", e)
+                }
+
+                try {
+                    fbsimctlProc.start()
+                } catch (e: RuntimeException) {
+                    logger.error(logMarker, "Failed to restart Fbsimctl. ${e.message}", e)
+                    deviceState = DeviceState.FAILED
+                    throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
+                }
+            }
+        }
+    }
+
     private fun stopPeriodicHealthCheck() {
-        healthChecker?.cancel()
+        healthChecker?.let { checker ->
+            checker.cancel()
+            while (checker.isActive) {
+                Thread.sleep(100)
+            }
+        }
     }
 
     private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(10), retryInterval: Duration = Duration.ofSeconds(1)) {
@@ -435,17 +449,22 @@ class Simulator(
 
     private fun shutdown() {
         logger.info(logMarker, "Shutting down ${this@Simulator}")
+        stopPeriodicHealthCheck()
+        bootTask?.cancel(true)
+        installTask?.cancel(true)
+        ignoringErrors({ videoRecorder.stop() })
+        ignoringErrors({ webDriverAgent.kill() })
+        ignoringErrors({ fbsimctlProc.kill() })
+
         val result = remote.fbsimctl.shutdown(udid)
 
-        if (!result.isSuccess && !result.stdErr.contains("current state: Shutdown")) {
+        if (!result.isSuccess && !result.stdErr.contains("current state: Shutdown") && !result.stdOut.contains("current state: Shutdown")) {
             logger.debug(logMarker, "Error occured while shutting down simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
         }
 
-        ignoringErrors { fbsimctlProc.kill() }
-
         pollFor(
-            timeOut = Duration.ofSeconds(120),
-            retryInterval = Duration.ofSeconds(10),
+            timeOut = Duration.ofSeconds(90),
+            retryInterval = Duration.ofSeconds(5),
             reasonName = "${this@Simulator} to shutdown",
             logger = logger,
             marker = logMarker
@@ -532,8 +551,8 @@ class Simulator(
             waitUntilSimulatorBooted()
         }
 
-        val bootTask = concurrentBootsPool.submit(bootProc)
-        bootTask.get()
+        bootTask = concurrentBootsPool.submit(bootProc) // using limited amount of workers to boot simulator
+        bootTask?.get()
 
         try {
             pollFor(
@@ -704,8 +723,10 @@ class Simulator(
 
     //region reset async
     override fun resetAsync() {
-        if (deviceState == DeviceState.CREATING || deviceState == DeviceState.RESETTING) {
-            throw java.lang.IllegalStateException("Simulator $udid is already in state $deviceState")
+        if (deviceState != DeviceState.CREATED && deviceState != DeviceState.FAILED) {
+            val message = "Unable to perform reset. Simulator $udid is in state $deviceState"
+            logger.error(logMarker, message)
+            throw IllegalStateException(message)
         }
 
         executeCritical {
@@ -714,7 +735,6 @@ class Simulator(
             val nanos = measureNanoTime {
                 resetFromBackup()
                 try {
-                    stopPeriodicHealthCheck()
                     prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
                 } catch (e: Exception) { // catching most wide exception
                     deviceState = DeviceState.FAILED
@@ -739,7 +759,6 @@ class Simulator(
         logger.info(logMarker, "Starting to reset $this")
 
         executeWithTimeout(timeout, "Resetting simulator") {
-            disposeResources()
             shutdown()
 
             if (!backup.isExist()) {
@@ -827,11 +846,9 @@ class Simulator(
 
     //region release
     override fun release(reason: String) {
-        stopPeriodicHealthCheck()
         logger.info(logMarker, "Releasing device $this because $reason")
-        disposeResources()
         shutdown()
-        deleteSimulatorKeepingMetadata()
+        disposeResources()
         logger.info(logMarker, "Released device $this")
     }
 
@@ -853,7 +870,7 @@ class Simulator(
 
     private fun disposeResources() {
         ignoringErrors({ videoRecorder.dispose() })
-        ignoringErrors({ webDriverAgent.kill() })
+        deleteSimulatorKeepingMetadata()
     }
 
     private fun ignoringErrors(action: () -> Unit?) {
