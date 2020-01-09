@@ -480,7 +480,7 @@ class Simulator(
             "com.apple.bird",
             "com.apple.homed",
             "com.apple.SafariBookmarksSyncAgent",
-//            "com.apple.itunesstored",
+            "com.apple.itunesstored",
             "com.apple.assistant_service",
             "com.apple.cloudd",
             "com.apple.carkitd",
@@ -518,7 +518,7 @@ class Simulator(
             "com.apple.photoanalysisd",
             "com.apple.suggestd",
             "com.apple.purplebuddy.budd",
-            "com.apple.passd",
+//            "com.apple.passd",
             "com.apple.corespeechd",
             "com.apple.calaccessd",
             "com.apple.appstored"
