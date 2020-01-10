@@ -183,8 +183,8 @@ MJPEGVideoRecorder(
     }
 
     override fun dispose() {
-        logger.info(logMarker, "Terminating video recording process")
-        stop()
+        logger.info(logMarker, "Disposing video recording")
+        stopVideoRecording()
         delete()
         logger.info(logMarker, "Disposed video recording")
     }
