@@ -17,6 +17,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 import java.net.URI
@@ -332,7 +333,7 @@ class SimulatorsNodeTest {
         assertThat(portAllocator.available(), equalTo(6))
     }
 
-    @Test
+    @Test @Ignore
     fun resetAsync() {
         createDeviceForTest()
 

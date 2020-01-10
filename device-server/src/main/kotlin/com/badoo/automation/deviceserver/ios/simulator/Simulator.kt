@@ -2,10 +2,10 @@ package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
+import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
 import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
 import com.badoo.automation.deviceserver.ios.proc.IWebDriverAgent
 import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.NANOSECONDS
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.system.measureNanoTime
@@ -214,7 +215,7 @@ class Simulator(
                 }
             }
 
-            val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+            val seconds = NANOSECONDS.toSeconds(nanos)
             val measurement = mutableMapOf(
                 "action_name" to "prepareAsync",
                 "duration" to seconds
@@ -240,6 +241,7 @@ class Simulator(
                         backup.restore()
                     } catch (e: SimulatorBackupError) {
                         logger.warn(logMarker, "Will erase simulator and re-create backup for ${this@Simulator}")
+                        shutdown()
                         backup.delete()
                         eraseSimulatorAndCreateBackup()
                     }
@@ -249,6 +251,8 @@ class Simulator(
             }
 
             logTiming("simulator boot") { boot() }
+
+            fbsimctlProc.start()
 
             if (useWda) {
                 logTiming("starting WebDriverAgent") { startWdaWithRetry() }
@@ -406,6 +410,12 @@ class Simulator(
         logger.info(logMarker, "Booting ${this@Simulator} before creating a backup")
         logTiming("initial boot") { boot() }
 
+        val osVersion = Regex("[0-9.]+").find(deviceInfo.os)?.value?.toFloat()
+        if (osVersion != null && osVersion >= 13) {
+            logger.info(logMarker, "Saving Preference that Continuous Path Introduction was shown")
+            writeSimulatorDefaults("com.apple.Preferences DidShowContinuousPathIntroduction -bool true")
+        }
+
         if (assetsPath.isNotEmpty()) {
             copyMediaAssets()
         }
@@ -492,6 +502,8 @@ class Simulator(
             "com.apple.ap.adprivacyd",
             "com.apple.siri.ClientFlow.ClientScripter",
             "com.apple.healthd",
+            "com.apple.mobileassetd",
+             "com.apple.accessibility.AccessibilityUIServer",
             "com.apple.siri.context.service",
             "com.apple.remindd",
             "com.apple.searchd",
@@ -539,89 +551,59 @@ class Simulator(
         remote.exec(cmd, mapOf(), false, 60L)
     }
 
-    private val requiredRecords = listOf(
-        "GDRRequestMadeForRelayRepair"
-    )
-    private val requiredRecordsIos13 = requiredRecords + listOf(
-        "com.apple.parsecd"
-    )
-
     private fun boot() {
         logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
-        truncateSystemLogIfExists()
-        logger.info(logMarker, "Starting fbsimctl on ${this@Simulator}")
-
-        val bootProc = {
-            bootSimulator()
-            waitUntilSimulatorBooted()
-        }
-
-        bootTask = concurrentBootsPool.submit(bootProc) // using limited amount of workers to boot simulator
-        bootTask?.get()
-
-        try {
-            pollFor(
-                Duration.ofSeconds(60),
-                retryInterval = Duration.ofSeconds(5),
-                reasonName = "${this@Simulator} initial boot",
-                shouldReturnOnTimeout = false,
-                logger = logger,
-                marker = logMarker
-            ) {
-                val cmd = listOf("/usr/bin/xcrun", "simctl", "list", "devices")
-                val result = remote.exec(cmd, mapOf(), true, 30L)
-                if (result.isSuccess) {
-                    val simulatorStatusLne = result.stdOut.lines().find { it.contains(udid) }
-                        ?: throw WaitTimeoutError("Unable to find simulator with $udid. Found: ${result.stdOut}")
-                    simulatorStatusLne.contains("Booted")
-                } else {
-                    logger.debug(logMarker, "Failed to get simulator state. STDOUT: ${result.stdOut}. STDERR: ${result.stdErr}")
-                    false
-                }
+        val nanos = measureNanoTime {
+            val task = concurrentBootsPool.submit { // using limited amount of workers to boot simulator
+                bootSimulator()
+                waitUntilSimulatorBooted()
             }
-        } catch (e: WaitTimeoutError) {
-            throw WaitTimeoutError("${e.message}. Simulator is in wrong state", e)
+            bootTask = task
+            task.get()
         }
-
-        val osVersion = Regex("[0-9.]+").find(deviceInfo.os)?.value?.toFloat()
-        val requiredServiceRecords = if (osVersion != null && osVersion >= 13) {
-            requiredRecordsIos13
-        } else {
-            requiredRecords
-        }
-
-        pollFor(Duration.ofMinutes(2),
-            retryInterval = Duration.ofSeconds(5),
-            reasonName = "${this@Simulator} to load required services",
-            shouldReturnOnTimeout = true,
-            logger = logger,
-            marker = logMarker
-        ) {
-            logger.debug(logMarker, "Checking that defaults contain values $requiredServiceRecords")
-            requiredServiceRecords.all { readSimulatorDefaults().contains(it) }
-        }
-
-        if (osVersion != null && osVersion >= 13) {
-            logger.info(logMarker, "Saving Preference that Continuous Path Introduction was shown")
-            writeSimulatorDefaults("com.apple.Preferences DidShowContinuousPathIntroduction -bool true")
-        }
-
-        fbsimctlProc.start()
-
-        logger.info(logMarker, "Device ${this@Simulator} is sufficiently booted")
+        val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
+        logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
     }
 
+    sealed class RequiredService(val bundleId: String, @Volatile var booted: Boolean = false) {
+        class SpringBoard() : RequiredService("com.apple.SpringBoard")
+        class TextInput() : RequiredService("com.apple.TextInput.kbd")
+        class AccessibilityUIServer() : RequiredService("com.apple.accessibility.AccessibilityUIServer")
+        class Spotlight() : RequiredService("com.apple.Spotlight")
+        class Locationd() : RequiredService("com.apple.locationd")
+
+        override fun toString(): String {
+            return bundleId
+        }
+    }
+
+    val failedExitCodes = listOf(
+        // 143 - terminated
+        164, // Invalid device (not existing)
+        165 // Invalid device state (not Booted)
+    )
+
     private fun waitUntilSimulatorBooted() {
+        val requiredServices = listOf(
+//            RequiredService.AccessibilityUIServer(),
+//            RequiredService.Locationd(), // takes 1 extra minute to load
+//            RequiredService.TextInput(),
+            RequiredService.Spotlight(),
+            RequiredService.SpringBoard()
+        )
+
         val predicate = if (remote.isLocalhost()) {
-            "eventMessage contains 'Bootstrap success' and eventMessage contains 'com.apple.Spotlight'"
+            "eventMessage contains 'Bootstrap success'"
         } else {
-            "\"eventMessage contains 'Bootstrap success' and eventMessage contains 'com.apple.Spotlight'\""
+            "\"eventMessage contains 'Bootstrap success'\""
         }
 
+        val simulatorBootTimeOutMinutes = 2
         val cmd = listOf(
             "/usr/bin/xcrun", "simctl", "spawn", udid, "log", "stream",
-            "--timeout", "3m",
+            "--timeout", "${simulatorBootTimeOutMinutes}m",
             "--color", "none",
+            "--level", "info",
             "--process", "SpringBoard",
             "--predicate", predicate
         )
@@ -634,10 +616,14 @@ class Simulator(
             stdOut.append(line)
             stdOut.append("\n")
 
-            val found = !line.contains("Filtering the log data using") && line.contains("Bootstrap success")
-            if (found) {
+            requiredServices.forEach { service ->
+                if (line.contains(service.bundleId)) {
+                    service.booted = true
+                }
+            }
+
+            if (requiredServices.all { it.booted }) {
                 process.destroy()
-                logger.debug(logMarker, "Simulator $udid sufficiently booted.")
             }
         }
 
@@ -650,22 +636,26 @@ class Simulator(
         executor.submit(lineReader(process.inputStream, outReader))
         executor.submit(lineReader(process.errorStream, errReader))
         executor.shutdown()
-        val finishedGracefully = process.waitFor(3, TimeUnit.MINUTES)
-        val failedExitCodes = listOf(
-            164, // Invalid device (not existing)
-            165 // Invalid device state (not Booted)
-        )
 
-        if (finishedGracefully && failedExitCodes.any { process.exitValue() == it }) {
+        val finishedInTime = process.waitFor(simulatorBootTimeOutMinutes*60L + 15L, TimeUnit.SECONDS)
+        val exitCode = if (finishedInTime) process.exitValue() else -1
+
+        if (failedExitCodes.any { exitCode == it }) {
             val errorMessage = "Simulator $udid failed to boot. Exit code: ${process.exitValue()}. StdErr: $stdErr. StdOut: $stdOut"
             logger.error(logMarker, errorMessage)
-            throw RuntimeException(errorMessage)
+            throw DeviceCreationException(errorMessage)
         }
 
-        if (finishedGracefully) {
-            logger.info(logMarker, "Simulator $udid successfully booted to sufficient state.")
-        } else {
-            logger.error(logMarker, "Simulator $udid failed to successfully boot to sufficient state. Exit code: ${process.exitValue()}. StdErr: $stdErr. StdOut: $stdOut")
+        if (requiredServices.any { !it.booted }) {
+            val failedServices = requiredServices.filter { !it.booted }
+            val failedServicesMessage = if (failedServices.isNotEmpty()) "Failed services [${failedServices.joinToString(", ")}]" else ""
+            val errorMessage = "Simulator $udid failed to successfully boot to sufficient state. $failedServicesMessage. Exit code: $exitCode. StdErr: $stdErr. StdOut: $stdOut"
+            logger.error(logMarker, errorMessage)
+            throw DeviceCreationException(errorMessage)
+        }
+
+        if (!finishedInTime) {
+            logger.error(logMarker, "Simulator $udid log has not exited in time. Possible errors. Exit code: $exitCode. StdErr: $stdErr. StdOut: $stdOut")
         }
     }
 
@@ -692,31 +682,10 @@ class Simulator(
         return remote.execIgnoringErrors("/usr/bin/xcrun simctl spawn $udid defaults read".split(" ")).stdOut
     }
 
-    private fun truncateSystemLogIfExists() {
-        val sysLog = remote.fbsimctl.diagnose(udid).sysLogLocation ?: return
-
-        if (remote.isLocalhost()) {
-            try {
-                FileOutputStream(sysLog).channel.use {
-                    it.truncate(0)
-                }
-            } catch(e: IOException) {
-                logger.error(logMarker, "Error truncating sysLog $this", e)
-            }
-        } else {
-            try {
-                remote.shell("echo -n > $sysLog", returnOnFailure = true)
-                logger.debug(logMarker, "Truncated syslog of simulator ${this@Simulator}")
-            } catch (e: RuntimeException) {
-                logger.error(logMarker, "Error while truncating syslog of simulator ${this@Simulator}", e)
-            }
-        }
-    }
-
     private fun logTiming(actionName: String, action: () -> Unit) {
         logger.info(logMarker, "Device ${this@Simulator} starting action <$actionName>")
         val nanos = measureNanoTime(action)
-        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+        val seconds = NANOSECONDS.toSeconds(nanos)
         val measurement = mutableMapOf(
                 "action_name" to actionName,
                 "duration" to seconds
@@ -740,6 +709,7 @@ class Simulator(
                 deviceState = DeviceState.RESETTING
 
                 val nanos = measureNanoTime {
+                    shutdown()
                     resetFromBackup()
                     try {
                         prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
@@ -750,7 +720,7 @@ class Simulator(
                     }
                 }
 
-                val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+                val seconds = NANOSECONDS.toSeconds(nanos)
 
                 val measurement = mutableMapOf(
                     "action_name" to "resetAsync",
@@ -767,8 +737,6 @@ class Simulator(
         logger.info(logMarker, "Starting to reset $this")
 
         executeWithTimeout(timeout, "Resetting simulator") {
-            shutdown()
-
             if (!backup.isExist()) {
                 logger.error(logMarker, "Could not find backup for $this")
                 throw SimulatorError("Could not find backup for $this")
