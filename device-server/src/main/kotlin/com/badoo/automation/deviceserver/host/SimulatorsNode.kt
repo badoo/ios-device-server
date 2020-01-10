@@ -160,11 +160,7 @@ class SimulatorsNode(
             val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, simulatorProvider.deviceSetPath,
                     wdaRunnerXctest, concurrentBoot, desiredCaps.headless, desiredCaps.useWda)
 
-            val prepareTask = prepareTasks[ref]
-            if (prepareTask != null && !prepareTask.isDone) {
-                logger.error(logMarker, "Cancelling async task for Simulator $ref while performing createDeviceAsync")
-                prepareTask.cancel(true)
-            }
+            cancelRunningSimulatorTask(ref, "createDeviceAsync")
 
             prepareTasks[ref] = simulatorsBootExecutorService.submit {
                 simulator.prepareAsync()
@@ -257,13 +253,9 @@ class SimulatorsNode(
         val disposeJobs = createdSimulators.map {
             launch(context = simulatorsThreadPool) {
                 try {
-                    val prepareTask = prepareTasks[it.value.ref]
-                    if (prepareTask != null && !prepareTask.isDone) {
-                        logger.error(logMarker, "Cancelling async task for Simulator ${it.value.ref} while performing dispose")
-                        prepareTask.cancel(true)
-                    }
-
-                    it.value.release("Finalising pool for ${remote.hostName}")
+                    val simulator = it.value
+                    cancelRunningSimulatorTask(simulator.ref, "dispose")
+                    simulator.release("Finalising pool for ${remote.hostName}")
                 } catch (e: Throwable) {
                     logger.error(logMarker, "While releasing '${it.key}' for ${remote.hostName}: $e")
                 }
@@ -311,29 +303,30 @@ class SimulatorsNode(
 
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
         val iSimulator = createdSimulators[deviceRef] ?: return false
-        iSimulator.release("deleteRelease $reason $deviceRef")
 
-        val prepareTask = prepareTasks[deviceRef]
-        if (prepareTask != null && !prepareTask.isDone) {
-            logger.error(logMarker, "Cancelling async task for Simulator $deviceRef while performing deleteRelease")
-            prepareTask.cancel(true)
-        }
+        cancelRunningSimulatorTask(deviceRef, "deleteRelease")
+
+        iSimulator.release("deleteRelease $reason $deviceRef")
 
         createdSimulators.remove(deviceRef)
         val entries = allocatedPorts[deviceRef] ?: return true
         portAllocator.deallocateDAP(entries)
+
         return true
+    }
+
+    private fun cancelRunningSimulatorTask(deviceRef: DeviceRef, reason: String) {
+        prepareTasks[deviceRef]?.let { oldPrepareTask ->
+            if (!oldPrepareTask.isDone) {
+                logger.error(logMarker, "Cancelling async task for Simulator $deviceRef while performing $reason")
+                oldPrepareTask.cancel(true)
+            }
+        }
     }
 
     override fun resetAsync(deviceRef: DeviceRef) {
         getDeviceFor(deviceRef).resetAsync().let { resetProc ->
-            prepareTasks[deviceRef]?.let { oldPrepareTask ->
-                if (!oldPrepareTask.isDone) {
-                    logger.error(logMarker, "Cancelling async task for Simulator $deviceRef while performing resetAsync")
-                    oldPrepareTask.cancel(true)
-                }
-            }
-
+            cancelRunningSimulatorTask(deviceRef, "resetAsync")
             prepareTasks[deviceRef] = simulatorsBootExecutorService.submit(resetProc)
         }
     }
