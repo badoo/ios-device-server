@@ -535,7 +535,7 @@ class Simulator(
             "com.apple.photoanalysisd",
             "com.apple.suggestd",
             "com.apple.purplebuddy.budd",
-//            "com.apple.passd",
+            "com.apple.passd",
             "com.apple.corespeechd",
             "com.apple.calaccessd",
             "com.apple.appstored"
@@ -588,8 +588,8 @@ class Simulator(
 //            RequiredService.AccessibilityUIServer(),
 //            RequiredService.Locationd(), // takes 1 extra minute to load
 //            RequiredService.TextInput(),
-            RequiredService.Spotlight(),
-            RequiredService.SpringBoard()
+//            RequiredService.SpringBoard(),
+            RequiredService.Spotlight()
         )
 
         val predicate = if (remote.isLocalhost()) {
