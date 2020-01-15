@@ -55,23 +55,23 @@ class DevicesControllerTest {
 
     @Test
     fun createDevice() {
-        whenever(deviceManager.createDeviceAsync(desiredCaps, null)).thenReturn(expectedDeviceRef)
+        whenever(deviceManager.createDeviceAsync(desiredCaps, null)).thenReturn(expectedDeviceDTO)
 
         val actualDeviceRef = deviceServer.createDevice(desiredCaps, null)
 
         verify(deviceManager, times(1)).createDeviceAsync(desiredCaps, null)
-        assertThat(actualDeviceRef, equalTo(expectedDeviceRef))
+        assertThat(actualDeviceRef, equalTo(expectedDeviceDTO))
     }
 
     @Test
     fun createDeviceNoUdid() {
         val desiredCapsWithEmptyUdid = DesiredCapabilities(null, model, os, headless)
-        whenever(deviceManager.createDeviceAsync(desiredCapsWithEmptyUdid, null)).thenReturn(expectedDeviceRef)
+        whenever(deviceManager.createDeviceAsync(desiredCapsWithEmptyUdid, null)).thenReturn(expectedDeviceDTO)
 
         val actualDeviceRef = deviceServer.createDevice(desiredCapsNoUdid, null)
 
         verify(deviceManager, times(1)).createDeviceAsync(desiredCapsWithEmptyUdid, null)
-        assertThat(actualDeviceRef, equalTo(expectedDeviceRef))
+        assertThat(actualDeviceRef, equalTo(expectedDeviceDTO))
     }
 
     @Test
