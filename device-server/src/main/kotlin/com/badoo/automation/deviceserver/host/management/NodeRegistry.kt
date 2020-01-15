@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
+import com.badoo.automation.deviceserver.data.DeviceDTO
 import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.host.ISimulatorsNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
@@ -79,7 +80,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
         return remainingCapacity > 0F
     }
 
-    fun createDeviceAsync(desiredCapabilities: DesiredCapabilities, deviceTimeout: Duration, userId: String?): DeviceRef {
+    fun createDeviceAsync(desiredCapabilities: DesiredCapabilities, deviceTimeout: Duration, userId: String?): DeviceDTO {
         if (getAll().isEmpty()) {
             throw NoNodesRegisteredException("No nodes are registered to create a device")
         }
@@ -101,7 +102,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
 
         activeDevices.registerDevice(dto.ref, node, userId)
 
-        return dto.ref
+        return dto
     }
 
     fun dispose() {

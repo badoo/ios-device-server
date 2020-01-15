@@ -171,9 +171,8 @@ fun Application.module() {
             }
             post {
                 val user = call.principal<UserIdPrincipal>()
-                val deviceRef = devicesController.createDevice(jsonContent<DesiredCapabilities>(call), user)
-                val message = mapOf("ref" to deviceRef)
-                call.respond(message)
+                val deviceDto: DeviceDTO = devicesController.createDevice(jsonContent<DesiredCapabilities>(call), user)
+                call.respond(deviceDto)
             }
             delete {
                 val user = call.principal<UserIdPrincipal>()

@@ -31,8 +31,8 @@ class IDevicePooledFactory(
         override fun create(desiredCaps: DesiredCapabilities): IDevice {
             println("creating simulator for $desiredCaps")
             try {
-                val ref = nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, "")
-                val node = nodeRegistry.activeDevices.getNodeFor(ref)
+                val dto = nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, "")
+                val node = nodeRegistry.activeDevices.getNodeFor(dto.ref)
 
             } catch(e: NoNodesRegisteredException) {
                 val erredNodes = autoRegistrar.nodeWrappers.filter { n -> n.lastError != null }
