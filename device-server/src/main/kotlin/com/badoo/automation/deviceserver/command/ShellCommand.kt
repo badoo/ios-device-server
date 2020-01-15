@@ -13,18 +13,14 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.time.Duration
-import java.util.concurrent.Callable
-import java.util.concurrent.SynchronousQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 
 open class ShellCommand(
     private val commonEnvironment: Map<String, String>
 ) : IShellCommand {
     protected val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     protected open val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to "localhost"))
-    private val executor =
-        ThreadPoolExecutor(60, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, SynchronousQueue<Runnable>())
+    private val executor = Executors.newCachedThreadPool()
 
     override fun exec(
         command: List<String>, environment: Map<String, String>, timeOut: Duration,
