@@ -13,8 +13,7 @@ import kotlin.system.measureNanoTime
 
 class AppInstaller(
     private val remote: IRemote,
-    private val installExecutor: ExecutorService = Executors.newFixedThreadPool(15),
-    private val uninstallExecutor: ExecutorService = Executors.newFixedThreadPool(15)
+    private val installExecutor: ExecutorService = Executors.newCachedThreadPool()
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
@@ -49,7 +48,7 @@ class AppInstaller(
     fun uninstallApplication(udid: UDID, bundleId: String) {
         val logMarker = logMarker(udid)
         terminateApplication(logMarker, bundleId, udid)
-        val uninstallTask = uninstallExecutor.submit(Callable {
+        val uninstallTask = installExecutor.submit(Callable {
             try {
                 logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $udid")
                 val uninstallResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "uninstall", udid, bundleId), mapOf(), false, 60)
