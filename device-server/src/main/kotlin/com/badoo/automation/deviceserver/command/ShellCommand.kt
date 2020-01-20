@@ -113,7 +113,7 @@ open class ShellCommand(
             inputStream.use {
                 val inputStreamReader = InputStreamReader(it, StandardCharsets.UTF_8)
                 val builder = StringBuilder()
-                val reader = BufferedReader(inputStreamReader, 65356)
+                val reader = BufferedReader(inputStreamReader, 1045696)
 
                 var line: String? = reader.readLine()
 
