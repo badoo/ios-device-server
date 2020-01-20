@@ -210,6 +210,7 @@ class Simulator(
                     deviceState = DeviceState.FAILED
                     logger.error(logMarker, "Failed to prepare device ${this@Simulator}", e)
                     shutdown()
+                    disposeResources()
                     throw e
                 }
             }
@@ -722,6 +723,8 @@ class Simulator(
                     } catch (e: Exception) { // catching most wide exception
                         deviceState = DeviceState.FAILED
                         logger.error(logMarker, "Failed to reset and prepare device ${this@Simulator}", e)
+                        shutdown()
+                        disposeResources()
                         throw e
                     }
                 }
