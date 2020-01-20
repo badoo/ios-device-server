@@ -30,7 +30,7 @@ class SimulatorBackupTest {
     private val deviceSetPath = "/home/user/backup"
     private val captor = ArgumentCaptor.forClass(listOf("").javaClass)
     private val resultStub = CommandResult("", "", 0, pid = 1)
-    private val resultFailureStub = CommandResult("", "", 1, pid = 1)
+    private val resultFailureStub = CommandResult("There is no such file or directory!", "", 1, pid = 1)
     @Mock private lateinit var config: ApplicationConfiguration
     @Mock
     private lateinit var simulatorDirectory: File

@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.File
 import java.io.IOException
-import java.time.Duration
 
 class SimulatorBackup(
         private val remote: IRemote,
@@ -75,9 +74,25 @@ class SimulatorBackup(
     //region create backup
     override fun create() {
         remote.execIgnoringErrors(listOf("rm", "-rf", backupPath))
-        val result = remote.execIgnoringErrors(listOf("cp", "-R", simulatorDirectory.absolutePath, backupPath), timeOutSeconds = 120)
+        val result = remote.execIgnoringErrors(listOf("cp", "-Rp", simulatorDirectory.absolutePath, backupPath), timeOutSeconds = 120)
 
-        ensureSuccess(result, "$this failed to create backup $backupPath: $result")
+        if (!result.isSuccess) {
+            val stdOutLines = result.stdOut.lines().map { it.trim() }.filter { it.isNotBlank() }
+
+            val ignorableFailures = stdOutLines.filter { it.contains("Deleting") && it.contains("No such file or directory") }
+
+            if (ignorableFailures.isNotEmpty()) {
+                logger.warn(logMarker, "Failed to copy ignorable files while creating backup for simulator $udid at path: [$backupPath]: ${ignorableFailures.joinToString(", ")}")
+            }
+
+            val failures = stdOutLines.filter { !it.contains("Deleting") && !it.contains("No such file or directory") }
+
+            if (failures.isNotEmpty()) {
+                val message = "Failed to copy files while creating backup for simulator $udid at path: [$backupPath]: ${failures.joinToString(", ")}"
+                logger.error(logMarker, message)
+                throw SimulatorBackupError("$this failed to create backup $backupPath: $result", SimulatorBackupError(message))
+            }
+        }
 
         writeMeta()
         logger.debug(logMarker, "Created backup for simulator $udid at path: [$backupPath]")
