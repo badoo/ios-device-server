@@ -36,7 +36,7 @@ class SimulatorBackup(
     ))
 
     companion object {
-        const val CURRENT_VERSION = 3
+        const val CURRENT_VERSION = 4
     }
 
     data class BackupMeta(val version: Int, val created: String) {
