@@ -172,16 +172,15 @@ class Simulator(
         appBinaryPath: File
     ) {
         deviceLock.withLock {
-            val existingTask: Future<Boolean>? = installTask
-
-            if (existingTask != null && !existingTask.isDone) {
-                val message = "Failed to install app $appBundleId to simulator $udid due to previous task is not finished"
-                logger.error(logMarker, message)
-                throw RuntimeException(message)
+            installTask?.let { oldInstallTask ->
+                if (!oldInstallTask.isDone) {
+                    val message = "Failed to install app $appBundleId to simulator $udid due to previous task is not finished"
+                    logger.error(logMarker, message)
+                    throw RuntimeException(message)
+                }
             }
 
-            val task: Future<Boolean> = appInstaller.installApplication(udid, appBundleId, appBinaryPath)
-            installTask = task
+            installTask = appInstaller.installApplication(udid, appBundleId, appBinaryPath)
         }
     }
 
@@ -495,7 +494,7 @@ class Simulator(
             "com.apple.bird",
             "com.apple.homed",
             "com.apple.SafariBookmarksSyncAgent",
-            "com.apple.itunesstored",
+//            "com.apple.itunesstored",
             "com.apple.assistant_service",
             "com.apple.cloudd",
             "com.apple.carkitd",
@@ -535,10 +534,10 @@ class Simulator(
             "com.apple.photoanalysisd",
             "com.apple.suggestd",
             "com.apple.purplebuddy.budd",
-            "com.apple.passd",
+//            "com.apple.passd",
             "com.apple.corespeechd",
-            "com.apple.calaccessd",
-            "com.apple.appstored"
+//            "com.apple.appstored",
+            "com.apple.calaccessd"
         ).map {
             "--disabledJob=$it"
         }
@@ -565,15 +564,16 @@ class Simulator(
         logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
     }
 
-    sealed class RequiredService(val bundleId: String, @Volatile var booted: Boolean = false) {
+    sealed class RequiredService(val identifier: String, @Volatile var booted: Boolean = false) {
         class SpringBoard() : RequiredService("com.apple.SpringBoard")
         class TextInput() : RequiredService("com.apple.TextInput.kbd")
         class AccessibilityUIServer() : RequiredService("com.apple.accessibility.AccessibilityUIServer")
         class Spotlight() : RequiredService("com.apple.Spotlight")
+        class SpotlightIos12() : RequiredService("SpotlightIndex")
         class Locationd() : RequiredService("com.apple.locationd")
 
         override fun toString(): String {
-            return bundleId
+            return identifier
         }
     }
 
@@ -584,29 +584,35 @@ class Simulator(
     )
 
     private fun waitUntilSimulatorBooted() {
-        val requiredServices = listOf(
-//            RequiredService.AccessibilityUIServer(),
-//            RequiredService.Locationd(), // takes 1 extra minute to load
-//            RequiredService.TextInput(),
-//            RequiredService.SpringBoard(),
-            RequiredService.Spotlight()
-        )
-
         val predicate = if (remote.isLocalhost()) {
-            "eventMessage contains 'Bootstrap success'"
+            "eventMessage contains 'Bootstrap success' OR (eventMessage contains 'LaunchServices' AND eventMessage contains 'registering extension')"
         } else {
-            "\"eventMessage contains 'Bootstrap success'\""
+            "\"eventMessage contains 'Bootstrap success' OR (eventMessage contains 'LaunchServices' AND eventMessage contains 'registering extension')\""
         }
 
         val simulatorBootTimeOutMinutes = 2
-        val cmd = listOf(
+        val cmd = mutableListOf(
             "/usr/bin/xcrun", "simctl", "spawn", udid, "log", "stream",
             "--timeout", "${simulatorBootTimeOutMinutes}m",
             "--color", "none",
-            "--level", "info",
-            "--process", "SpringBoard",
-            "--predicate", predicate
-        )
+            "--level", "info")
+
+        if (deviceInfo.os.contains("iOS 13")) {
+            cmd.add("--process")
+            cmd.add("SpringBoard")
+        }
+
+        cmd.add("--predicate")
+        cmd.add(predicate)
+
+        val requiredServices = mutableListOf<RequiredService>()
+
+        if (deviceInfo.os.contains("iOS 12")) {
+            requiredServices.add(RequiredService.SpotlightIos12())
+        } else {
+            requiredServices.add(RequiredService.Spotlight())
+        }
+
         val process = remote.remoteExecutor.startProcess(cmd, mapOf(), logMarker)
 
         val stdOut = StringBuilder()
@@ -617,7 +623,7 @@ class Simulator(
             stdOut.append("\n")
 
             requiredServices.forEach { service ->
-                if (line.contains(service.bundleId)) {
+                if (line.contains(service.identifier)) {
                     service.booted = true
                 }
             }
