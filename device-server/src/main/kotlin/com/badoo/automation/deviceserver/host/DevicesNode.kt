@@ -453,7 +453,8 @@ class DevicesNode(
 
     private fun cleanup() {
         // single instance of server on node is implied, so we can kill all simulators and fbsimctl processes
-        remote.execIgnoringErrors(listOf("pkill", "-9", "/usr/local/bin/fbsimctl"))
+        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/usr/local/bin/fbsimctl"))
+        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/usr/local/bin/iproxy"))
     }
 
     override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
