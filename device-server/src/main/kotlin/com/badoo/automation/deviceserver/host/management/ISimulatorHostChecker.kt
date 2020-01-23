@@ -149,6 +149,7 @@ class SimulatorHostChecker(
         // disable simulator location
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator LocationMode \"3101\"".split(" "))
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator ShowChrome -bool false".split(" "))
+        remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator ShowSingleTouches -bool true".split(" "))
         //  other options that might be useful are:
         //  EnableKeyboardSync = 0;
         //  GraphicsQualityOverride = 10;
