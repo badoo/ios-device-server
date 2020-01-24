@@ -6,9 +6,9 @@ import okhttp3.Request
 import java.net.*
 import java.util.concurrent.TimeUnit
 
-class CustomHttpClient {
+class CustomHttpClient(val client: OkHttpClient = defaultHttpClient) {
     companion object {
-        private val client: OkHttpClient = OkHttpClient.Builder()
+        private val defaultHttpClient: OkHttpClient = OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
@@ -24,8 +24,8 @@ class CustomHttpClient {
             val result = client.newCall(request).execute()
 
             return HttpResult(
-                    responseBody = result.body()?.string() ?: "",
-                    httpCode = result.code()
+                    responseBody = result.body?.string() ?: "",
+                    httpCode = result.code
             )
         } catch (e: SocketTimeoutException) {
             return HttpResult(ConnectionTimedOut.code)
