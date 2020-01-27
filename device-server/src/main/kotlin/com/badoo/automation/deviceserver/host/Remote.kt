@@ -24,11 +24,11 @@ class Remote(
         const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
         private const val INITIAL_BUFFER_SIZE = 10 * 1024 * 1024 //FIXME: looks arbitrary. taken as an average of video file sizes
 
-        fun getRemoteCommandExecutor(hostName: String, userName: String, isInteractiveShell: Boolean = false): IShellCommand {
+        fun getRemoteCommandExecutor(hostName: String, userName: String): IShellCommand {
             return if (isLocalhost(hostName, userName)) {
                 ShellCommand(commonEnvironment = mapOf("HOME" to System.getProperty("user.home")))
             } else {
-                RemoteShellCommand(hostName, userName, isInteractiveShell = isInteractiveShell)
+                RemoteShellCommand(hostName, userName)
             }
         }
     }
@@ -80,7 +80,7 @@ class Remote(
 
         val tempFile = File.createTempFile("remoteFile", ".bin")
         try {
-            scpFromRemoteHost(file.absolutePath, tempFile.absolutePath, Duration.ofMinutes(2));
+            scpFromRemoteHost(file.absolutePath, tempFile.absolutePath, Duration.ofMinutes(2))
             return tempFile.readBytes()
         } finally {
             tempFile.delete()

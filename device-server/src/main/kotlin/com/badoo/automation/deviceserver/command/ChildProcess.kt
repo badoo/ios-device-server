@@ -41,11 +41,11 @@ class ChildProcess private constructor(
 
     companion object {
         fun fromCommand(
-            remoteHost: String, userName: String, cmd: List<String>, isInteractiveShell: Boolean,
+            remoteHost: String, userName: String, cmd: List<String>,
             out_reader: ((line: String) -> Unit)?,
             err_reader: ((line: String) -> Unit)?
         ): ChildProcess {
-            val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName, isInteractiveShell = isInteractiveShell)
+            val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName)
             return ChildProcess(cmd, executor, remoteHost, LongRunningProcessListener(out_reader, err_reader))
         }
     }
