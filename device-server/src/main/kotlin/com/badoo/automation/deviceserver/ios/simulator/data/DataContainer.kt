@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.ios.simulator.data
 import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.host.IRemote
 import java.io.File
+import java.lang.RuntimeException
 import java.nio.file.Path
 
 class DataContainer(
@@ -25,11 +26,11 @@ class DataContainer(
     fun readFile(path: Path): ByteArray {
         val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
 
-        val result = remote.captureFile(File(expandedPath))
-        if (!result.isSuccess) {
-            throw DataContainerException("Could not read file $path for $bundleId: $result")
+        try {
+            return remote.captureFile(File(expandedPath))
+        } catch (e: RuntimeException) {
+            throw DataContainerException("Could not read file $path for $bundleId", e)
         }
-        return result.stdOutBytes
     }
 
     private fun sshNoEscapingWorkaround(path: String): String {
