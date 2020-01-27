@@ -15,7 +15,6 @@ class DeviceFbsimctlProc(
         remoteHost: String,
         username: String,
         cmd: List<String>,
-        isInteractiveShell: Boolean,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
     ) -> ChildProcess = ChildProcess.Companion::fromCommand

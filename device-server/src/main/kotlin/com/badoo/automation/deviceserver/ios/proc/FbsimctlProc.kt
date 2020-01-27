@@ -16,7 +16,6 @@ open class FbsimctlProc(
         remoteHost: String,
         username: String,
         cmd: List<String>,
-        isInteractiveShell: Boolean,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
@@ -33,7 +32,6 @@ open class FbsimctlProc(
                 remote.hostName,
                 remote.userName,
                 getFbsimctlCommand(headless),
-                true,
                 { logger.trace(logMarker, "${this@FbsimctlProc}: FbSimCtl <o>: ${it.trim()}") },
                 { logger.debug(logMarker, "${this@FbsimctlProc}: FbSimCtl <e>: ${it.trim()}") }
         )
