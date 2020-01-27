@@ -8,6 +8,7 @@ import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito
+import java.io.File
 import java.nio.file.Paths
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -78,11 +79,7 @@ class DataContainerTest {
     @Test
     fun shouldReadFileAsByteArray() {
         val expected = "123".toByteArray()
-        val cmdResult = CommandResult("", "", expected, 0)
-
-        whenever(remote.captureFile(Paths.get(containerPathStub, "Library/Caches/file.txt").toFile())).thenReturn(
-            cmdResult
-        )
+        whenever(remote.captureFile(File(containerPathStub, "Library/Caches/file.txt"))).thenReturn(expected)
 
         val container = DataContainer(
             remote = remote,
