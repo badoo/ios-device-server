@@ -7,7 +7,7 @@ declare -r DEVICE_SERVER_JAR="${DEVICE_SERVER_JAR:?Jar file is required}"
 
 declare -r WDA_RUNNER=${DEVICE_SERVER_WDA_SIMULATOR_RUNNER:-'../ios/facebook/simulators/WebDriverAgentRunner-Runner.app'}
 declare -r WDA_DEVICE_RUNNER=${DEVICE_SERVER_WDA_DEVICE_RUNNER:-'../ios/facebook/devices/WebDriverAgentRunner-Runner.app'}
-declare -r FBSIMCTL_VERSION=${DEVICE_SERVER_FBSIMCTL_VERSION:-'HEAD-d30c2a73'}
+declare -r FBSIMCTL_VERSION=${DEVICE_SERVER_FBSIMCTL_VERSION:-'HEAD-a7c52ce'}
 declare -r LOG_CONFIG=${DEVICE_SERVER_LOG_CONFIG:-'logback-test.xml'}
 declare -r NETTY_WORKER_GROUP_SIZE=${NETTY_WORKER_GROUP_SIZE:-''}
 declare -r NETTY_CALL_GROUP_SIZE=${NETTY_CALL_GROUP_SIZE:-''}
