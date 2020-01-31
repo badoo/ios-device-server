@@ -65,8 +65,9 @@ class FbsimctlProcTest {
         remoteHost: String,
         username: String,
         cmd: List<String>,
-        out_reader: (line: String) -> Unit,
-        err_reader: (line: String) -> Unit
+        commandEnvironment: Map<String, String>,
+        out_reader: ((line: String) -> Unit)?,
+        err_reader: ((line: String) -> Unit)?
     ): ChildProcess {
         actualCommand = cmd
         return childProcess

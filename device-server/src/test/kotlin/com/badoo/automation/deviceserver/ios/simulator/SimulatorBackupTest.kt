@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.simulator
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
@@ -16,25 +17,34 @@ import org.mockito.ArgumentCaptor
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
+import java.io.File
 
 class SimulatorBackupTest {
     private val metaJson = """
-        {"version":1,"created":"2018-01-12 01:46:48 +0000"}
+        {"version":${SimulatorBackup.CURRENT_VERSION},"created":"2018-01-12 01:46:48 +0000"}
     """.trimIndent()
 
     @Mock private lateinit var remote: IRemote
     private val udid: UDID = "M-Y-P-H-O-N-E"
     private val deviceSetPath = "/home/user/backup"
     private val captor = ArgumentCaptor.forClass(listOf("").javaClass)
-    private val resultStub = CommandResult("", "", ByteArray(0), 0)
-    private val resultFailureStub = CommandResult("", "", ByteArray(0), 1)
+    private val resultStub = CommandResult("", "", 0, pid = 1)
+    private val resultFailureStub = CommandResult("There is no such file or directory!", "", 1, pid = 1)
+    @Mock private lateinit var config: ApplicationConfiguration
+    @Mock
+    private lateinit var simulatorDirectory: File
+    @Mock
+    private lateinit var simulatorDataDirectory: File
+
 
     @Before fun setUp() {
         MockitoAnnotations.initMocks(this)
+        whenever(simulatorDirectory.absolutePath).thenReturn("simulatorDirectory")
+        whenever(simulatorDataDirectory.absolutePath).thenReturn("simulatorDataDirectory")
     }
 
     @Test fun shouldExistBackup() {
-        val resultWithMeta = CommandResult(metaJson, "", ByteArray(0), 0)
+        val resultWithMeta = CommandResult(metaJson, "", 0, pid = 1)
 
         whenever(remote.isDirectory(anyString())).thenReturn(true)
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultWithMeta)
@@ -68,7 +78,7 @@ class SimulatorBackupTest {
         val cmdCaptor = ArgumentCaptor.forClass("".javaClass)
         verify(remote, times(1)).shell(cmdCaptor.capture() ?: "", anyBoolean())
         val redirectPath = "$deviceSetPath/${udid}_BACKUP/data/device_server/meta.json"
-        val regex = """echo \\\{\\"version\\":1,\\"created\\":\\"[0-9T:-]+\\"\\} > $redirectPath""".toRegex()
+        val regex = """echo \\\{\\"version\\":[0-9]+,\\"created\\":\\"[0-9T:-]+\\"\\} > $redirectPath""".toRegex()
         assertThat(cmdCaptor.firstValue,  matchesPattern(regex.pattern))
     }
 
@@ -87,6 +97,7 @@ class SimulatorBackupTest {
     @Test(expected = SimulatorBackupError::class)
     fun shouldRestoreThrow() {
         whenever(remote.execIgnoringErrors(anyList(), anyMap(), anyLong())).thenReturn(resultFailureStub)
+        whenever(remote.shell(anyString(), anyBoolean())).thenReturn(resultFailureStub)
         SimulatorBackup(remote, udid, deviceSetPath).restore()
     }
 }

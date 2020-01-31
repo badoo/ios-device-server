@@ -20,6 +20,7 @@ open class WebDriverAgent(
                 remoteHost: String,
                 userName: String,
                 cmd: List<String>,
+                commandEnvironment: Map<String, String>,
                 out_reader: ((line: String) -> Unit)?,
                 err_reader: ((line: String) -> Unit)?
         ) -> ChildProcess = ChildProcess.Companion::fromCommand
@@ -50,6 +51,7 @@ open class WebDriverAgent(
                 remote.hostName,
                 remote.userName,
                 launchXctestCommand,
+                mapOf(),
                 null,
                 { message -> logger.debug(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
         )
