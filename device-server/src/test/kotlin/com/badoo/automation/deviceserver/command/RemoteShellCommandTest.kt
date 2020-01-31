@@ -2,35 +2,30 @@ package com.badoo.automation.deviceserver.command
 
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.whenever
-import com.zaxxer.nuprocess.NuProcess
-import com.zaxxer.nuprocess.NuProcessBuilder
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import java.io.PrintStream
 import java.time.Duration
 
 class RemoteShellCommandTest {
     private lateinit var systemErr: PrintStream
     private lateinit var systemOut: PrintStream
-    private lateinit var spyProcessBuilder: TestProcessBuilder
     private lateinit var remoteShell: IShellCommand
-    @Mock private lateinit var processListener: ShellCommandListener
 
     private val remoteHost = "node"
     private val userName = "user"
     private val userAtHost = "user@node"
 
-    @Before fun setUp() {
+    @Before
+    fun setUp() {
         hideTestOutput() // comment out to debug
 
         MockitoAnnotations.initMocks(this)
-        whenever(processListener.exitCode).thenReturn(0)
-        whenever(processListener.stdOut).thenReturn("")
-        whenever(processListener.stdErr).thenReturn("")
     }
 
     private fun hideTestOutput() {
@@ -42,36 +37,25 @@ class RemoteShellCommandTest {
         System.setOut(testOut)
     }
 
-    @Test fun interactiveSshCommand() {
+    @Test
+    fun sshCommandWithEnvironmentVariables() {
+        val processBuilder: ProcessBuilder = mockThis()
+        val process: Process = mockThis()
+        val outputStream: OutputStream = mockThis()
+        val stdOutStream: InputStream = mockThis()
+        val stdErrStream: InputStream = mockThis()
+        whenever(process.inputStream).thenReturn(stdOutStream)
+        whenever(process.outputStream).thenReturn(outputStream)
+        whenever(process.errorStream).thenReturn(stdErrStream)
+        whenever(processBuilder.start()).thenReturn(process)
+
         remoteShell = RemoteShellCommand(
                 remoteHost = remoteHost,
                 userName = userName,
-                builderFactory = ::nuProcessBuilderForTesting,
                 connectionTimeout = 1
                 )
-        remoteShell.exec(listOf("fbsimctl"), timeOut = Duration.ofMillis(100))
 
-        val expectedCommand = listOf(
-                "/usr/bin/ssh",
-                "-o", "ConnectTimeout=1",
-                "-o", "PreferredAuthentications=publickey",
-                "-q",
-                "-t", "-t",
-                userAtHost,
-                "fbsimctl"
-        )
-
-        assertEquals(expectedCommand, spyProcessBuilder.command())
-    }
-
-    @Test fun sshCommandWithEnvironmentVariables() {
-        remoteShell = RemoteShellCommand(
-                remoteHost = remoteHost,
-                userName = userName,
-                builderFactory = ::nuProcessBuilderForTesting,
-                connectionTimeout = 1
-                )
-        remoteShell.exec(listOf("fbsimctl", "udid='UDID'", "\$PWD"), timeOut = Duration.ofMillis(100))
+        val result = remoteShell.exec(listOf("fbsimctl", "udid='UDID'", "\$PWD"), timeOut = Duration.ofMillis(100), processBuilder = processBuilder)
 
         val expectedCommand = listOf(
                 "/usr/bin/ssh",
@@ -86,22 +70,7 @@ class RemoteShellCommandTest {
                 "\$PWD"
         )
 
-        assertEquals(expectedCommand, spyProcessBuilder.command())
+        assertEquals(expectedCommand, result.cmd)
     }
 
-    private class TestProcessBuilder(cmd: List<String>, env: Map<String, String>) : NuProcessBuilder(cmd, env) {
-        val mockedProcess: NuProcess = mockThis()
-        init {
-            whenever(mockedProcess.pid).thenReturn(Int.MAX_VALUE)
-        }
-
-        override fun start(): NuProcess {
-            return mockedProcess
-        }
-    }
-
-    private fun nuProcessBuilderForTesting(cmd: List<String>, env: Map<String, String>): NuProcessBuilder {
-        spyProcessBuilder = TestProcessBuilder(cmd, env)
-        return spyProcessBuilder
-    }
 }

@@ -16,8 +16,9 @@ open class FbsimctlProc(
         remoteHost: String,
         username: String,
         cmd: List<String>,
-        out_reader: (line: String) -> Unit,
-        err_reader: (line: String) -> Unit
+        commandEnvironment: Map<String, String>,
+        out_reader: ((line: String) -> Unit)?,
+        err_reader: ((line: String) -> Unit)?
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
     private val uri: URI = uriWithPath(fbsimctlEndpoint, "list")
@@ -32,6 +33,7 @@ open class FbsimctlProc(
                 remote.hostName,
                 remote.userName,
                 getFbsimctlCommand(headless),
+                mapOf(),
                 { logger.trace(logMarker, "${this@FbsimctlProc}: FbSimCtl <o>: ${it.trim()}") },
                 { logger.debug(logMarker, "${this@FbsimctlProc}: FbSimCtl <e>: ${it.trim()}") }
         )
