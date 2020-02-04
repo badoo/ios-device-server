@@ -39,7 +39,7 @@ class SimulatorWebDriverAgent(
     }
 
     override fun installHostApp() {
-        logger.debug(logMarker, "Installing WDA on Simulator with xcrun simctl")
+        logger.debug(logMarker, "Installing WDA $hostApp on Simulator with xcrun simctl")
 
         val nanos = measureNanoTime {
             val result = remote.execIgnoringErrors(listOf("xcrun", "simctl", "install", udid, hostApp))
