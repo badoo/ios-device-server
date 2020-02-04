@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver
 
+import com.badoo.automation.deviceserver.command.ZombieReaper
 import com.badoo.automation.deviceserver.controllers.DevicesController
 import com.badoo.automation.deviceserver.controllers.StatusController
 import com.badoo.automation.deviceserver.data.*
@@ -69,6 +70,7 @@ fun getAddresses(): List<String> {
 }
 
 private val appConfiguration = ApplicationConfiguration()
+private val zombieReaper = ZombieReaper()
 
 private fun serverConfig(): DeviceServerConfig {
     if (appConfiguration.deviceServerConfigPath.isEmpty()) {
@@ -106,6 +108,8 @@ fun Application.module() {
     val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchAutoReleaseLoop()
+
+    zombieReaper.launchReapingZombies()
 
     val devicesController = DevicesController(deviceManager)
     val statusController = StatusController(deviceManager)
