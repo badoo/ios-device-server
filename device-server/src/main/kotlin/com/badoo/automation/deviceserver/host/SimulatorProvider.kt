@@ -1,13 +1,13 @@
 package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
+import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.host.management.DesiredCapabilitiesMatcher
-import com.badoo.automation.deviceserver.host.management.IDesiredCapabilitiesMatcher
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 
 class SimulatorProvider(
         val remote: IRemote,
-        private val desiredCapsMatcher: IDesiredCapabilitiesMatcher = DesiredCapabilitiesMatcher()
+        private val desiredCapsMatcher: DesiredCapabilitiesMatcher = DesiredCapabilitiesMatcher()
 ) : ISimulatorProvider {
     private var cache: List<FBSimctlDevice> = emptyList()
 
@@ -15,7 +15,7 @@ class SimulatorProvider(
         val matchList =
                 when {
                     desiredCaps.udid != null -> listOfNotNull(findBy(desiredCaps.udid))
-                    desiredCaps.existing -> list().filter { desiredCapsMatcher.isMatch(it, desiredCaps) }
+                    desiredCaps.existing -> list().filter { desiredCapsMatcher.isMatch(DeviceInfo(it), desiredCaps) }
                     else -> return create(desiredCaps.model, desiredCaps.os, true)
                 }
 
