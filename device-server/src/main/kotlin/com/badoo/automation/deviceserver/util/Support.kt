@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.util
 
 import com.badoo.automation.deviceserver.WaitTimeoutError
+import com.badoo.automation.deviceserver.data.DeviceRef
 import org.slf4j.Logger
 import org.slf4j.Marker
 import java.net.URI
@@ -78,3 +79,5 @@ fun ensure(condition: Boolean, exception: () -> RuntimeException) {
 fun uriWithPath(uri: URI, path: String): URI {
     return URI(listOf(uri.toString(), path).joinToString("/")).normalize()
 }
+
+fun deviceRefFromUDID(udid: String, hostName: String): DeviceRef = "$udid-$hostName".replace(Regex("[^-\\w]"), "-")

@@ -8,6 +8,7 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
+import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -182,7 +183,7 @@ class DevicesNode(
 
         synchronized(this) {
             slot = slots.reserve(desiredCaps)
-            ref = newRef(slot!!.udid)
+            ref = deviceRefFromUDID(slot!!.udid, remote.publicHostName)
 
             activeRefs[ref!!] = slot!!.udid
         }
@@ -307,11 +308,6 @@ class DevicesNode(
                 videoCapture = false
             )
         )
-    }
-
-    private fun newRef(udid: UDID): DeviceRef {
-        val unsafe = Regex("[^\\-_a-zA-Z\\d]") // TODO: Replace with UUID 4
-        return "$udid-${remote.publicHostName}".replace(unsafe, "-")
     }
 
     private fun slotByExternalRef(deviceRef: DeviceRef): DeviceSlot {
