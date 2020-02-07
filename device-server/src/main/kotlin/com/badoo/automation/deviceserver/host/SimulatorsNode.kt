@@ -144,6 +144,7 @@ class SimulatorsNode(
                 fbsimctlEndpoint,
                 wdaEndpoint,
                 calabashPort,
+                mjpegServerPort,
                 device.userPorts.toSet(),
                 device.info,
                 device.lastError?.toDto(),

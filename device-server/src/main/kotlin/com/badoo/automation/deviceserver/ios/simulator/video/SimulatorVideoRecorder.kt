@@ -20,7 +20,7 @@ class SimulatorVideoRecorder(
         ) -> ChildProcess? = ChildProcess.Companion::fromCommand,
     private val recorderStopTimeout: Duration = RECORDER_STOP_TIMEOUT,
     location: File
-) : LongRunningProc(deviceInfo.udid, remote.hostName) {
+) : LongRunningProc(deviceInfo.udid, remote.hostName), VideoRecorder {
 
     private val udid = deviceInfo.udid
 
@@ -37,7 +37,7 @@ class SimulatorVideoRecorder(
 
     private val uniqueTag = "video-recording-$udid"
 
-    fun delete() {
+    override fun delete() {
         logger.debug(logMarker, "Deleting video recording")
 
         val result = remote.execIgnoringErrors(listOf("rm", "-f", recordingLocation.toString()))
@@ -70,7 +70,7 @@ class SimulatorVideoRecorder(
 
             childProcess = childFactory(remote.hostName, remote.userName, cmd, mapOf(),
                 { logger.debug(logMarker, "$udid: VideoRecorder <o>: ${it.trim()}") },
-                { logger.debug(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
+                { logger.warn(logMarker, "$udid: VideoRecorder <e>: ${it.trim()}") }
             )
 
             logger.info(logMarker, "Started video recording")
@@ -78,12 +78,12 @@ class SimulatorVideoRecorder(
         }
     }
 
-    fun stop() {
+    override fun stop() {
         lock.withLock {
             if (!isStarted) {
                 val message = "Video recording has not yet started"
                 logger.warn(logMarker, message)
-                throw SimulatorVideoRecordingException(message)
+                return
             }
 
             try {
@@ -108,7 +108,7 @@ class SimulatorVideoRecorder(
         }
     }
 
-    fun getRecording(): ByteArray {
+    override fun getRecording(): ByteArray {
         logger.info(logMarker, "Getting video recording")
 
         val videoFile = recordingLocation
@@ -127,7 +127,7 @@ class SimulatorVideoRecorder(
         }
     }
 
-    fun dispose() {
+    override fun dispose() {
         if (childProcess?.isAlive() != true) {
             return
         }

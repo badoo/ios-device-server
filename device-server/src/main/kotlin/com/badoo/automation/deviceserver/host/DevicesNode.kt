@@ -274,13 +274,21 @@ class DevicesNode(
         return false // crash logs are not supported on devices yet
     }
 
-    override fun videoRecordingDelete(deviceRef: DeviceRef): Unit = throw(NotImplementedError())
+    override fun videoRecordingDelete(deviceRef: DeviceRef) {
+        slotByExternalRef(deviceRef).device.videoRecorder.delete()
+    }
 
-    override fun videoRecordingGet(deviceRef: DeviceRef): ByteArray = throw(NotImplementedError())
+    override fun videoRecordingGet(deviceRef: DeviceRef): ByteArray {
+        return slotByExternalRef(deviceRef).device.videoRecorder.getRecording()
+    }
 
-    override fun videoRecordingStart(deviceRef: DeviceRef): Unit = throw(NotImplementedError())
+    override fun videoRecordingStart(deviceRef: DeviceRef) {
+        slotByExternalRef(deviceRef).device.videoRecorder.start()
+    }
 
-    override fun videoRecordingStop(deviceRef: DeviceRef): Unit = throw(NotImplementedError())
+    override fun videoRecordingStop(deviceRef: DeviceRef) {
+        slotByExternalRef(deviceRef).device.videoRecorder.stop()
+    }
 
     override fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String> = throw(NotImplementedError())
 
@@ -299,6 +307,7 @@ class DevicesNode(
             fbsimctl_endpoint = device.fbsimctlEndpoint,
             wda_endpoint = device.wdaEndpoint,
             calabash_port = device.calabashPort,
+            mjpeg_server_port = device.mjpegServerPort,
             user_ports = emptySet(),
             info = device.deviceInfo,
             last_error = device.lastException?.toDto(),

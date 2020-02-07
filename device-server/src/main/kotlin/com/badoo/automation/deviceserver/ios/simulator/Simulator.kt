@@ -16,7 +16,9 @@ import com.badoo.automation.deviceserver.ios.simulator.data.FileSystem
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
+import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
+import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.pollFor
 import kotlinx.coroutines.experimental.*
@@ -28,7 +30,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URI
 import java.net.URL
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
@@ -38,7 +39,7 @@ import kotlin.system.measureTimeMillis
 class Simulator (
         private val deviceRef: DeviceRef,
         private val remote: IRemote,
-        deviceInfo: DeviceInfo,
+        private val deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
         wdaRunnerXctest: File,
@@ -46,8 +47,9 @@ class Simulator (
         headless: Boolean,
         private val useWda: Boolean,
         override val fbsimctlSubject: String,
-        private val trustStoreFile: String = ApplicationConfiguration().trustStorePath,
-        private val assetsPath: String = ApplicationConfiguration().assetsPath
+        private val configuration: ApplicationConfiguration = ApplicationConfiguration(),
+        private val trustStoreFile: String = configuration.trustStorePath,
+        private val assetsPath: String = configuration.assetsPath
 ) : ISimulator
 {
     private companion object {
@@ -63,10 +65,8 @@ class Simulator (
     override val userPorts = allocatedPorts
     override val info = deviceInfo
     override val calabashPort: Int = allocatedPorts.calabashPort
-
-    private val recordingLocation = Paths.get(deviceSetPath, udid, "video.mp4").toFile()
-
-    override val videoRecorder: SimulatorVideoRecorder = SimulatorVideoRecorder(deviceInfo, remote, location = recordingLocation)
+    override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
+    override val videoRecorder: VideoRecorder = createVideoRecorder()
 
     override val systemLog = SystemLog(remote, udid)
     override val osLog = OsLog(remote, udid)
@@ -78,7 +78,7 @@ class Simulator (
 
     private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
-    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint)
+    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, mjpegServerPort)
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val commonLogMarkerDetails = mapOf(
@@ -744,5 +744,28 @@ class Simulator (
             envsArguments.addAll(listOf(it, ShellUtils.escape(envs.getValue(it))))
         }
         remote.shell("xcrun simctl spawn $udid launchctl setenv ${envsArguments.joinToString(" ")}")
+    }
+
+    private fun createVideoRecorder(): VideoRecorder {
+        return when (configuration.videoRecorderClassName) {
+            SimulatorVideoRecorder::class.qualifiedName -> SimulatorVideoRecorder(
+                deviceInfo,
+                remote,
+                location = Paths.get(deviceSetPath, udid, "video.mp4").toFile()
+            )
+            MJPEGVideoRecorder::class.qualifiedName -> MJPEGVideoRecorder(
+                deviceInfo,
+                remote,
+                wdaEndpoint,
+                mjpegServerPort,
+                configuration.videoRecorderFrameRate,
+                ref,
+                udid
+            )
+            else -> throw IllegalArgumentException(
+                "Wrong class specified as video recorder: ${configuration.videoRecorderClassName}. " +
+                        "Available are: [${SimulatorVideoRecorder::class.qualifiedName}, ${MJPEGVideoRecorder::class.qualifiedName}]"
+            )
+        }
     }
 }

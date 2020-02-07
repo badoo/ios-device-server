@@ -113,4 +113,8 @@ class WdaClient(
             throw WdaException("WebDriver returned non zero status ${json["status"]}: ${json["value"]}")
         }
     }
+
+    fun updateAppiumSettings(settings: Map<Any, Any>): JsonNode {
+        return post("/session/$sessionId/appium/settings", settings)
+    }
 }
