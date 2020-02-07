@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.ChildProcess
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.util.CustomHttpClient
+import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -16,7 +17,7 @@ abstract class LongRunningProc(udid: UDID, remoteHostName: String) : ILongRunnin
     protected val logMarker = MapEntriesAppendingMarker(mapOf(
             LogMarkers.HOSTNAME to remoteHostName,
             LogMarkers.UDID to udid,
-            LogMarkers.DEVICE_REF to "$udid-$remoteHostName".replace(Regex("[^-\\w]"), "-")
+            LogMarkers.DEVICE_REF to deviceRefFromUDID(udid, remoteHostName)
     ))
     @Volatile protected var childProcess: ChildProcess? = null
     override val isProcessAlive: Boolean get() = true == childProcess?.isAlive()

@@ -40,4 +40,10 @@ class SupportKtTest {
             }
         }
     }
+
+    @Test
+    fun testDeviceRefFromUDID() {
+        val deviceRef = deviceRefFromUDID("asDF-124", "my.host.name.domain() @")
+        assertEquals("Wrong device ref", "asDF-124-my-host-name-domain----", deviceRef)
+    }
 }
