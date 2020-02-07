@@ -5,7 +5,7 @@ import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
-import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
+import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import java.net.URI
 import java.net.URL
 
@@ -20,7 +20,8 @@ interface ISimulator {
     val info: DeviceInfo
     val lastError: Exception?
     val calabashPort: Int
-    val videoRecorder: SimulatorVideoRecorder
+    val mjpegServerPort: Int
+    val videoRecorder: VideoRecorder
     val fbsimctlSubject: String
     val systemLog: SystemLog
     val osLog: OsLog

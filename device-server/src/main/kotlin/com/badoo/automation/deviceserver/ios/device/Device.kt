@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.device
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.data.*
@@ -8,7 +9,10 @@ import com.badoo.automation.deviceserver.ios.DeviceStatus
 import com.badoo.automation.deviceserver.ios.WdaClient
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
+import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
+import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.executeWithTimeout
+import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import com.badoo.automation.deviceserver.util.pollFor
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
@@ -26,7 +30,8 @@ class Device(
     val deviceInfo: DeviceInfo,
     val allocatedPorts: DeviceAllocatedPorts,
     wdaRunnerXctest: File,
-    usbProxy: UsbProxyFactory = UsbProxyFactory(remote)
+    usbProxy: UsbProxyFactory = UsbProxyFactory(remote),
+    configuration: ApplicationConfiguration = ApplicationConfiguration()
 ) {
     val udid: String = deviceInfo.udid
 
@@ -45,6 +50,21 @@ class Device(
     val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     val calabashPort = calabashProxy.localPort
+    val mjpegServerPort = allocatedPorts.mjpegServerPort
+    private val mjpegProxy = usbProxy.create(
+        udid = deviceInfo.udid,
+        localPort = mjpegServerPort,
+        devicePort = mjpegServerPort
+    )
+    val videoRecorder: VideoRecorder = MJPEGVideoRecorder(
+        deviceInfo,
+        remote,
+        wdaEndpoint,
+        mjpegServerPort,
+        configuration.videoRecorderFrameRate,
+        deviceRefFromUDID(deviceInfo.udid, remote.publicHostName),
+        deviceInfo.udid
+    )
 
     @Volatile
     var lastException: Exception? = null
@@ -59,7 +79,7 @@ class Device(
         }
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
-    private val wdaProc = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort)
+    private val wdaProc = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort, mjpegServerPort)
 
     private val status = SimulatorStatus()
 
@@ -162,6 +182,7 @@ class Device(
         ignoringDisposeErrors { wdaProc.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
+        ignoringDisposeErrors { mjpegProxy.stop() }
     }
 
     private fun ignoringDisposeErrors(action: () -> Unit?) {
@@ -308,6 +329,7 @@ class Device(
         wdaProc.kill()
 
         wdaProxy.stop()
+        mjpegProxy.stop()
         calabashProxy.stop()
 
         executeWithTimeout(timeout, name = "Preparing devices") {
@@ -315,6 +337,12 @@ class Device(
 
             if (!wdaProxy.isHealthy()) {
                 throw DeviceException("Failed to start $wdaProxy")
+            }
+
+            mjpegProxy.start()
+
+            if (!mjpegProxy.isHealthy()) {
+                throw DeviceException("Failed to start $mjpegProxy")
             }
 
             calabashProxy.start()

@@ -81,7 +81,8 @@ class SimulatorsNodeTest {
             URI("http://fbsimctl"),
             URI("http://wda"),
             4444,
-            setOf(1, 2, 3, 37265),
+            5555,
+            setOf(1, 2, 3, 4, 37265),
             DeviceInfo("", "", "", "", ""),
             null,
             ActualCapabilities(true, true, true)
@@ -119,7 +120,7 @@ class SimulatorsNodeTest {
                 eq("Udid1-rem-ote-node"),
                 eq(iRemote),
                 eq(fbsimulatorDevice),
-                eq(DeviceAllocatedPorts(1,2, 3)),
+                eq(DeviceAllocatedPorts(1, 2, 3, 4)),
                 eq("/node/specific/device/set"),
                 eq(File("some/file/from/wdaPathProc")),
                 any(),
@@ -165,10 +166,11 @@ class SimulatorsNodeTest {
             whenever(it.ref).thenReturn("someref$index")
             whenever(it.state).thenReturn(DeviceState.CREATING)
             whenever(it.info).thenReturn(DeviceInfo("","","","",""))
-            whenever(it.userPorts).thenReturn(DeviceAllocatedPorts(1,2,3))
+            whenever(it.userPorts).thenReturn(DeviceAllocatedPorts(1,2,3,4))
             whenever(it.fbsimctlEndpoint).thenReturn(URI("http://fbsimctl"))
             whenever(it.wdaEndpoint).thenReturn(URI("http://wda"))
             whenever(it.calabashPort).thenReturn(4444 + index)
+            whenever(it.mjpegServerPort).thenReturn(5555 + index)
             whenever(it.fbsimctlSubject).thenReturn("string representation of simulatorMock $index")
         }
     }
@@ -275,7 +277,8 @@ class SimulatorsNodeTest {
                 URI("http://fbsimctl"),
                 URI("http://wda"),
                 4444,
-                setOf(1,2,3, 37265),
+                5555,
+                setOf(1,2,3,4,37265),
                 DeviceInfo("", "", "", "", ""),
                 null,
                 ActualCapabilities(true, true, true)
@@ -310,13 +313,13 @@ class SimulatorsNodeTest {
     fun deleteReleaseReleasesExistingRef() {
         createTwoDevicesForTest()
         assertThat(simulatorsNode.count(), equalTo(2))
-        assertThat(portAllocator.available(), equalTo(4))
+        assertThat(portAllocator.available(), equalTo(2))
 
         val actual = simulatorsNode.deleteRelease(ref1, "test")
         assertThat(actual, equalTo(true))
         verify(simulatorMock).release(any())
         assertThat(simulatorsNode.count(), equalTo(1))
-        assertThat(portAllocator.available(), equalTo(7))
+        assertThat(portAllocator.available(), equalTo(6))
     }
 
     @Test
