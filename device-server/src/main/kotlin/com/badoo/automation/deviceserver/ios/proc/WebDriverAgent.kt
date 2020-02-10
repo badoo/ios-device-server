@@ -25,7 +25,7 @@ open class WebDriverAgent(
                 out_reader: ((line: String) -> Unit)?,
                 err_reader: ((line: String) -> Unit)?
         ) -> ChildProcess = ChildProcess.Companion::fromCommand
-) : LongRunningProc(udid, remote.hostName) {
+) : LongRunningProc(udid, remote.hostName), IWebDriverAgent {
     private val launchXctestCommand: List<String> = listOf(
             FBSimctl.FBSIMCTL_BIN,
             udid,
@@ -43,6 +43,10 @@ open class WebDriverAgent(
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
 
+    override fun installHostApp() {
+        remote.fbsimctl.installApp(udid, wdaRunnerXctest)
+    }
+
     override fun start() {
         ensure(childProcess == null) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
         ensure(remote.isDirectory(wdaRunnerXctest.absolutePath)) { WebDriverAgentError("WebDriverAgent ${wdaRunnerXctest.absolutePath} does not exist or is not a directory") }
@@ -56,11 +60,15 @@ open class WebDriverAgent(
                 launchXctestCommand,
                 mapOf(),
                 null,
-                { message -> logger.debug(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
+                { message -> logger.warn(logMarker, "${this@WebDriverAgent}: WDA <e>: ${message.trim()}") }
         )
 
         Thread.sleep(5000) // 5 should be ok
         logger.debug(logMarker, "$this WDA: $childProcess")
+    }
+
+    override fun stop() {
+        kill()
     }
 
     protected open fun terminateHostApp() {

@@ -8,7 +8,9 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
+import com.badoo.automation.deviceserver.ios.proc.IWebDriverAgent
 import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
+import com.badoo.automation.deviceserver.ios.proc.SimulatorXcrunWebDriverAgent
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
@@ -33,6 +35,7 @@ import java.net.URL
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
+import javax.net.ssl.HostnameVerifier
 import kotlin.concurrent.withLock
 import kotlin.system.measureTimeMillis
 
@@ -42,7 +45,7 @@ class Simulator (
         private val deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
-        wdaRunnerXctest: File,
+        private val wdaRunnerXctest: File,
         private val concurrentBootsPool: ThreadPoolDispatcher,
         headless: Boolean,
         private val useWda: Boolean,
@@ -67,7 +70,6 @@ class Simulator (
     override val calabashPort: Int = allocatedPorts.calabashPort
     override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
     override val videoRecorder: VideoRecorder = createVideoRecorder()
-
     override val systemLog = SystemLog(remote, udid)
     override val osLog = OsLog(remote, udid)
 
@@ -78,7 +80,7 @@ class Simulator (
 
     private lateinit var criticalAsyncPromise: Job // 1-1 from ruby
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
-    private val wdaProc = SimulatorWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, mjpegServerPort)
+    private val webDriverAgent: IWebDriverAgent = createWebDriverAgent()
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath)
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val commonLogMarkerDetails = mapOf(
@@ -127,7 +129,7 @@ class Simulator (
     private fun prepare(timeout: Duration = PREPARE_TIMEOUT, clean: Boolean) {
         logger.info(logMarker, "Starting to prepare ${this@Simulator}. Will wait for ${timeout.seconds} seconds")
         lastException = null
-        wdaProc.kill()
+        webDriverAgent.stop()
         shutdown()
 
         //FIXME: add checks for cancellation of criticalAsyncPromise
@@ -178,7 +180,7 @@ class Simulator (
                     }
                 }
 
-                if (wdaProc.isHealthy()) {
+                if (webDriverAgent.isHealthy()) {
                     wdaFailCount = 0
                 } else {
                     wdaFailCount += 1
@@ -207,8 +209,10 @@ class Simulator (
             try {
                 logger.info(logMarker, "Starting WebDriverAgent on ${this@Simulator}")
 
-                wdaProc.kill()
-                wdaProc.start()
+                webDriverAgent.stop()
+                webDriverAgent.start()
+
+                Thread.sleep(1000)
 
                 pollFor(
                     pollTimeout,
@@ -217,15 +221,12 @@ class Simulator (
                     logger = logger,
                     marker = logMarker
                 ) {
-                    //FIXME: add short_circuit: and throw if wdaProc.childProcess is dead
-                    if (wdaProc.isProcessAlive) {
-                        wdaProc.isHealthy()
-                    } else {
-                        throw WaitTimeoutError("WebDriverAgent process is not alive")
-                    }
+                    webDriverAgent.isHealthy()
                 }
 
-                break
+                logger.info(logMarker, "Started WebDriverAgent on ${this@Simulator}")
+
+                return
             }
             catch (e: RuntimeException) {
                 logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for ${this@Simulator} failed: $e")
@@ -234,8 +235,6 @@ class Simulator (
                 }
             }
         }
-
-        logger.info(logMarker, "Started WebDriverAgent on ${this@Simulator}")
     }
 
     private fun eraseSimulatorAndCreateBackup() {
@@ -253,6 +252,10 @@ class Simulator (
             copyMediaAssets()
         }
 
+        if (useWda && configuration.shouldPreinstallWDA) {
+            webDriverAgent.installHostApp()
+        }
+
         logger.info(logMarker, "Shutting down ${this@Simulator} before creating a backup")
         shutdown()
 
@@ -267,7 +270,7 @@ class Simulator (
         if (remote.isLocalhost()) {
             remote.shell("cp $trustStoreFile $keyChainLocation", returnOnFailure = false)
         } else {
-            remote.rsync(trustStoreFile, keyChainLocation, setOf("--delete"))
+            remote.scpToRemoteHost(trustStoreFile, keyChainLocation, Duration.ofMinutes(1))
         }
 
         logger.info(logMarker, "Copied trust store to ${this@Simulator}")
@@ -500,7 +503,7 @@ class Simulator (
 
         if (deviceState == DeviceState.CREATED) {
             isFbsimctlReady = fbsimctlProc.isHealthy()
-            isWdaReady = (if (useWda) { wdaProc.isHealthy() } else true)
+            isWdaReady = (if (useWda) { webDriverAgent.isHealthy() } else true)
         }
 
         val isSimulatorReady = deviceState == DeviceState.CREATED && isFbsimctlReady && isWdaReady
@@ -580,7 +583,7 @@ class Simulator (
 
     private fun disposeResources() {
         ignoringErrors({ videoRecorder.dispose() })
-        ignoringErrors({ wdaProc.kill() })
+        ignoringErrors({ webDriverAgent.stop() })
     }
 
     private fun ignoringErrors(action: () -> Unit?) {
@@ -765,6 +768,31 @@ class Simulator (
             else -> throw IllegalArgumentException(
                 "Wrong class specified as video recorder: ${configuration.videoRecorderClassName}. " +
                         "Available are: [${SimulatorVideoRecorder::class.qualifiedName}, ${MJPEGVideoRecorder::class.qualifiedName}]"
+            )
+        }
+    }
+
+    private fun createWebDriverAgent(): IWebDriverAgent {
+        return when (configuration.simulatorWdaClassName) {
+            SimulatorWebDriverAgent::class.qualifiedName -> SimulatorWebDriverAgent(
+                remote,
+                wdaRunnerXctest,
+                udid,
+                wdaEndpoint,
+                mjpegServerPort,
+                deviceRef
+            )
+            SimulatorXcrunWebDriverAgent::class.qualifiedName -> SimulatorXcrunWebDriverAgent(
+                remote,
+                wdaRunnerXctest,
+                udid,
+                wdaEndpoint,
+                mjpegServerPort,
+                deviceRef
+            )
+            else -> throw IllegalArgumentException(
+                "Wrong class specified as Simulator WebDriverAgent: $configuration.simulatorWdaClassName. " +
+                        "Available are: [${SimulatorWebDriverAgent::class.qualifiedName}, ${SimulatorXcrunWebDriverAgent::class.qualifiedName}]"
             )
         }
     }
