@@ -79,7 +79,7 @@ class Device(
         }
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
-    private val wdaProc = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort, mjpegServerPort)
+    private val webDriverAgent = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort, mjpegServerPort)
 
     private val status = SimulatorStatus()
 
@@ -131,7 +131,7 @@ class Device(
             return
         }
 
-        val wdaStatus = wdaProc.isHealthy()
+        val wdaStatus = webDriverAgent.isHealthy()
         val fbsimctlStatus = fbsimctlProc.isHealthy()
 
         // check if WDA or fbsimctl crashed after being ok for some time
@@ -179,7 +179,7 @@ class Device(
 
     private fun disposeResources() {
         ignoringDisposeErrors { fbsimctlProc.kill() }
-        ignoringDisposeErrors { wdaProc.kill() }
+        ignoringDisposeErrors { webDriverAgent.stop() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
         ignoringDisposeErrors { mjpegProxy.stop() }
@@ -326,7 +326,7 @@ class Device(
         logger.info(logMarker, "Starting to prepare $this")
 
         fbsimctlProc.kill()
-        wdaProc.kill()
+        webDriverAgent.stop()
 
         wdaProxy.stop()
         mjpegProxy.stop()
@@ -378,8 +378,8 @@ class Device(
     }
 
     private fun startWda() {
-        wdaProc.kill()
-        wdaProc.start()
+        webDriverAgent.stop()
+        webDriverAgent.start()
 
         pollFor(
             Duration.ofMinutes(1),
@@ -388,8 +388,8 @@ class Device(
             logger = logger,
             marker = logMarker
         ) {
-            if (wdaProc.isProcessAlive) {
-                wdaProc.isHealthy()
+            if (webDriverAgent.isProcessAlive) {
+                webDriverAgent.isHealthy()
             } else {
                 throw WaitTimeoutError("WebDriverAgent process is not alive")
             }

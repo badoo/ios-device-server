@@ -1,12 +1,15 @@
 package com.badoo.automation.deviceserver
 
+import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
+import java.lang.Boolean.getBoolean
 
 class ApplicationConfiguration {
     private val wdaSimulatorBundlePathProperty = "wda.bundle.path"
     val wdaSimulatorBundlePath: String = System.getProperty(wdaSimulatorBundlePathProperty)
             ?: throw RuntimeException("Must set system property: -D$wdaSimulatorBundlePathProperty=" +
                     "/ABSOLUTE/PATH/ios/facebook/simulators/WebDriverAgentRunner-Runner.app")
+    val wdaSimulatorBundleId: String = System.getProperty("wda.bundle.id", "com.facebook.WebDriverAgentRunner.xctrunner")
 
     private val wdaDeviceBundlePathProperty = "wda.device.bundle.path"
     val wdaDeviceBundlePath: String = System.getProperty(wdaDeviceBundlePathProperty)
@@ -27,4 +30,6 @@ class ApplicationConfiguration {
     val assetsPath: String = System.getProperty("media.assets.path", "")
     val videoRecorderClassName = System.getProperty("video.recorder", SimulatorVideoRecorder::class.qualifiedName)
     val videoRecorderFrameRate = Integer.getInteger("video.recorder.frame.rate", 4)
+    val simulatorWdaClassName = System.getProperty("simulator.wda.class", SimulatorWebDriverAgent::class.qualifiedName)
+    val shouldPreinstallWDA: Boolean = getBoolean("preinstall.simulator.wda")
 }
