@@ -90,7 +90,7 @@ class Simulator (
     )
     private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
-    private val simulatorProcess = SimulatorProcess(remote, udid)
+    private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
     @Volatile private var healthChecker: Job? = null
     //endregion
 
