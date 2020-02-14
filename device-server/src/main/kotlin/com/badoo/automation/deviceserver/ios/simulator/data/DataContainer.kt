@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.lang.RuntimeException
 import java.nio.file.Path
+import java.time.Duration
 
 class DataContainer(
     private val remote: IRemote,
@@ -48,6 +49,28 @@ class DataContainer(
     fun addPlistValue(path: Path, key: String, value: String, type: String) {
         val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
         remote.shell("/usr/libexec/PlistBuddy -c 'Add $key $type $value' $expandedPath", false)
+    }
+
+    fun writeFile(file: File, data: ByteArray) {
+        val dataContainerFile = File(basePath.absolutePath, file.name)
+
+        if (remote.isLocalhost()) {
+            dataContainerFile.writeBytes(data)
+            logger.debug(logMarker, "Successfully wrote data to file ${dataContainerFile.absolutePath}")
+        } else {
+            writeRemoteFile(file, data, dataContainerFile)
+        }
+    }
+
+    private fun writeRemoteFile(file: File, data: ByteArray, dataContainerFile: File) {
+        val tmpFile = File.createTempFile("${file.nameWithoutExtension}.", ".${file.extension}")
+        try {
+            tmpFile.writeBytes(data)
+            remote.scpToRemoteHost(tmpFile.absolutePath, dataContainerFile.absolutePath, Duration.ofMinutes(1))
+            logger.debug(logMarker, "Successfully wrote data to remote file ${dataContainerFile.absolutePath}")
+        } finally {
+            tmpFile.delete()
+        }
     }
 
     private fun sshNoEscapingWorkaround(path: String): String {
