@@ -163,4 +163,9 @@ class DevicesController(private val deviceManager: DeviceManager) {
         deviceManager.setEnvironmentVariables(ref, environmentVariables)
         return happy
     }
+
+    fun updateApplicationPlist(deviceRef: String, plistEntry: PlistEntryDTO): Any {
+        deviceManager.updateApplicationPlist(deviceRef, plistEntry)
+        return happy
+    }
 }

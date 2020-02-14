@@ -19,7 +19,7 @@ class DataContainerTest {
     private val fbsimctl: FBSimctl = mockThis()
 
     private val containerPathStub =
-        "/Users/qa/Library/Developer/CoreSimulator/Devices/UDID/data/Containers/Data/Application/A2C79BEC-FD2C-4676-BA9B-B6A62AFE193A"
+        File("/Users/qa/Library/Developer/CoreSimulator/Devices/UDID/data/Containers/Data/Application/A2C79BEC-FD2C-4676-BA9B-B6A62AFE193A")
 
     @Before
     fun setUp() {
@@ -40,7 +40,7 @@ class DataContainerTest {
 
         val container = DataContainer(
             remote = remote,
-            basePath = Paths.get(containerPathStub),
+            basePath = containerPathStub,
             bundleId = "test.bundle"
         )
         val actual = container.listFiles(Paths.get("Library/Caches"))
@@ -68,7 +68,7 @@ class DataContainerTest {
 
         val container = DataContainer(
             remote = remote,
-            basePath = Paths.get(containerPathStub),
+            basePath = containerPathStub,
             bundleId = "test.bundle"
         )
         val actual = container.listFiles(Paths.get("Library/Caches"))
@@ -83,7 +83,7 @@ class DataContainerTest {
 
         val container = DataContainer(
             remote = remote,
-            basePath = Paths.get(containerPathStub),
+            basePath = containerPathStub,
             bundleId = "test.bundle"
         )
         val actual = container.readFile(Paths.get("Library/Caches/file.txt"))
@@ -95,7 +95,7 @@ class DataContainerTest {
     fun shouldRejectPathOutsideContainer() {
         val container = DataContainer(
             remote = remote,
-            basePath = Paths.get(containerPathStub),
+            basePath = containerPathStub,
             bundleId = "test.bundle"
         )
 
