@@ -67,7 +67,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
         return mapOf("total" to count)
     }
 
-    fun createDeviceAsync(desiredCapabilities: DesiredCapabilities, deviceTimeout: Duration, userId: String?): DeviceDTO {
+    fun createDeviceAsync(desiredCapabilities: DesiredCapabilities, userId: String?): DeviceDTO {
         if (getAll().isEmpty()) {
             throw NoNodesRegisteredException("No nodes are registered to create a device")
         }
@@ -84,9 +84,9 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
                 LogMarkers.DEVICE_REF to dto.ref,
                 LogMarkers.UDID to dto.info.udid
         ))
-        logger.info(logMarker, "Create device started, register with timeout ${deviceTimeout.seconds} secs")
+        logger.info(logMarker, "Device is created ${dto.info.model} (${dto.info.os}) ${dto.info.arch}. Ref: ${dto.ref}")
 
-        activeDevices.registerDevice(dto.ref, node, deviceTimeout, userId)
+        activeDevices.registerDevice(dto.ref, node, userId)
 
         return dto
     }

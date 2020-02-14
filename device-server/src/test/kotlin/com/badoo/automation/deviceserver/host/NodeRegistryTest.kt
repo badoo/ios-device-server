@@ -78,7 +78,6 @@ class NodeRegistryTest {
     @Test
     fun createSimulatorByCapacity() {
         // arrange
-        val deviceTimeout = Duration.ofSeconds(0)
         whenever(nodeWrapper1.isAlive()).thenReturn(true)
         whenever(nodeWrapper2.isAlive()).thenReturn(true)
         whenever(wrappedNode1.createDeviceAsync(desiredCapabilities)).then { deviceDTOStub("") }
@@ -88,10 +87,10 @@ class NodeRegistryTest {
         whenever(wrappedNode2.capacityRemaining(desiredCapabilities)).thenReturn(capacityNotBusy)
 
         // act
-        nodeRegistry.createDeviceAsync(desiredCapabilities, deviceTimeout, null)
+        nodeRegistry.createDeviceAsync(desiredCapabilities, null)
 
         // assert
-        verify(activeDevices).registerDevice("", wrappedNode2, deviceTimeout, null)
+        verify(activeDevices).registerDevice("", wrappedNode2, null)
     }
 
     @Test
@@ -100,14 +99,14 @@ class NodeRegistryTest {
         whenever(nodeWrapper1.isAlive()).thenReturn(true)
         whenever(wrappedNode1.createDeviceAsync(desiredCapabilities)).then { deviceDTOStub("") }
         whenever(wrappedNode1.capacityRemaining(desiredCapabilities)).thenReturn(capacityNotBusy)
-        assertNotNull(nodeRegistry.createDeviceAsync(desiredCapabilities, Duration.ZERO, null))
+        assertNotNull(nodeRegistry.createDeviceAsync(desiredCapabilities, null))
 
         // act
         whenever(nodeWrapper1.isEnabled).thenReturn(false)
 
         // assert
         assertFailsWith<NoAliveNodesException> {
-            nodeRegistry.createDeviceAsync(desiredCapabilities, Duration.ZERO, null)
+            nodeRegistry.createDeviceAsync(desiredCapabilities, null)
         }
     }
 
