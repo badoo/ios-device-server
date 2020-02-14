@@ -59,21 +59,21 @@ class SimulatorsNode(
     private val concurrentBoot = newFixedThreadPoolContext(concurrentBoots, "sim_boot_${remote.hostName}")
 
     private fun getDeviceFor(ref: DeviceRef): ISimulator {
-        return devicePool[ref]!! //FIXME: replace with explicit unwrapping
+        return createdDevices[ref]!! //FIXME: replace with explicit unwrapping
     }
 
-    private val devicePool = ConcurrentHashMap<DeviceRef, ISimulator>()
+    private val createdDevices = ConcurrentHashMap<DeviceRef, ISimulator>()
     private val allocatedPorts = HashMap<DeviceRef, DeviceAllocatedPorts>()
 
     override fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO {
         synchronized(this) { // FIXME: synchronize in some other place?
-            if (devicePool.size >= simulatorLimit) {
+            if (createdDevices.size >= simulatorLimit) {
                 val message = "$this was asked for a newSimulator, but is already at capacity $simulatorLimit"
                 logger.error(logMarker, message)
                 throw OverCapacityException(message)
             }
 
-            val usedUdids = devicePool.map { it.value.udid }.toSet()
+            val usedUdids = createdDevices.map { it.value.udid }.toSet()
             val fbSimctlDevice = simulatorProvider.match(desiredCaps, usedUdids)
             if (fbSimctlDevice == null) {
                 val message = "$this could not construct or match a simulator for $desiredCaps"
@@ -96,7 +96,7 @@ class SimulatorsNode(
             val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, deviceSetPath,
                     wdaRunnerXctest, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, fbSimctlDevice.toString())
             simulator.prepareAsync()
-            devicePool[ref] = simulator
+            createdDevices[ref] = simulator
 
             logger.debug(simLogMarker, "Created simulator $ref")
 
@@ -177,12 +177,12 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).shake()
     }
 
-    override fun count(): Int = devicePool.size
+    override fun count(): Int = createdDevices.size
 
     override fun dispose() {
         logger.info(logMarker, "Finalising simulator pool for ${remote.hostName}")
 
-        val disposeJobs = devicePool.map {
+        val disposeJobs = createdDevices.map {
             launch(context = simulatorsThreadPool) {
                 try {
                     it.value.release("Finalising pool for ${remote.hostName}")
@@ -226,15 +226,15 @@ class SimulatorsNode(
     }
 
     override fun list(): List<DeviceDTO> {
-        return devicePool.map { simulatorToDTO(it.value) }
+        return createdDevices.map { simulatorToDTO(it.value) }
     }
 
     override fun isReachable(): Boolean = remote.isReachable()
 
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
-        val iSimulator = devicePool[deviceRef] ?: return false
+        val iSimulator = createdDevices[deviceRef] ?: return false
         iSimulator.release("deleteRelease $reason $deviceRef")
-        devicePool.remove(deviceRef)
+        createdDevices.remove(deviceRef)
         val entries = allocatedPorts[deviceRef] ?: return true
         portAllocator.deallocateDAP(entries)
         return true
