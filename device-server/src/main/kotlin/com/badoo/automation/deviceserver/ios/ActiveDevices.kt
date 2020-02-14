@@ -13,8 +13,6 @@ import java.util.concurrent.TimeUnit
 data class SessionEntry(
         val ref: DeviceRef,
         val node: ISimulatorsNode,
-        var updatedAtSeconds: Long,
-        val releaseTimeout: Duration,
         val userId: String?
 )
 
@@ -51,8 +49,8 @@ class ActiveDevices(
         return list
     }
 
-    fun registerDevice(ref: DeviceRef, node: ISimulatorsNode, releaseTimeout: Duration, userId: String?) {
-        devices[ref] = SessionEntry(ref, node, currentTimeSeconds(), releaseTimeout, userId)
+    fun registerDevice(ref: DeviceRef, node: ISimulatorsNode, userId: String?) {
+        devices[ref] = SessionEntry(ref, node, userId)
     }
 
     fun unregisterNodeDevices(node: ISimulatorsNode) {
@@ -61,18 +59,8 @@ class ActiveDevices(
                 .forEach { unregisterDeleteDevice(it.key) }
     }
 
-    private fun refreshSessionEntry(sessionEntry: SessionEntry) {
-        sessionEntry.updatedAtSeconds = currentTimeSeconds()
-    }
-
     private fun tryGetNodeFor(ref: DeviceRef): ISimulatorsNode? {
-        val sessionEntry = devices[ref]
-        if (sessionEntry != null) {
-            refreshSessionEntry(sessionEntry)
-            return sessionEntry.node
-        } else {
-            return null
-        }
+        return devices[ref]?.node
     }
 
     fun getNodeFor(ref: DeviceRef): ISimulatorsNode {
@@ -92,28 +80,6 @@ class ActiveDevices(
 
     fun unregisterDeleteDevice(ref: DeviceRef) {
         devices.remove(ref)
-    }
-
-    fun readyForRelease(): List<DeviceRef> {
-        val secondsNow = currentTimeSeconds()
-        return devices.filter { (_, session) -> secondsNow - session.updatedAtSeconds >= session.releaseTimeout.seconds }
-                .map { (deviceRef, _) -> deviceRef }
-                .also { logger.info("Ready to release $it"); }
-    }
-
-    fun nextReleaseAtSeconds(): Long {
-        val sessionEntry = devices
-            .map { it.value }
-            .minBy { it.updatedAtSeconds + it.releaseTimeout.seconds }
-
-        val nextReleaseAtSeconds = if (sessionEntry == null) {
-            currentTimeSeconds() + DEFAULT_RELEASE_TIMEOUT.seconds
-        } else {
-            sessionEntry.updatedAtSeconds + sessionEntry.releaseTimeout.seconds
-        }
-
-        logger.info("nextReleaseAtSeconds = $nextReleaseAtSeconds seconds")
-        return nextReleaseAtSeconds
     }
 
     fun releaseDevice(ref: DeviceRef, reason: String) {

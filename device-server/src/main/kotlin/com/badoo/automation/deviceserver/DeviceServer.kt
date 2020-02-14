@@ -107,7 +107,6 @@ fun Application.module() {
     )
     val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.startAutoRegisteringDevices()
-    deviceManager.launchAutoReleaseLoop()
 
     zombieReaper.launchReapingZombies()
 

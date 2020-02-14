@@ -4,22 +4,16 @@ import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
-import com.badoo.automation.deviceserver.host.management.util.AutoreleaseLooper
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import org.slf4j.LoggerFactory
 import java.net.URL
-import java.time.Duration
-
-private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
 
 class DeviceManager(
         config: DeviceServerConfig,
         nodeFactory: IHostFactory,
-        activeDevices: ActiveDevices = ActiveDevices(),
-        private val autoreleaseLooper: IAutoreleaseLooper = AutoreleaseLooper()
+        activeDevices: ActiveDevices = ActiveDevices()
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val deviceTimeoutInSecs: Duration
     private val nodeRegistry = NodeRegistry(activeDevices)
     private val autoRegistrar = NodeRegistrar(
             nodesConfig = config.nodes,
@@ -27,27 +21,12 @@ class DeviceManager(
             nodeRegistry = nodeRegistry
     )
 
-    init {
-        val timeoutFromConfig: Long? = config.timeouts["device"]?.toLong()
-
-        deviceTimeoutInSecs =
-                if (timeoutFromConfig != null && timeoutFromConfig > 0) {
-                    Duration.ofSeconds(timeoutFromConfig)
-                } else {
-                    INFINITE_DEVICE_TIMEOUT
-                }
-    }
-
     fun startAutoRegisteringDevices() {
         autoRegistrar.startAutoRegistering()
     }
 
     fun restartNodesGracefully(isParallelRestart: Boolean): Boolean {
-        return autoRegistrar.restartNodesGracefully(isParallelRestart, INFINITE_DEVICE_TIMEOUT)
-    }
-
-    fun launchAutoReleaseLoop() {
-        autoreleaseLooper.autoreleaseLoop(this)
+        return autoRegistrar.restartNodesGracefully(isParallelRestart)
     }
 
     fun getStatus(): Map<String, Any> {
@@ -55,14 +34,6 @@ class DeviceManager(
             "initialized" to nodeRegistry.getInitialRegistrationComplete(),
             "sessions" to listOf(nodeRegistry.activeDevices.getStatus()).toString()
         )
-    }
-
-    fun readyForRelease(): List<DeviceRef> {
-        return nodeRegistry.activeDevices.readyForRelease()
-    }
-
-    fun nextReleaseAtSeconds(): Long {
-        return nodeRegistry.activeDevices.nextReleaseAtSeconds()
     }
 
     fun getTotalCapacity(desiredCaps: DesiredCapabilities): Map<String, Int> {
@@ -144,7 +115,7 @@ class DeviceManager(
 
     fun createDeviceAsync(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
         try {
-            return nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, userId)
+            return nodeRegistry.createDeviceAsync(desiredCaps, userId)
         } catch(e: NoNodesRegisteredException) {
             val erredNodes = autoRegistrar.nodeWrappers.filter { n -> n.lastError != null }
             val errors = erredNodes.joinToString { n -> "${n.node.remoteAddress} -> ${n.lastError?.localizedMessage}" }

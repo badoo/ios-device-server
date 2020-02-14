@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.deviceDTOStub
 import com.badoo.automation.deviceserver.host.ISimulatorsNode
 import com.badoo.automation.deviceserver.host.management.DeviceManager
-import com.badoo.automation.deviceserver.host.management.IAutoreleaseLooper
 import com.badoo.automation.deviceserver.host.management.IHostFactory
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.mockThis
@@ -34,8 +33,8 @@ class DeviceManagerTest {
     private val hostTwo = mockHostWithTotalCapacity(2, true)
 
     private val hostsMap = mapOf(
-            "zero" to hostZero, "one" to hostOne, "two" to hostTwo,
-            "unreachable" to mockHostWithTotalCapacity(4, false)
+        "zero" to hostZero, "one" to hostOne, "two" to hostTwo,
+        "unreachable" to mockHostWithTotalCapacity(4, false)
     )
     private val hostFactory: IHostFactory = object : IHostFactory {
         override fun getHostFromConfig(config: NodeConfig): ISimulatorsNode {
@@ -53,16 +52,13 @@ class DeviceManagerTest {
 
     private val activeDevices: ActiveDevices = mockThis()
 
-    private val autoreleaseLooper: IAutoreleaseLooper = mockThis()
-
     private val deviceManager = DeviceManager(
-            DeviceServerConfig(
-                    emptyMap(),
-                    setOf()
-            ),
-            hostFactory,
-            activeDevices,
-            autoreleaseLooper
+        DeviceServerConfig(
+            emptyMap(),
+            setOf()
+        ),
+        hostFactory,
+        activeDevices
     )
 
     @Test
@@ -78,7 +74,7 @@ class DeviceManagerTest {
     fun deleteReleaseDeviceThatHasBeenReleased() {
         val sessionId = "defaultSessionId"
         whenever(activeDevices.getNodeFor(ref)).thenThrow(
-                DeviceNotFoundException("Device [$ref] not found in [$sessionId] activeDevices")
+            DeviceNotFoundException("Device [$ref] not found in [$sessionId] activeDevices")
         )
         deviceManager.deleteReleaseDevice(ref, "httpRequest")
         verify(activeDevices, times(0)).unregisterDeleteDevice(any())
@@ -91,48 +87,48 @@ class DeviceManagerTest {
 
     @Test
     fun getMethodReturningDeviceDTO() {
-        withDeviceOnHost(hostTwo ) {
-        whenever(hostTwo.getDeviceDTO(ref)).thenReturn(expectedDto)
+        withDeviceOnHost(hostTwo) {
+            whenever(hostTwo.getDeviceDTO(ref)).thenReturn(expectedDto)
 
-        val actualDto = deviceManager.getGetDeviceDTO(ref)
+            val actualDto = deviceManager.getGetDeviceDTO(ref)
 
-        assertThat(actualDto, equalTo(expectedDto))
-    }
+            assertThat(actualDto, equalTo(expectedDto))
+        }
     }
 
     @Test
     fun clearSafariCookies() {
-        withDeviceOnHost(hostTwo ) {
-        deviceManager.clearSafariCookies(ref)
-        verify(hostTwo).clearSafariCookies(ref)
-    }
+        withDeviceOnHost(hostTwo) {
+            deviceManager.clearSafariCookies(ref)
+            verify(hostTwo).clearSafariCookies(ref)
+        }
     }
 
     @Test
     fun resetAsyncDevice() {
-        withDeviceOnHost(hostTwo ) {
+        withDeviceOnHost(hostTwo) {
 
-        deviceManager.resetAsyncDevice(ref)
+            deviceManager.resetAsyncDevice(ref)
 
-        verify(hostTwo).resetAsync(ref)
-    }
+            verify(hostTwo).resetAsync(ref)
+        }
     }
 
     @Test
     fun approveAccess() {
-        withDeviceOnHost(hostTwo ) {
-        deviceManager.approveAccess(ref, bundleId)
-        verify(hostTwo).approveAccess(ref, bundleId)
-    }
+        withDeviceOnHost(hostTwo) {
+            deviceManager.approveAccess(ref, bundleId)
+            verify(hostTwo).approveAccess(ref, bundleId)
+        }
     }
 
     @Test
     fun getEndpointFor() {
-        withDeviceOnHost(hostTwo ) {
-        whenever(hostTwo.endpointFor(ref, 1234)).thenReturn(someUrl)
-        val actual = deviceManager.getEndpointFor(ref, 1234)
-        assertThat(actual, equalTo(someUrl))
-    }
+        withDeviceOnHost(hostTwo) {
+            whenever(hostTwo.endpointFor(ref, 1234)).thenReturn(someUrl)
+            val actual = deviceManager.getEndpointFor(ref, 1234)
+            assertThat(actual, equalTo(someUrl))
+        }
     }
 
     @Test
@@ -181,19 +177,13 @@ class DeviceManagerTest {
 
     @Test
     fun getDeviceState() { // deviceStateDTO
-        withDeviceOnHost(hostTwo ) {
-        val deviceOrSimulatorStatusBloodyContradictoryNonsense = SimulatorStatusDTO(
-            false, false, false, DeviceState.NONE.value, null)
-        whenever(hostTwo.state(ref)).thenReturn(deviceOrSimulatorStatusBloodyContradictoryNonsense)
-        val actual = deviceManager.getDeviceState(ref)
-        assertThat(actual, equalTo(deviceOrSimulatorStatusBloodyContradictoryNonsense))
-    }
-    }
-
-    @Test
-    fun autoReleaseLoopIsCalledByConstructor() {
-        deviceManager.launchAutoReleaseLoop()
-        verify(autoreleaseLooper).autoreleaseLoop(deviceManager)
+        withDeviceOnHost(hostTwo) {
+            val deviceOrSimulatorStatusBloodyContradictoryNonsense = SimulatorStatusDTO(
+                false, false, false, DeviceState.NONE.value, null)
+            whenever(hostTwo.state(ref)).thenReturn(deviceOrSimulatorStatusBloodyContradictoryNonsense)
+            val actual = deviceManager.getDeviceState(ref)
+            assertThat(actual, equalTo(deviceOrSimulatorStatusBloodyContradictoryNonsense))
+        }
     }
 
     @Test
