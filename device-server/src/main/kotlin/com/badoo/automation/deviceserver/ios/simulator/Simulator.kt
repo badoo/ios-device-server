@@ -35,7 +35,6 @@ import java.net.URL
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
-import javax.net.ssl.HostnameVerifier
 import kotlin.concurrent.withLock
 import kotlin.system.measureTimeMillis
 
@@ -712,6 +711,10 @@ class Simulator (
 
     override fun dataContainer(bundleId: String): DataContainer {
         return fileSystem.dataContainer(bundleId)
+    }
+
+    override fun applicationContainer(bundleId: String): DataContainer {
+        return fileSystem.applicationContainer(bundleId)
     }
 
     //endregion

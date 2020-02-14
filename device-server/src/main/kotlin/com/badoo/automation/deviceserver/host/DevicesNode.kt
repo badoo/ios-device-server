@@ -381,6 +381,10 @@ class DevicesNode(
         throw(NotImplementedError("Setting environment variables is not supported by physical devices"))
     }
 
+    override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
+        throw(NotImplementedError("Updating application plist is not supported by physical devices"))
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

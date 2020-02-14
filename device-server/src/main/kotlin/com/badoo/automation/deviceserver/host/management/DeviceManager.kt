@@ -176,4 +176,8 @@ class DeviceManager(
     fun resetDiagnostic(ref: DeviceRef, type: DiagnosticType) {
         nodeRegistry.activeDevices.getNodeFor(ref).resetDiagnostic(ref, type)
     }
+
+    fun updateApplicationPlist(deviceRef: String, plistEntry: PlistEntryDTO) {
+        return nodeRegistry.activeDevices.getNodeFor(deviceRef).updateApplicationPlist(deviceRef, plistEntry)
+    }
 }

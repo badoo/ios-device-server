@@ -31,6 +31,21 @@ class SimulatorsNode(
         private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
 ) : ISimulatorsNode {
 
+    override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
+        val applicationContainer = getDeviceFor(ref).applicationContainer(plistEntry.bundleId)
+        val path = File(plistEntry.file_name).toPath()
+
+        when (plistEntry.command) {
+            "set" -> applicationContainer.setPlistValue(path, plistEntry.key, plistEntry.value)
+            "add" -> {
+                val entryType = plistEntry.type
+                    ?: throw IllegalArgumentException("Unable to add new property ${plistEntry.key} as it requires value type (property_type).")
+                applicationContainer.addPlistValue(path, plistEntry.key, plistEntry.value, entryType)
+            }
+            else -> throw IllegalArgumentException("Unsupported operation: ${plistEntry.command}")
+        }
+    }
+
     override val remoteAddress: String get() = publicHostName
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)

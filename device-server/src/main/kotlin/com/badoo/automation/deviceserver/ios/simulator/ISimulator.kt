@@ -43,4 +43,5 @@ interface ISimulator {
     fun uninstallApplication(bundleId: String)
     fun deleteCrashLogs(): Boolean
     fun setEnvironmentVariables(envs: Map<String, String>)
+    fun applicationContainer(bundleId: String): DataContainer
 }

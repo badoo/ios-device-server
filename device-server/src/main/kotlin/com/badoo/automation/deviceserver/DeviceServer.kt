@@ -237,6 +237,11 @@ fun Application.module() {
                         val bundleId = param(call, "bundleId")
                         call.respond(devicesController.uninstallApplication(ref, bundleId))
                     }
+                    post("update_plist") {
+                        val ref = param(call, "ref")
+                        val plistEntries = jsonContent<PlistEntryDTO>(call)
+                        call.respond(devicesController.updateApplicationPlist(ref, plistEntries))
+                    }
                 }
                 route("media") {
                     get {
