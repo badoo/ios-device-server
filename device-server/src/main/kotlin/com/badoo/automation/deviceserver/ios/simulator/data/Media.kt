@@ -7,6 +7,7 @@ import com.badoo.automation.deviceserver.util.withDefers
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Paths
+import java.time.Duration
 
 class Media(
     private val remote: IRemote,
@@ -43,13 +44,13 @@ class Media(
             val mediaPath: String = if (remote.isLocalhost()) {
                 tmpFile.absolutePath
             } else {
-                val remoteMediaDir = remote.execIgnoringErrors(listOf("mktemp", "-d")).stdOut.trim()
-                defer { remote.execIgnoringErrors(listOf("rm", "-rf", remoteMediaDir)) }
-                remote.rsync(tmpFile.absolutePath, remoteMediaDir, setOf("-r", "--delete"))
+                val remoteMediaDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
+                defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remoteMediaDir)) }
+                remote.scpToRemoteHost(tmpFile.absolutePath, remoteMediaDir, Duration.ofMinutes(1))
                 File(remoteMediaDir, tmpFile.name).absolutePath
             }
 
-            val result = remote.execIgnoringErrors(listOf("xcrun", "simctl", "addmedia", udid, mediaPath))
+            val result = remote.execIgnoringErrors(listOf("/usr/bin/xcrun", "simctl", "addmedia", udid, mediaPath))
 
             if (!result.isSuccess) {
                 throw RuntimeException("Could not add Media to device: $result")
