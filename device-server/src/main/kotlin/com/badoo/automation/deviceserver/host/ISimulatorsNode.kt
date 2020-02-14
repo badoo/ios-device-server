@@ -50,5 +50,6 @@ interface ISimulatorsNode {
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)
     fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>)
     fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO)
+    fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String)
     val publicHostName: String
 }
