@@ -86,7 +86,7 @@ class SimulatorHostChecker(
             logger.info(logMarker, "Will kill abandoned long living fbsimctl processes")
             remote.pkill("/usr/local/bin/fbsimctl", true)
             logger.info(logMarker, "Will shutdown booted simulators")
-            remote.fbsimctl.shutdownAllBooted()
+            remote.fbsimctl.shutdownAll()
             logger.info(logMarker, "Done shutting down booted simulators")
         } catch (e: Exception) {
             logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")

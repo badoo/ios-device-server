@@ -102,11 +102,13 @@ class FBSimctl(
         return parser.parseDiagnosticInfo(fbsimctl(cmd = "diagnose", udid = udid))
     }
 
-    override fun shutdown(udid: UDID) {
-        fbsimctl("shutdown", udid, timeOut = SIMULATOR_SHUTDOWN_TIMEOUT, raiseOnError = false)
+    override fun shutdown(udid: UDID): CommandResult {
+        return shellCommand.exec(listOf("/usr/bin/xcrun", "simctl", "shutdown", udid), timeOut = SIMULATOR_SHUTDOWN_TIMEOUT, returnFailure = true)
     }
 
-    override fun shutdownAllBooted() = fbsimctl("--simulators --state=booted shutdown")
+    override fun shutdownAll(): CommandResult {
+        return shellCommand.exec(listOf("/usr/bin/xcrun", "simctl", "shutdown", "all"), timeOut = Duration.ofMinutes(3), returnFailure = true)
+    }
 
     override fun delete(udid: UDID) = fbsimctl("delete", udid)
 
@@ -138,7 +140,6 @@ class FBSimctl(
         timeOut: Duration = Duration.ofSeconds(30),
         raiseOnError: Boolean = false
     ): String {
-
         val fbsimctlCommand = buildFbsimctlCommand(jsonFormat, udid, cmd)
 
         var result = executeCommand(fbsimctlCommand, timeOut)

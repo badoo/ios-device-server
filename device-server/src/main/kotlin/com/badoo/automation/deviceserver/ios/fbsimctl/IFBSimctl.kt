@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.fbsimctl
 
+import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.data.UDID
 import java.io.File
 
@@ -30,8 +31,8 @@ interface IFBSimctl {
     fun eraseSimulator(udid: UDID): String
     fun create(model: String?, os: String?, transitional: Boolean): FBSimctlDevice
     fun diagnose(udid: UDID): FBSimctlDeviceDiagnosticInfo
-    fun shutdown(udid: UDID)
-    fun shutdownAllBooted(): String
+    fun shutdown(udid: UDID): CommandResult
+    fun shutdownAll(): CommandResult
     fun delete(udid: UDID): String
     fun terminateApp(udid: UDID, bundleId: String, raiseOnError: Boolean = false): String
     fun uninstallApp(udid: UDID, bundleId: String)
