@@ -24,6 +24,7 @@ import io.ktor.jackson.jackson
 import io.ktor.request.path
 import io.ktor.request.uri
 import io.ktor.response.respond
+import io.ktor.response.respondFile
 import io.ktor.response.respondText
 import io.ktor.routing.*
 import io.ktor.server.engine.ApplicationEngineEnvironmentReloading
@@ -279,6 +280,25 @@ fun Application.module() {
                         val ref = param(call, "ref")
                         val dataPath = jsonContent<FileDto>(call)
                         call.respond(devicesController.addMedia(ref, dataPath.file_name, dataPath.data))
+                    }
+                }
+                route("syslog") {
+                    get {
+                        val ref = param(call, "ref")
+                        val logFile = devicesController.syslog(ref)
+                        call.respondFile(logFile)
+                    }
+                    delete {
+                        val ref = param(call, "ref")
+                        call.respond(devicesController.syslogDelete(ref))
+                    }
+                    post("start") {
+                        val ref = param(call, "ref")
+                        call.respond(devicesController.syslogStart(ref, jsonContent<PredicateStringDTO>(call).predicateString))
+                    }
+                    post("stop") {
+                        val ref = param(call, "ref")
+                        call.respond(devicesController.syslogStop(ref))
                     }
                 }
                 route("diagnose/{type}") {

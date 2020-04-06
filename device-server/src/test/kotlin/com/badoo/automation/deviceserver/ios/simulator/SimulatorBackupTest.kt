@@ -32,15 +32,13 @@ class SimulatorBackupTest {
     private val resultStub = CommandResult("", "", 0, pid = 1)
     private val resultFailureStub = CommandResult("There is no such file or directory!", "", 1, pid = 1)
     @Mock private lateinit var config: ApplicationConfiguration
-    @Mock
-    private lateinit var simulatorDirectory: File
+    private val simulatorDirectory: File = File("/home/user/backup/M-Y-P-H-O-N-E")
     @Mock
     private lateinit var simulatorDataDirectory: File
 
 
     @Before fun setUp() {
         MockitoAnnotations.initMocks(this)
-        whenever(simulatorDirectory.absolutePath).thenReturn("simulatorDirectory")
         whenever(simulatorDataDirectory.absolutePath).thenReturn("simulatorDataDirectory")
     }
 
@@ -74,7 +72,7 @@ class SimulatorBackupTest {
         verify(remote, times(3)).execIgnoringErrors(captor.capture() ?: emptyList(), anyMap(), anyLong())
 
         assertEquals("rm -rf $deviceSetPath/${udid}_BACKUP", captor.allValues[0].joinToString(" "))
-        assertEquals("cp -R $deviceSetPath/$udid /home/user/backup/${udid}_BACKUP", captor.allValues[1].joinToString(" "))
+        assertEquals("cp -Rp $deviceSetPath/$udid /home/user/backup/${udid}_BACKUP", captor.allValues[1].joinToString(" "))
         assertEquals("mkdir -p $deviceSetPath/${udid}_BACKUP/data/device_server", captor.allValues[2].joinToString(" "))
 
         val cmdCaptor = ArgumentCaptor.forClass("".javaClass)

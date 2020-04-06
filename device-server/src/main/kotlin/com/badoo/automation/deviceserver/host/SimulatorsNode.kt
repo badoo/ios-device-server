@@ -186,6 +186,22 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).media.addMedia(File(fileName), data)
     }
 
+    override fun syslog(deviceRef: DeviceRef) : File {
+        return getDeviceFor(deviceRef).osLog.osLogFile
+    }
+
+    override fun syslogStart(deviceRef: DeviceRef, predicateString: String) {
+        getDeviceFor(deviceRef).osLog.startWritingLog(predicateString)
+    }
+
+    override fun syslogStop(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).osLog.stopWritingLog()
+    }
+
+    override fun syslogDelete(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).osLog.deleteLogFiles()
+    }
+
     override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
         return when (type) {
             DiagnosticType.SystemLog -> Diagnostic(

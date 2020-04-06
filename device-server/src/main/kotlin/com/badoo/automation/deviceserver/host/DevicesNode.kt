@@ -140,6 +140,22 @@ class DevicesNode(
         throw(NotImplementedError("Adding media is not supported by physical devices"))
     }
 
+    override fun syslog(deviceRef: DeviceRef): File {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun syslogStart(deviceRef: DeviceRef, predicateString: String) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun syslogStop(deviceRef: DeviceRef) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun syslogDelete(deviceRef: DeviceRef) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
     override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
         throw(NotImplementedError("Diagnostic is not supported by physical devices"))
     }
