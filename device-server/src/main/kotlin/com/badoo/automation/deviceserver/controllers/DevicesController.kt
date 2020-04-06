@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.auth.UserIdPrincipal
+import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -126,6 +127,25 @@ class DevicesController(private val deviceManager: DeviceManager) {
 
     fun addMedia(ref: DeviceRef, fileName: String, data: ByteArray): EmptyMap {
         deviceManager.addMedia(ref, fileName, data)
+        return happy
+    }
+
+    fun syslog(ref: DeviceRef): File {
+        return deviceManager.syslog(ref)
+    }
+
+    fun syslogDelete(ref: DeviceRef): EmptyMap {
+        deviceManager.syslogDelete(ref)
+        return happy
+    }
+
+    fun syslogStart(ref: DeviceRef, predicateString: String): EmptyMap {
+        deviceManager.syslogStart(ref, predicateString)
+        return happy
+    }
+
+    fun syslogStop(ref: DeviceRef): EmptyMap {
+        deviceManager.syslogStop(ref)
         return happy
     }
 
