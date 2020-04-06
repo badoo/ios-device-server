@@ -49,7 +49,9 @@ class DeviceManager(
         }
 
         File(tmpDir).walk().forEach {
-            if (it.isFile && (it.name.contains(".app.zip.") || it.name.contains(Regex("videoRecording_.*(mjpeg|mp4)")))) {
+            if (it.isFile && (it.name.contains(".app.zip.")
+                        || it.name.contains(Regex("videoRecording_.*(mjpeg|mp4)"))
+                        || it.name.contains("iOS_SysLog_"))) {
                 try {
                     logger.debug("Cleanup: deleting temporary file ${it.absolutePath}")
                     it.delete()
@@ -217,6 +219,22 @@ class DeviceManager(
 
     fun addMedia(ref: DeviceRef, fileName: String, data: ByteArray) {
         nodeRegistry.activeDevices.getNodeFor(ref).addMedia(ref, fileName, data)
+    }
+
+    fun syslog(ref: DeviceRef): File {
+        return nodeRegistry.activeDevices.getNodeFor(ref).syslog(ref)
+    }
+
+    fun syslogDelete(ref: DeviceRef) {
+        nodeRegistry.activeDevices.getNodeFor(ref).syslogDelete(ref)
+    }
+
+    fun syslogStart(ref: DeviceRef, predicateString: String) {
+        nodeRegistry.activeDevices.getNodeFor(ref).syslogStart(ref, predicateString)
+    }
+
+    fun syslogStop(ref: DeviceRef) {
+        nodeRegistry.activeDevices.getNodeFor(ref).syslogStop(ref)
     }
 
     fun getDiagnostic(ref: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
