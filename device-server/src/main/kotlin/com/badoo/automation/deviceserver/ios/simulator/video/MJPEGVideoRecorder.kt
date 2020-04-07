@@ -78,7 +78,8 @@ MJPEGVideoRecorder(
 
         stopVideoRecording()
         delete()
-        adjustVideoStreamSettings()
+        // TODO: no such an endpoint in DeviceAgent
+        // adjustVideoStreamSettings()
 
         val executor = Executors.newSingleThreadExecutor()
         val request: Request = Request.Builder()
