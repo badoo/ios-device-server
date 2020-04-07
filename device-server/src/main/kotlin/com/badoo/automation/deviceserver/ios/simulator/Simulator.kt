@@ -584,6 +584,8 @@ class Simulator(
         165 // Invalid device state (not Booted)
     )
 
+    val simulatorServices = mutableSetOf<RequiredService>()
+
     private fun waitUntilSimulatorBooted() {
         val predicate = if (remote.isLocalhost()) {
             "eventMessage contains 'Bootstrap success' OR (eventMessage contains 'LaunchServices' AND eventMessage contains 'registering extension')"
@@ -606,13 +608,20 @@ class Simulator(
         cmd.add("--predicate")
         cmd.add(predicate)
 
-        val requiredServices = mutableListOf<RequiredService>()
+        val requiredServices = mutableSetOf<RequiredService>()
 
         if (deviceInfo.os.contains("iOS 12")) {
             requiredServices.add(RequiredService.SpotlightIos12())
         } else {
             requiredServices.add(RequiredService.Spotlight())
         }
+
+        val longWaitedServices = mutableSetOf<RequiredService>()
+        longWaitedServices.add(RequiredService.Locationd())
+
+        simulatorServices.clear()
+        simulatorServices.addAll(requiredServices)
+        simulatorServices.addAll(longWaitedServices)
 
         val process = remote.remoteExecutor.startProcess(cmd, mapOf(), logMarker)
 
@@ -629,7 +638,13 @@ class Simulator(
                 }
             }
 
-            if (requiredServices.all { it.booted }) {
+            longWaitedServices.forEach { service ->
+                if (line.contains(service.identifier)) {
+                    service.booted = true
+                }
+            }
+
+            if (requiredServices.all { it.booted } && longWaitedServices.all { it.booted }) {
                 process.destroy()
             }
         }
@@ -644,25 +659,24 @@ class Simulator(
         executor.submit(lineReader(process.errorStream, errReader))
         executor.shutdown()
 
-        val finishedInTime = process.waitFor(simulatorBootTimeOutMinutes*60L + 15L, TimeUnit.SECONDS)
-        val exitCode = if (finishedInTime) process.exitValue() else -1
-
-        if (failedExitCodes.any { exitCode == it }) {
-            val errorMessage = "Simulator $udid failed to boot. Exit code: ${process.exitValue()}. StdErr: $stdErr. StdOut: $stdOut"
-            logger.error(logMarker, errorMessage)
-            throw DeviceCreationException(errorMessage)
+        pollFor(
+            timeOut = Duration.ofMinutes(3),
+            reasonName = "Simulator boot process",
+            shouldReturnOnTimeout = true,
+            retryInterval = Duration.ofMillis(250L),
+            logger = logger,
+            marker = logMarker
+        ) {
+            requiredServices.all { it.booted }
         }
 
         if (requiredServices.any { !it.booted }) {
             val failedServices = requiredServices.filter { !it.booted }
             val failedServicesMessage = if (failedServices.isNotEmpty()) "Failed services [${failedServices.joinToString(", ")}]" else ""
-            val errorMessage = "Simulator $udid failed to successfully boot to sufficient state. $failedServicesMessage. Exit code: $exitCode. StdErr: $stdErr. StdOut: $stdOut"
+            val errorMessage = "Simulator $udid failed to successfully boot to sufficient state. $failedServicesMessage. StdErr: $stdErr. StdOut: $stdOut"
+            logger.error(logMarker, "Simulator $udid log has not exited in time. Possible errors. StdErr: $stdErr. StdOut: $stdOut")
             logger.error(logMarker, errorMessage)
             throw DeviceCreationException(errorMessage)
-        }
-
-        if (!finishedInTime) {
-            logger.error(logMarker, "Simulator $udid log has not exited in time. Possible errors. Exit code: $exitCode. StdErr: $stdErr. StdOut: $stdOut")
         }
     }
 
@@ -788,11 +802,12 @@ class Simulator(
         val isSimulatorReady = deviceState == DeviceState.CREATED && isFbsimctlReady && isWdaReady
 
         return SimulatorStatusDTO(
-                ready = isSimulatorReady,
-                wda_status = isWdaReady,
-                fbsimctl_status = isFbsimctlReady,
-                state = deviceState.value,
-                last_error = lastException?.toDTO()
+            ready = isSimulatorReady,
+            wda_status = isWdaReady,
+            fbsimctl_status = isFbsimctlReady,
+            state = deviceState.value,
+            last_error = lastException?.toDTO(),
+            simulator_services = simulatorServices.toSet()
         )
     }
     //endregion
