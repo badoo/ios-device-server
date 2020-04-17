@@ -47,7 +47,7 @@ class Device(
     private val wdaProxy = usbProxy.create(
         udid = deviceInfo.udid,
         localPort = userPorts.wdaPort,
-        devicePort = if (wdaRunnerXctest.name.contains("DeviceAgent")) WDA_PORT else DA_PORT
+        devicePort = if (wdaRunnerXctest.name.contains("DeviceAgent")) DA_PORT else WDA_PORT
     )
 
     override val mjpegServerPort = userPorts.mjpegServerPort
