@@ -105,22 +105,6 @@ class DevicesControllerTest {
     }
 
     @Test
-    fun setAccessToCameraAndThings() {
-        val cameraAndThings = json(
-                """
-                    [
-                            {"bundle_id": "thingy_1"},
-                            {"bundle_id": "thingy_2"}
-                    ]"""
-        )
-        val actualResult = deviceServer.setAccessToCameraAndThings(deviceRef, cameraAndThings)
-
-        verify(deviceManager).approveAccess(deviceRef, "thingy_1")
-        verify(deviceManager).approveAccess(deviceRef, "thingy_2")
-        assertThat(actualResult, equalTo(happyEmpty))
-    }
-
-    @Test
     fun getEndpointFor() {
         val port = 1234
         val expectedResult = URL("http://foo:$port")

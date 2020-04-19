@@ -15,9 +15,8 @@ interface ISimulator: IDevice {
     val media: Media
 
     fun resetAsync(): Runnable
-    fun approveAccess(bundleId: String, locationPermissionsLock: ReentrantLock)
     fun sendPushNotification(bundleId: String, notificationContent: ByteArray)
-    fun setPermissions(bundleId: String, permissions: PermissionSet, locationPermissionsLock: ReentrantLock)
+    fun setPermissions(bundleId: String, permissions: PermissionSet)
     fun clearSafariCookies(): Map<String, String>
     fun shake(): Boolean
     fun openUrl(url: String): Boolean
