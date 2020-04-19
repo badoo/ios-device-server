@@ -38,7 +38,7 @@ class SimulatorPermissions(
 
         permissions.forEach { type, allowed ->
             when (type) {
-                PermissionType.Location -> locationPermissionsLock.withLock { setLocationPermission(bundleId, allowed) }
+                PermissionType.Location -> locationPermissionsLock.withLock { setLocationPermissionXcode114(bundleId, allowed) }
                 PermissionType.Notifications -> setNotificationsPermission(bundleId, allowed)
                 else -> servicePermissions[type] = allowed
             }
@@ -98,6 +98,64 @@ class SimulatorPermissions(
         // Setting notifications permission is disallowed as it results in SpringBoard restart
         // which breaks WebDriverAgent. Restarting SpringBoard and WebDriverAgent will take too much time.
         throw RuntimeException("Setting notifications permission is not supported")
+    }
+
+    /**
+     * $ xcrun simctl privacy
+    Grant, revoke, or reset privacy and permissions
+    Usage: simctl privacy <device> <action> <service> [<bundle identifier>]
+
+    action
+        The action to take:
+            grant - Grant access without prompting. Requires bundle identifier.
+            revoke - Revoke access, denying all use of the service. Requires bundle identifier.
+            reset - Reset access, prompting on next use. Bundle identifier optional.
+        Some permission changes will terminate the application if running.
+    service
+        The service:
+            all - Apply the action to all services.
+            calendar - Allow access to calendar.
+            contacts-limited - Allow access to basic contact info.
+            contacts - Allow access to full contact details.
+            location - Allow access to location services when app is in use.
+            location-always - Allow access to location services at all times.
+            photos-add - Allow adding photos to the photo library.
+            photos - Allow full access to the photo library.
+            media-library - Allow access to the media library.
+            microphone - Allow access to audio input.
+            motion - Allow access to motion and fitness data.
+            reminders - Allow access to reminders.
+            siri - Allow use of the app with Siri.
+    bundle identifier
+        The bundle identifier of the target application.
+
+    Examples:
+        reset all permissions: privacy <device> reset all
+        grant test host photo permissions: privacy <device> grant photos com.example.app.test-host
+
+    Warning:
+    Normally applications must have valid Info.plist usage description keys and follow the API guidelines to request access to services.
+    Using this command to bypass those requirements can mask bugs.
+
+     */
+    private fun setLocationPermissionXcode114(bundleId: String, allowed: PermissionAllowed) {
+        // map to xcrun simctl privacy
+        val permission = when (allowed) {
+            PermissionAllowed.Always -> "grant"
+            PermissionAllowed.Inuse -> "grant"
+            PermissionAllowed.Never -> "revoke"
+            PermissionAllowed.Unset -> "reset"
+            else -> throw IllegalArgumentException("Unsupported value $allowed for type ${PermissionType.Location}")
+        }
+        // service: "location-always" "location"
+
+        val cmd = listOf("/usr/bin/xcrun", "simctl", "privacy", simulator.udid, permission, "location", bundleId)
+        val env = mapOf("PATH" to "/usr/bin")
+        val rv = remote.execIgnoringErrors(cmd, env, timeOutSeconds = 60)
+
+        if (!rv.isSuccess){
+            throw RuntimeException("Could not set location permissions [${allowed.value}] for bundle $bundleId: $rv")
+        }
     }
 
     private fun setLocationPermission(bundleId: String, allowed: PermissionAllowed) {
