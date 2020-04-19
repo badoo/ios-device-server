@@ -73,8 +73,7 @@ class SimulatorsNodeTest {
             applicationConfiguration,
             iSimulatorProvider,
             portAllocator,
-            simulatorFactory,
-            locationPermissionsLock
+            simulatorFactory
     )
     private val simulatorsNode = simulatorsNode1
 
@@ -244,17 +243,6 @@ class SimulatorsNodeTest {
         createDeviceForTest()
 
         assertThat(simulatorsNode.capacityRemaining(desiredCapabilities), equalTo(2F/3))
-    }
-
-    @Test
-    fun approveAccess() {
-        createDeviceForTest()
-
-        val bundleId = "somebundle"
-
-        simulatorsNode.approveAccess(ref1, bundleId)
-
-        verify(simulatorMock).approveAccess(bundleId, locationPermissionsLock)
     }
 
     @Test

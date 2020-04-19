@@ -115,14 +115,6 @@ class DeviceManagerTest {
     }
 
     @Test
-    fun approveAccess() {
-        withDeviceOnHost(hostTwo ) {
-        deviceManager.approveAccess(ref, bundleId)
-        verify(hostTwo).approveAccess(ref, bundleId)
-    }
-    }
-
-    @Test
     fun getEndpointFor() {
         withDeviceOnHost(hostTwo ) {
         whenever(hostTwo.endpointFor(ref, 1234)).thenReturn(someUrl)
