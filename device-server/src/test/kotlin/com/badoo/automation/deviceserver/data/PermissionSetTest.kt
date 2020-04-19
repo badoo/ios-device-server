@@ -13,18 +13,18 @@ class PermissionSetTest {
     fun fromJsonParsesPermissionSet() {
         val json = """
             {
-                "location": "always",
-                "calendar": "yes",
-                "homekit": "unset"
+                "location": "revoke",
+                "calendar": "grant",
+                "reminders": "reset"
             }
             """
         val actual = fromJson(json)
 
         val expected = PermissionSet()
 
-        expected[PermissionType.Calendar] = PermissionAllowed.Yes
-        expected[PermissionType.Location] = PermissionAllowed.Always
-        expected[PermissionType.HomeKit] = PermissionAllowed.Unset
+        expected[PermissionType.Calendar] = PermissionAllowed.Grant
+        expected[PermissionType.Location] = PermissionAllowed.Revoke
+        expected[PermissionType.Reminders] = PermissionAllowed.Reset
 
         assertEquals(expected, actual)
     }

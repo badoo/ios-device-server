@@ -48,21 +48,12 @@ class DevicesController(private val deviceManager: DeviceManager) {
         deviceManager.releaseUserDevices(user.name, "httpRequest")
     }
 
-    fun setAccessToCameraAndThings(ref: DeviceRef, jsonContent: JsonNode): EmptyMap {
-        jsonContent.elements().forEach { deviceManager.approveAccess(ref, it["bundle_id"].textValue()) }
-        return happy
-    }
-
     fun sendPushNotification(ref: DeviceRef, bundleId: String, notificationContent: ByteArray): EmptyMap {
         deviceManager.sendPushNotification(ref, bundleId, notificationContent)
         return happy
     }
 
     fun setPermissions(ref: DeviceRef, json: JsonNode): EmptyMap {
-        if (json.isArray) {
-            return setAccessToCameraAndThings(ref, json)
-        }
-
         val permissions = JsonMapper().fromJson<AppPermissionsDto>(json)
         deviceManager.setPermissions(ref, permissions)
 

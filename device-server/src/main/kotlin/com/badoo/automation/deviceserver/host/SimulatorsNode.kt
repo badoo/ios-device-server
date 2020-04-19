@@ -35,8 +35,7 @@ class SimulatorsNode(
         private val applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration(),
         private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, applicationConfiguration.simulatorBackupPath),
         private val portAllocator: PortAllocator = PortAllocator(),
-        private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {},
-        private val locationPermissionsLock: ReentrantLock = ReentrantLock(true)
+        private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
 ) : ISimulatorsNode {
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
     private val simulatorsBootExecutorService: ExecutorService = Executors.newFixedThreadPool(simulatorLimit)
@@ -251,16 +250,12 @@ class SimulatorsNode(
         }
     }
 
-    override fun approveAccess(deviceRef: DeviceRef, bundleId: String) {
-        getDeviceFor(deviceRef).approveAccess(bundleId, locationPermissionsLock)
-    }
-
     override fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray) {
         getDeviceFor(deviceRef).sendPushNotification(bundleId, notificationContent)
     }
 
     override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
-        getDeviceFor(deviceRef).setPermissions(appPermissions.bundleId, appPermissions.permissions, locationPermissionsLock)
+        getDeviceFor(deviceRef).setPermissions(appPermissions.bundleId, appPermissions.permissions)
     }
 
     override fun capacityRemaining(desiredCaps: DesiredCapabilities): Float {

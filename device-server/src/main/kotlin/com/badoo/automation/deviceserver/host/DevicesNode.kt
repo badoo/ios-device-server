@@ -200,10 +200,6 @@ class DevicesNode(
         throw(NotImplementedError("Simulating push notifications is not supported by physical devices"))
     }
 
-    override fun approveAccess(deviceRef: DeviceRef, bundleId: String) {
-        throw(NotImplementedError("Approve Access is not supported by physical devices"))
-    }
-
     override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
         throw(NotImplementedError("Set Permissions is not supported by physical devices"))
     }

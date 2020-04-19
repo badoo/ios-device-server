@@ -105,10 +105,6 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).resetAsync(ref)
     }
 
-    fun  approveAccess(ref: DeviceRef, bundleId: String) {
-        nodeRegistry.activeDevices.getNodeFor(ref).approveAccess(ref, bundleId)
-    }
-
     fun sendPushNotification(ref: DeviceRef, bundleId: String, notificationContent: ByteArray) {
         nodeRegistry.activeDevices.getNodeFor(ref).sendPushNotification(ref, bundleId, notificationContent)
     }

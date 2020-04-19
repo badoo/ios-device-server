@@ -821,25 +821,8 @@ class Simulator(
 
     //region approveAccess
 
-    override fun approveAccess(bundleId: String, locationPermissionsLock: ReentrantLock) {
-        val permissions = SimulatorPermissions(remote, deviceSetPath, this)
-
-        val set = PermissionSet()
-
-        set.putAll(mapOf(
-            PermissionType.Camera to PermissionAllowed.Yes,
-            PermissionType.Microphone to PermissionAllowed.Yes,
-            PermissionType.Photos to PermissionAllowed.Yes,
-            PermissionType.Contacts to PermissionAllowed.Yes
-        ))
-
-        permissions.setPermissions(bundleId, set, locationPermissionsLock)
-    }
-
-    override fun setPermissions(bundleId: String, permissions: PermissionSet, locationPermissionsLock: ReentrantLock) {
-        val manager = SimulatorPermissions(remote, deviceSetPath, this)
-
-        manager.setPermissions(bundleId, permissions, locationPermissionsLock)
+    override fun setPermissions(bundleId: String, permissions: PermissionSet) {
+        SimulatorPermissions(remote, udid).setPermissions(bundleId, permissions)
     }
 
     override fun sendPushNotification(bundleId: String, notificationContent: ByteArray) {
