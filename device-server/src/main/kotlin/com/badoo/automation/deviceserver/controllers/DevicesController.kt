@@ -53,6 +53,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
+    fun sendPushNotification(ref: DeviceRef, bundleId: String, notificationContent: ByteArray): EmptyMap {
+        deviceManager.sendPushNotification(ref, bundleId, notificationContent)
+        return happy
+    }
+
     fun setPermissions(ref: DeviceRef, json: JsonNode): EmptyMap {
         if (json.isArray) {
             return setAccessToCameraAndThings(ref, json)
