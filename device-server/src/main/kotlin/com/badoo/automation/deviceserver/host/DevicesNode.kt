@@ -196,6 +196,10 @@ class DevicesNode(
         throw(NotImplementedError("Reset is not supported by physical devices"))
     }
 
+    override fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray) {
+        throw(NotImplementedError("Simulating push notifications is not supported by physical devices"))
+    }
+
     override fun approveAccess(deviceRef: DeviceRef, bundleId: String) {
         throw(NotImplementedError("Approve Access is not supported by physical devices"))
     }
