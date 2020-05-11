@@ -109,6 +109,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).approveAccess(ref, bundleId)
     }
 
+    fun sendPushNotification(ref: DeviceRef, bundleId: String, notificationContent: ByteArray) {
+        nodeRegistry.activeDevices.getNodeFor(ref).sendPushNotification(ref, bundleId, notificationContent)
+    }
+
     fun setPermissions(ref: DeviceRef, permissions: AppPermissionsDto) {
         nodeRegistry.activeDevices.getNodeFor(ref).setPermissions(ref, permissions)
     }

@@ -24,6 +24,7 @@ import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.pollFor
+import com.badoo.automation.deviceserver.util.withDefers
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.Runnable
 import kotlinx.coroutines.experimental.delay
@@ -40,7 +41,6 @@ import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.NANOSECONDS
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -840,6 +840,29 @@ class Simulator(
         val manager = SimulatorPermissions(remote, deviceSetPath, this)
 
         manager.setPermissions(bundleId, permissions, locationPermissionsLock)
+    }
+
+    override fun sendPushNotification(bundleId: String, notificationContent: ByteArray) {
+        withDefers(logger) {
+            val pushNotificationFile: File = File.createTempFile("push_notification_${deviceInfo.udid}_", ".json")
+            defer { pushNotificationFile.delete() }
+            pushNotificationFile.writeBytes(notificationContent)
+
+            val pushNotificationPath: String = if (remote.isLocalhost()) {
+                pushNotificationFile.absolutePath
+            } else {
+                val remotePushNotificationDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
+                defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remotePushNotificationDir)) }
+                remote.scpToRemoteHost(pushNotificationFile.absolutePath, remotePushNotificationDir, Duration.ofMinutes(1))
+                File(remotePushNotificationDir, pushNotificationFile.name).absolutePath
+            }
+
+            val result = remote.execIgnoringErrors(listOf("/usr/bin/xcrun", "simctl", "push", udid, bundleId, pushNotificationPath))
+
+            if (!result.isSuccess) {
+                throw RuntimeException("Could not simulate push notification to device $udid: $result")
+            }
+        }
     }
 
     //endregion

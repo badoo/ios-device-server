@@ -16,6 +16,7 @@ interface ISimulator: IDevice {
 
     fun resetAsync(): Runnable
     fun approveAccess(bundleId: String, locationPermissionsLock: ReentrantLock)
+    fun sendPushNotification(bundleId: String, notificationContent: ByteArray)
     fun setPermissions(bundleId: String, permissions: PermissionSet, locationPermissionsLock: ReentrantLock)
     fun clearSafariCookies(): Map<String, String>
     fun shake(): Boolean
