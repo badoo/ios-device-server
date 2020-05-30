@@ -217,6 +217,10 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).listMedia(ref)
     }
 
+    fun listPhotoData(ref: DeviceRef): String {
+        return nodeRegistry.activeDevices.getNodeFor(ref).listPhotoData(ref)
+    }
+
     fun addMedia(ref: DeviceRef, fileName: String, data: ByteArray) {
         nodeRegistry.activeDevices.getNodeFor(ref).addMedia(ref, fileName, data)
     }

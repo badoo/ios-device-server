@@ -282,6 +282,13 @@ fun Application.module() {
                         call.respond(devicesController.addMedia(ref, dataPath.file_name, dataPath.data))
                     }
                 }
+
+                route("media_data") {
+                    get {
+                        val ref = param(call, "ref")
+                        call.respond(JsonMapper().toJson(MediaDto(devicesController.listPhotoData(ref))))
+                    }
+                }
                 route("syslog") {
                     get {
                         val ref = param(call, "ref")

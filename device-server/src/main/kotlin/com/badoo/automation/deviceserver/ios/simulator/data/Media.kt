@@ -16,7 +16,10 @@ class Media(
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
     fun reset() {
-        val removeCmd = "rm -rf $mediaPath"
+        val imagesPath = mediaPath.resolve("DCIM").toString()
+        val photoDataPath = mediaPath.resolve("PhotoData/Photos.sqlite").toString()
+
+        val removeCmd = "rm -f $imagesPath/**/* $photoDataPath*; touch $photoDataPath"
 
         val result = remote.shell(removeCmd)
 
@@ -26,6 +29,13 @@ class Media(
 
         // restart assetsd to prevent fbsimctl upload failing with Error Domain=NSCocoaErrorDomain Code=-1 \"(null)\"
         restartAssetsd()
+    }
+
+    fun listPhotoData() : String {
+        val sql = "\"select ZFILENAME from ZGENERICASSET;\""
+        val photoDataPath = mediaPath.resolve("PhotoData/Photos.sqlite").toString()
+        val sqlCmd = "sqlite3 $photoDataPath $sql"
+        return remote.shell(sqlCmd).stdOut
     }
 
     fun list() : String {

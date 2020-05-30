@@ -119,6 +119,10 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.listMedia(ref)
     }
 
+    fun listPhotoData(ref: DeviceRef): String {
+        return deviceManager.listPhotoData(ref)
+    }
+
     fun resetMedia(ref: DeviceRef): EmptyMap {
         deviceManager.resetMedia(ref)
 

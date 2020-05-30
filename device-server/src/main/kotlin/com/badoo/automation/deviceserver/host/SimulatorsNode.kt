@@ -182,6 +182,10 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).media.list()
     }
 
+    override fun listPhotoData(deviceRef: DeviceRef) : String {
+        return getDeviceFor(deviceRef).media.listPhotoData()
+    }
+
     override fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray) {
         getDeviceFor(deviceRef).media.addMedia(File(fileName), data)
     }
