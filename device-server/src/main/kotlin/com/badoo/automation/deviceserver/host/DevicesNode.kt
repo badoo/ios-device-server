@@ -136,6 +136,10 @@ class DevicesNode(
         throw(NotImplementedError("Listing media is not supported by physical devices"))
     }
 
+    override fun listPhotoData(deviceRef: DeviceRef) : String {
+        throw(NotImplementedError("Listing PhotoData is not supported by physical devices"))
+    }
+
     override fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray) {
         throw(NotImplementedError("Adding media is not supported by physical devices"))
     }

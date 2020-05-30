@@ -37,6 +37,7 @@ interface ISimulatorsNode {
     fun syslogDelete(deviceRef: DeviceRef)
     fun resetMedia(deviceRef: DeviceRef)
     fun listMedia(deviceRef: DeviceRef): String
+    fun listPhotoData(deviceRef: DeviceRef): String
 
     fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic
     fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType)
