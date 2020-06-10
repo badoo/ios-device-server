@@ -401,6 +401,8 @@ class DevicesNode(
         device.uninstallApplication(bundleId, appInstaller)
     }
 
+    override fun deleteAppData(deviceRef: DeviceRef, bundleId: String) = throw(NotImplementedError())
+
     private fun deviceToDto(device: Device): DeviceDTO {
         return DeviceDTO(
             ref = device.ref,
