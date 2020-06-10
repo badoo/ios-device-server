@@ -58,6 +58,11 @@ class DataContainer(
         }
     }
 
+    fun delete() {
+        remote.shell("rm -rf ${basePath.absolutePath}")
+        remote.shell("mkdir -p ${basePath.absolutePath}")
+    }
+
     fun setPlistValue(path: Path, key: String, value: String) {
         val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
         remote.shell("/usr/libexec/PlistBuddy -c 'Set $key $value' $expandedPath", false) // TODO: Simple values only for now

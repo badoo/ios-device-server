@@ -162,6 +162,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).uninstallApplication(ref, bundleId)
     }
 
+    fun deleteAppData(ref: DeviceRef, bundleId: String) {
+        nodeRegistry.activeDevices.getNodeFor(ref).deleteAppData(ref, bundleId)
+    }
+
     fun getDeviceState(ref: DeviceRef): SimulatorStatusDTO {
         return nodeRegistry.activeDevices.getNodeFor(ref).state(ref)
     }
