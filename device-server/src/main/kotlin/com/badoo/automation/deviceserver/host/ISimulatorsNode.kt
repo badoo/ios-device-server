@@ -53,6 +53,7 @@ interface ISimulatorsNode {
     fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)
+    fun deleteAppData(deviceRef: DeviceRef, bundleId: String)
     fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>)
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String)
     fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto)

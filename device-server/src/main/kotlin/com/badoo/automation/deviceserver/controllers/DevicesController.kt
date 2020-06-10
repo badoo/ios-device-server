@@ -193,6 +193,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
+    fun deleteAppData(ref: DeviceRef, bundleId: String): EmptyMap {
+        deviceManager.deleteAppData(ref, bundleId)
+        return happy
+    }
+
     fun setEnvironmentVariables(ref: DeviceRef, environmentVariables: Map<String, String>): EmptyMap {
         deviceManager.setEnvironmentVariables(ref, environmentVariables)
         return happy
