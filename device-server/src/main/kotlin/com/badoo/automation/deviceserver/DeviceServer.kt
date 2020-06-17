@@ -244,6 +244,12 @@ fun Application.module() {
                         val dataPath = jsonContent<DataPath>(call)
                         call.respond(devicesController.listFiles(ref, dataPath))
                     }
+
+                    delete("{bundleId}") {
+                        val ref = param(call, "ref")
+                        val bundleId = param(call, "bundleId")
+                        call.respond(devicesController.deleteAppData(ref, bundleId))
+                    }
                 }
                 route("app") {
                     delete("{bundleId}") {

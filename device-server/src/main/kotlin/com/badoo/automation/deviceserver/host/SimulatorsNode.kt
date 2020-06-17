@@ -81,6 +81,10 @@ class SimulatorsNode(
         appBinariesCache[key] = appDirectory
     }
 
+    override fun deleteAppData(deviceRef: DeviceRef, bundleId: String) {
+        return getDeviceFor(deviceRef).dataContainer(bundleId).delete()
+    }
+
     private fun copyAppToRemoteHost(appBundle: ApplicationBundle): File {
         val marker = MapEntriesAppendingMarker(mapOf(HOSTNAME to remote.publicHostName, "action_name" to "scp_application"))
         logger.debug(marker, "Copying application ${appBundle.appUrl} to $this")
