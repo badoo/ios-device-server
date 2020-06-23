@@ -36,10 +36,11 @@ class UsbProxy(
     private var socat: ChildProcess? = null
 
     fun start() {
+        val iProxyCommand = listOf(IPROXY_BIN, "$localPort:$devicePort", "--udid", udid)
         iproxy = childFactory(
             remote.hostName,
             remote.userName,
-            listOf(IPROXY_BIN, localPort.toString(), devicePort.toString(), udid),
+            iProxyCommand,
             mapOf(),
             { message -> logger.trace(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
             { message -> logger.debug(logMarker, "${this}: iproxy <e>: ${message.trim()}") }

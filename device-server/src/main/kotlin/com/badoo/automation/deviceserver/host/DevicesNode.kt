@@ -459,14 +459,14 @@ class DevicesNode(
             throw RuntimeException("Expecting fbsimctl $fbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
         }
 
-        val iproxy = remote.execIgnoringErrors((listOf(UsbProxy.IPROXY_BIN)))
-        if (iproxy.exitCode != 0) {
-           throw RuntimeException("Expecting iproxy to be installed")
+        val iproxyResult = remote.execIgnoringErrors((listOf(UsbProxy.IPROXY_BIN, "--help")))
+        if (!iproxyResult.isSuccess) {
+           throw RuntimeException("Expecting iproxy to be installed. Exit code: ${iproxyResult.exitCode}\nStdErr: ${iproxyResult.stdErr}. StdOut: ${iproxyResult.stdOut}")
         }
 
-        val socat = remote.execIgnoringErrors((listOf(UsbProxy.SOCAT_BIN, "-V")))
-        if (socat.exitCode != 0) {
-            throw RuntimeException("Expecting socat to be installed")
+        val socatResult = remote.execIgnoringErrors((listOf(UsbProxy.SOCAT_BIN, "-V")))
+        if (!socatResult.isSuccess) {
+            throw RuntimeException("Expecting socat to be installed. Exit code: ${socatResult.exitCode}\nStdErr: ${socatResult.stdErr}. StdOut: ${socatResult.stdOut}")
         }
     }
 
@@ -480,6 +480,7 @@ class DevicesNode(
     private fun cleanup() {
         // single instance of server on node is implied, so we can kill all simulators and fbsimctl processes
         remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/usr/local/bin/fbsimctl"))
+        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/usr/local/bin/socat"))
         remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/usr/local/bin/iproxy"))
     }
 
