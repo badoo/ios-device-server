@@ -5,6 +5,8 @@ import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.util.pollFor
+import com.badoo.automation.deviceserver.util.AppInstaller
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import java.io.File
 import java.net.URI
@@ -33,8 +35,12 @@ class SimulatorWebDriverAgent(
         LogMarkers.HOSTNAME to remote.hostName
     )
 
+    private val appInstaller: AppInstaller = AppInstaller(remote)
+
     override fun start() {
-        installHostApp()
+        if (!isHostAppInstalled()) {
+            installHostApp()
+        }
         super.start()
     }
 
@@ -74,7 +80,6 @@ class SimulatorWebDriverAgent(
     }
 
     private fun isHostAppInstalled(): Boolean {
-        return remote.fbsimctl.listApps(udid)
-            .any { it.bundle.bundle_id.contains(wdaRunnerXctest.parentFile.parentFile.nameWithoutExtension) }
+        return appInstaller.isAppInstalledOnSimulator(udid, ApplicationConfiguration().wdaSimulatorBundleId)
     }
 }

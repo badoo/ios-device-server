@@ -116,7 +116,7 @@ class AppInstaller(
         )
     }
 
-    private fun isAppInstalledOnSimulator(udid: UDID, bundleId: String): Boolean {
+    fun isAppInstalledOnSimulator(udid: UDID, bundleId: String): Boolean {
         val result = remote.execIgnoringErrors(listOf(
             "/usr/bin/xcrun",
             "simctl",
