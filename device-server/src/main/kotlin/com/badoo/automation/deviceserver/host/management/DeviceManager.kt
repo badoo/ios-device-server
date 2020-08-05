@@ -217,11 +217,11 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).resetMedia(ref)
     }
 
-    fun listMedia(ref: DeviceRef): String {
+    fun listMedia(ref: DeviceRef): List<String> {
         return nodeRegistry.activeDevices.getNodeFor(ref).listMedia(ref)
     }
 
-    fun listPhotoData(ref: DeviceRef): String {
+    fun listPhotoData(ref: DeviceRef): List<String> {
         return nodeRegistry.activeDevices.getNodeFor(ref).listPhotoData(ref)
     }
 

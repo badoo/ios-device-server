@@ -181,11 +181,11 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).media.reset()
     }
 
-    override fun listMedia(deviceRef: DeviceRef) : String {
+    override fun listMedia(deviceRef: DeviceRef) : List<String> {
         return getDeviceFor(deviceRef).media.list()
     }
 
-    override fun listPhotoData(deviceRef: DeviceRef) : String {
+    override fun listPhotoData(deviceRef: DeviceRef) : List<String> {
         return getDeviceFor(deviceRef).media.listPhotoData()
     }
 

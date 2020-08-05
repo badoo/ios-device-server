@@ -132,11 +132,11 @@ class DevicesNode(
         throw(NotImplementedError("Resetting media is not supported by physical devices"))
     }
 
-    override fun listMedia(deviceRef: DeviceRef) : String {
+    override fun listMedia(deviceRef: DeviceRef) : List<String> {
         throw(NotImplementedError("Listing media is not supported by physical devices"))
     }
 
-    override fun listPhotoData(deviceRef: DeviceRef) : String {
+    override fun listPhotoData(deviceRef: DeviceRef) : List<String> {
         throw(NotImplementedError("Listing PhotoData is not supported by physical devices"))
     }
 

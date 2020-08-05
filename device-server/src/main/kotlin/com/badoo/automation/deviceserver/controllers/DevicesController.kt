@@ -111,11 +111,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
-    fun listMedia(ref: DeviceRef): String {
+    fun listMedia(ref: DeviceRef): List<String> {
         return deviceManager.listMedia(ref)
     }
 
-    fun listPhotoData(ref: DeviceRef): String {
+    fun listPhotoData(ref: DeviceRef): List<String> {
         return deviceManager.listPhotoData(ref)
     }
 
