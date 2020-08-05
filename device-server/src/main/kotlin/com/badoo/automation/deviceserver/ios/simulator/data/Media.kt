@@ -31,16 +31,16 @@ class Media(
         restartAssetsd()
     }
 
-    fun listPhotoData() : String {
+    fun listPhotoData() : List<String> {
         val sql = "\"select ZFILENAME from ZGENERICASSET;\""
         val photoDataPath = mediaPath.resolve("PhotoData/Photos.sqlite").toString()
         val sqlCmd = "sqlite3 $photoDataPath $sql"
-        return remote.shell(sqlCmd).stdOut
+        return remote.shell(sqlCmd).stdOut.lines()
     }
 
-    fun list() : String {
+    fun list() : List<String> {
         val listCmd = listOf("ls", "-1", "$mediaPath/DCIM/100APPLE")
-        return remote.execIgnoringErrors(listCmd).stdOut
+        return remote.execIgnoringErrors(listCmd).stdOut.lines()
     }
 
     fun addMedia(file: File, data: ByteArray) {
