@@ -90,10 +90,14 @@ MJPEGVideoRecorder(
         videoRecordingHttpCall = httpClient.newCall(request)
 
         videoRecordingTask = executor.submit {
-            videoRecordingHttpCall!!.execute().use { response ->
-                response.body!!.byteStream().use { inputStream ->
-                    Files.copy(inputStream, videoFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            try {
+                videoRecordingHttpCall!!.execute().use { response ->
+                    response.body!!.byteStream().use { inputStream ->
+                        Files.copy(inputStream, videoFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                    }
                 }
+            } catch (e: Exception) {
+                logger.error(logMarker, "Failed to download video from remote device due to: ${e.message}", e)
             }
         }
         executor.shutdown()
