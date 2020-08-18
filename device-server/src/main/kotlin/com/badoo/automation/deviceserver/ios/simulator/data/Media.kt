@@ -17,9 +17,8 @@ class Media(
 
     fun reset() {
         val imagesPath = mediaPath.resolve("DCIM").toString()
-        val photoDataPath = mediaPath.resolve("PhotoData/Photos.sqlite").toString()
-
-        val removeCmd = "rm -f $imagesPath/**/* $photoDataPath*; touch $photoDataPath"
+        val photoDataPath = mediaPath.resolve("PhotoData").toString()
+        val removeCmd = "rm -rf $imagesPath; rm -rf $photoDataPath; mkdir -p $imagesPath; mkdir -p $photoDataPath"
 
         val result = remote.shell(removeCmd)
 
@@ -29,18 +28,50 @@ class Media(
 
         // restart assetsd to prevent fbsimctl upload failing with Error Domain=NSCocoaErrorDomain Code=-1 \"(null)\"
         restartAssetsd()
+
+        // starting MobileSlideshow app is essential for initializing PhotoData databases
+        startMobileSlideshowApp()
+        Thread.sleep(3000) // to make sure app started
+        terminateMobileSlideshowApp()
     }
 
     fun listPhotoData() : List<String> {
-        val sql = "\"select ZFILENAME from ZGENERICASSET;\""
         val photoDataPath = mediaPath.resolve("PhotoData/Photos.sqlite").toString()
+        val tables: List<String> = remote.shell("sqlite3 $photoDataPath \".tables\"").stdOut.lines().map(String::trim)
+
+        val tableName = when {
+            tables.contains("ZGENERICASSET") -> "ZGENERICASSET"
+            tables.contains("ZASSET") -> "ZASSET"
+            else -> throw RuntimeException("Unable to find table with photos")
+        }
+
+        val sql = "\"select ZFILENAME from $tableName;\""
         val sqlCmd = "sqlite3 $photoDataPath $sql"
-        return remote.shell(sqlCmd).stdOut.lines()
+        return remote.shell(sqlCmd).stdOut.lines().filter(String::isNotBlank)
     }
 
     fun list() : List<String> {
         val listCmd = listOf("ls", "-1", "$mediaPath/DCIM/100APPLE")
-        return remote.execIgnoringErrors(listCmd).stdOut.lines()
+        return remote.execIgnoringErrors(listCmd).stdOut.lines().filter(String::isNotBlank)
+    }
+
+    fun addMedia(media: List<File>) {
+        withDefers(logger) {
+            val mediaPaths = if (remote.isLocalhost()) {
+                media.joinToString(" ")
+            } else {
+                val remoteMediaDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
+                defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remoteMediaDir)) }
+                media.forEach { remote.scpToRemoteHost(it.absolutePath, remoteMediaDir) }
+                media.joinToString(" ") { File(remoteMediaDir, it.name).absolutePath }
+            }
+
+            val result = remote.shell("/usr/bin/xcrun simctl addmedia $udid $mediaPaths")
+
+            if (!result.isSuccess) {
+                throw RuntimeException("Could not add Media to device: $result")
+            }
+        }
     }
 
     fun addMedia(file: File, data: ByteArray) {
@@ -75,6 +106,30 @@ class Media(
 
         if (!result.isSuccess) {
             throw RuntimeException("Could not restart assetsd service: $result")
+        }
+    }
+
+    private fun startMobileSlideshowApp() {
+        val appStartResult = remote.execIgnoringErrors(
+            listOf(
+                "xcrun", "simctl", "launch", udid, "com.apple.mobileslideshow"
+            )
+        )
+
+        if (!appStartResult.isSuccess) {
+            throw RuntimeException("Could not start Mobile Slideshow app: $appStartResult")
+        }
+    }
+
+    private fun terminateMobileSlideshowApp() {
+        val appTerminateResult = remote.execIgnoringErrors(
+            listOf(
+                "xcrun", "simctl", "terminate", udid, "com.apple.mobileslideshow"
+            )
+        )
+
+        if (!appTerminateResult.isSuccess) {
+            throw RuntimeException("Could not terminate Mobile Slideshow app: $appTerminateResult")
         }
     }
 }
