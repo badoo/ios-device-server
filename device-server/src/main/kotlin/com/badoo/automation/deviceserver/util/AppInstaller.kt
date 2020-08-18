@@ -37,17 +37,8 @@ class AppInstaller(
         return installTask
     }
 
-    private fun terminateApplication(logMarker: Marker, bundleId: String, udid: UDID) {
-        val terminateResult = remote.execIgnoringErrors(listOf("xcrun", "simctl", "terminate", udid, bundleId))
-
-        if (!terminateResult.isSuccess) {
-            logger.error(logMarker, "Terminating application $bundleId was unsuccessful. Result $terminateResult")
-        }
-    }
-
     fun uninstallApplication(udid: UDID, bundleId: String) {
         val logMarker = logMarker(udid)
-        terminateApplication(logMarker, bundleId, udid)
         val uninstallTask = installExecutor.submit(Callable {
             try {
                 logger.debug(logMarker, "Uninstalling application $bundleId from Simulator $udid")
