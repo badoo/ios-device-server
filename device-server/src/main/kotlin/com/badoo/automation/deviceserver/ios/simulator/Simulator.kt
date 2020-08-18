@@ -16,6 +16,7 @@ import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupErr
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.FileSystem
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
+import com.badoo.automation.deviceserver.ios.simulator.data.MediaInconsistentcyException
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
@@ -417,7 +418,7 @@ class Simulator(
         }
 
         if (assetsPath.isNotEmpty()) {
-            copyMediaAssets()
+            copyMediaAssetsWithRetry()
         }
 
         if (useWda) {
@@ -428,6 +429,29 @@ class Simulator(
         shutdown()
 
         backup.create()
+    }
+
+    private val MEDIA_COPY_ATTEMPTS = 3
+
+    private fun copyMediaAssetsWithRetry() {
+        (1..MEDIA_COPY_ATTEMPTS).forEach {
+            try {
+                logger.info(logMarker, "Copying media assets to simulator. Attempt: $it")
+
+                val mediaTask =
+                    concurrentBootsPool.submit { // using limited amount of workers to copy assets to simulator
+                        copyMediaAssets()
+                    }
+                mediaTask.get()
+                logger.info(logMarker, "Copied media assets to simulator successfully")
+                return
+            } catch (e: MediaInconsistentcyException) {
+                logger.error(e.message)
+                if (it == MEDIA_COPY_ATTEMPTS) {
+                    throw e
+                }
+            }
+        }
     }
 
     private fun copyTrustStore() {
@@ -447,8 +471,19 @@ class Simulator(
     private fun copyMediaAssets() {
         logger.debug(logMarker, "Copying assets to ${this@Simulator}")
         media.reset()
-        File(assetsPath).walk().filter { it.isFile }.forEach {
-           media.addMedia(it, it.readBytes())
+
+        val mediaFiles = File(assetsPath).walk().filter { it.isFile }.toList()
+        media.addMedia(mediaFiles)
+
+        val assets = media.list()
+        val recordedAssets = media.listPhotoData()
+
+        if (recordedAssets.size != recordedAssets.toSet().size) {
+            throw MediaInconsistentcyException("Recorded media contains wrong data. Assets: ${assets.joinToString(",")}. Recorded assets: ${recordedAssets.joinToString(",")}")
+        }
+
+        if (assets.size != recordedAssets.size) {
+            throw MediaInconsistentcyException("Actual media is in wrong state. Assets: ${assets.joinToString(",")}. Recorded assets: ${recordedAssets.joinToString(",")}")
         }
 
         logger.info(logMarker, "Copied assets to ${this@Simulator}")
