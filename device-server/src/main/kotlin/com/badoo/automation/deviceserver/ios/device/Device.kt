@@ -13,6 +13,9 @@ import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.executeWithTimeout
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import com.badoo.automation.deviceserver.util.pollFor
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.launch
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
@@ -180,6 +183,7 @@ class Device(
     }
 
     private fun disposeResources() {
+        stopPeriodicHealthCheck()
         ignoringDisposeErrors { fbsimctlProc.kill() }
         ignoringDisposeErrors { wdaProc.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
@@ -239,7 +243,7 @@ class Device(
         }
 
         deviceState = DeviceState.NONE
-
+        stopPeriodicHealthCheck()
         preparePromise = executeAsync {
             try {
                 prepare()
@@ -252,6 +256,7 @@ class Device(
     }
 
     fun renewAsync(whitelistedApps: Set<String>, uninstallApps: Boolean) {
+        stopPeriodicHealthCheck()
         val currentStatus = status()
         var prepareRequired = false
 
@@ -333,11 +338,69 @@ class Device(
 
             startFbsimctl()
             startWdaWithRetry()
-
+            startPeriodicHealthCheck()
             logger.info(logMarker, "Finished preparing $this")
             deviceState = DeviceState.CREATED
         }
+    }
 
+    @Volatile private var healthChecker: Job? = null
+
+    private fun startPeriodicHealthCheck() {
+        stopPeriodicHealthCheck()
+
+        val healthCheckInterval = Duration.ofSeconds(20).toMillis()
+
+        healthChecker = launch {
+            while (isActive) {
+                performWebDriverAgentHealthCheck(10)
+                delay(healthCheckInterval)
+            }
+        }
+    }
+
+    private suspend fun performWebDriverAgentHealthCheck(maxWDAFailCount: Int) {
+        var wdaFailCount = 0
+        if (!wdaProc.isHealthy()) {
+            for (i in 0 until maxWDAFailCount) {
+                if (wdaProc.isHealthy()) {
+                    wdaFailCount = 0
+                    break
+                } else {
+                    val message = "WebDriverAgent health check failed $wdaFailCount times."
+                    logger.error(logMarker, message)
+                    wdaFailCount += 1
+                    delay(Duration.ofSeconds(3).toMillis())
+                }
+            }
+
+            if (wdaFailCount >= maxWDAFailCount) {
+                logger.error(logMarker, "WebDriverAgent health check failed $wdaFailCount times. Restarting WebDriverAgent")
+
+                try {
+                    wdaProc.kill()
+                } catch (e: RuntimeException) {
+                    logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
+                }
+
+                try {
+                    wdaProc.start()
+                } catch (e: RuntimeException) {
+                    logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
+                    deviceState = DeviceState.FAILED
+                    throw RuntimeException("$this Failed to restart WebDriverAgent. Stopping health check")
+                }
+            }
+        }
+    }
+
+    private fun stopPeriodicHealthCheck() {
+        healthChecker?.let { checker ->
+            checker.cancel()
+            while (checker.isActive) {
+                Thread.sleep(100)
+            }
+        }
     }
 
     private fun startFbsimctl() {
