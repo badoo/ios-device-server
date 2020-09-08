@@ -19,9 +19,10 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URL
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.util.*
 import java.util.concurrent.*
-import java.util.concurrent.locks.ReentrantLock
 import kotlin.collections.HashMap
 import kotlin.system.measureNanoTime
 
@@ -195,6 +196,15 @@ class SimulatorsNode(
 
     override fun syslog(deviceRef: DeviceRef) : File {
         return getDeviceFor(deviceRef).osLog.osLogFile
+    }
+
+    override fun deviceAgentLog(deviceRef: DeviceRef): File {
+        return getDeviceFor(deviceRef).deviceAgentLog
+    }
+
+    override fun deviceAgentLogDelete(deviceRef: DeviceRef) {
+        val logFile = getDeviceFor(deviceRef).deviceAgentLog
+        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
     }
 
     override fun syslogStart(deviceRef: DeviceRef, predicateString: String) {

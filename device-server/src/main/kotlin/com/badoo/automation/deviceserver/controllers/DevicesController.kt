@@ -134,6 +134,14 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.syslog(ref)
     }
 
+    fun deviceAgentLog(ref: DeviceRef): File {
+        return deviceManager.deviceAgentLog(ref)
+    }
+
+    fun deviceAgentLogDelete(ref: DeviceRef) {
+        deviceManager.deviceAgentLogDelete(ref)
+    }
+
     fun syslogDelete(ref: DeviceRef): EmptyMap {
         deviceManager.syslogDelete(ref)
         return happy
