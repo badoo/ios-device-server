@@ -42,7 +42,7 @@ class UsbProxy(
             remote.userName,
             iProxyCommand,
             mapOf(),
-            { message -> logger.trace(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
+            { message -> }, // { message -> logger.trace(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
             { message -> logger.debug(logMarker, "${this}: iproxy <e>: ${message.trim()}") }
         )
 
