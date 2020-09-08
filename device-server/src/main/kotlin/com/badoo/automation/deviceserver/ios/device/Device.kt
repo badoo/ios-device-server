@@ -381,14 +381,18 @@ class Device(
         }
     }
 
+    private val deviceAgentStartTime = 10_000L
+
     private fun startWda() {
         wdaProc.kill()
         wdaProc.start()
 
+        Thread.sleep(deviceAgentStartTime)
+
         pollFor(
             Duration.ofMinutes(1),
             reasonName = "$this WebDriverAgent health check",
-            retryInterval = Duration.ofSeconds(2),
+            retryInterval = Duration.ofSeconds(5),
             logger = logger,
             marker = logMarker
         ) {
