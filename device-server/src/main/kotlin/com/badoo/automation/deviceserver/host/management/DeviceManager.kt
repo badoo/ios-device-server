@@ -233,6 +233,14 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).syslog(ref)
     }
 
+    fun deviceAgentLog(ref: DeviceRef): File {
+        return nodeRegistry.activeDevices.getNodeFor(ref).deviceAgentLog(ref)
+    }
+
+    fun deviceAgentLogDelete(ref: DeviceRef) {
+        nodeRegistry.activeDevices.getNodeFor(ref).deviceAgentLogDelete(ref)
+    }
+
     fun syslogDelete(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).syslogDelete(ref)
     }

@@ -42,6 +42,7 @@ class SimulatorXcrunWebDriverAgent(
     private val wdaBundleId = applicationConfiguration.wdaSimulatorBundleId
     private val uri: URI = uriWithPath(wdaEndpoint, "status")
     private val client: CustomHttpClient = CustomHttpClient()
+    override val deviceAgentLog: File = File.createTempFile("device_agent_log_", ".txt")
 
     override fun isHealthy(): Boolean {
         return try {

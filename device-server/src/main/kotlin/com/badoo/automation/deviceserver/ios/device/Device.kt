@@ -76,6 +76,7 @@ class Device(
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
     private val wdaProc = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort, mjpegServerPort)
+    override val deviceAgentLog get() = wdaProc.deviceAgentLog
 
     private val status = SimulatorStatus()
 
@@ -138,7 +139,7 @@ class Device(
             status.wdaStatusRetries += 1
         }
 
-        val maxAttempts = 3
+        val maxAttempts = 6
 
         if (status.wdaStatusRetries >= maxAttempts) {
             deviceState = DeviceState.FAILED
@@ -265,13 +266,13 @@ class Device(
 
         renewPromise = executeAsync {
             try {
-                if (currentStatus.wda_status) {
-                    try {
-                        ensureNoAlerts(maxAttempts = 3)
-                    } catch (e: Exception) {
-                        logger.warn(logMarker, "Ensuring alerts on $this ignored error $e")
-                    }
-                }
+//                if (currentStatus.wda_status) {
+//                    try {
+//                        ensureNoAlerts(maxAttempts = 3)
+//                    } catch (e: Exception) {
+//                        logger.warn(logMarker, "Ensuring alerts on $this ignored error $e")
+//                    }
+//                }
 
                 if (uninstallApps) {
                     uninstallUserApps(whitelistedApps = whitelistedApps)

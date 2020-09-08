@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.File
 import java.net.URL
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.*
@@ -146,6 +148,15 @@ class DevicesNode(
 
     override fun syslog(deviceRef: DeviceRef): File {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun deviceAgentLog(deviceRef: DeviceRef): File {
+        return slotByExternalRef(deviceRef).device.deviceAgentLog
+    }
+
+    override fun deviceAgentLogDelete(deviceRef: DeviceRef) {
+        val logFile = slotByExternalRef(deviceRef).device.deviceAgentLog
+        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
     }
 
     override fun syslogStart(deviceRef: DeviceRef, predicateString: String) {

@@ -142,6 +142,7 @@ class Simulator(
             )
         }
     }
+    override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
 
     private val simulatorDirectory = File(deviceSetPath, udid)
     private val simulatorDataDirectory = File(simulatorDirectory, "data")

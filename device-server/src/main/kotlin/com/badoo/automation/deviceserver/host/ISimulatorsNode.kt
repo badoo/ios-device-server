@@ -32,6 +32,8 @@ interface ISimulatorsNode {
 
     fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray)
     fun syslog(deviceRef: DeviceRef): File
+    fun deviceAgentLog(deviceRef: DeviceRef): File
+    fun deviceAgentLogDelete(deviceRef: DeviceRef)
     fun syslogStart(deviceRef: DeviceRef, predicateString: String)
     fun syslogStop(deviceRef: DeviceRef)
     fun syslogDelete(deviceRef: DeviceRef)

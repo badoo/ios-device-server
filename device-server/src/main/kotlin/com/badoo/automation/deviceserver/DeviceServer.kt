@@ -318,6 +318,17 @@ fun Application.module() {
                         call.respond(devicesController.syslogStop(ref))
                     }
                 }
+                route("device_agent_log") {
+                    get {
+                        val ref = param(call, "ref")
+                        val logFile = devicesController.deviceAgentLog(ref)
+                        call.respondFile(logFile)
+                    }
+                    delete {
+                        val ref = param(call, "ref")
+                        call.respond(devicesController.deviceAgentLogDelete(ref))
+                    }
+                }
                 route("diagnose/{type}") {
                     get {
                         val ref = param(call, "ref")
