@@ -5,7 +5,6 @@ import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.IDevice
-import com.badoo.automation.deviceserver.ios.WdaClient
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
@@ -128,22 +127,20 @@ class Device(
             return
         }
 
-        val wdaStatus = wdaProc.isHealthy()
+        val isWdaHealty = wdaProc.isHealthy()
         val fbsimctlStatus = fbsimctlProc.isHealthy()
 
         // check if WDA or fbsimctl crashed after being ok for some time
 
-        if (wdaStatus) {
+        if (isWdaHealty) {
             status.wdaStatusRetries = 0
         } else {
             status.wdaStatusRetries += 1
         }
 
-        val maxAttempts = 6
-
-        if (status.wdaStatusRetries >= maxAttempts) {
+        if (status.wdaStatusRetries >= MAX_WDA_STATUS_CHECKS) {
             deviceState = DeviceState.FAILED
-            val message = "${this} WebDriverAgent crashed. Last $maxAttempts health checks failed"
+            val message = "${this} WebDriverAgent crashed. Last $MAX_WDA_STATUS_CHECKS health checks failed"
             logger.error(logMarker, message)
             lastException = RuntimeException(message)
         }
@@ -156,7 +153,7 @@ class Device(
         }
 
         status.fbsimctlStatus = fbsimctlStatus
-        status.wdaStatus = wdaStatus
+        status.wdaStatus = isWdaHealty
     }
 
     override fun endpointFor(port: Int): URL {
@@ -266,14 +263,6 @@ class Device(
 
         renewPromise = executeAsync {
             try {
-//                if (currentStatus.wda_status) {
-//                    try {
-//                        ensureNoAlerts(maxAttempts = 3)
-//                    } catch (e: Exception) {
-//                        logger.warn(logMarker, "Ensuring alerts on $this ignored error $e")
-//                    }
-//                }
-
                 if (uninstallApps) {
                     uninstallUserApps(whitelistedApps = whitelistedApps)
                 }
@@ -290,19 +279,6 @@ class Device(
             } finally {
                 renewPromise = null
             }
-        }
-    }
-
-    private fun ensureNoAlerts(maxAttempts: Int) {
-        val client = WdaClient(commandExecutor = wdaEndpoint.toURL())
-        client.attachToSession()
-
-        for (attempt in 1..maxAttempts) {
-            val alertText = client.alertText() ?: return
-
-            logger.debug(logMarker, "Will dismiss alert $alertText")
-            client.dismissAlert()
-            Thread.sleep(1000)
         }
     }
 
@@ -381,13 +357,12 @@ class Device(
         }
     }
 
-    private val deviceAgentStartTime = 10_000L
 
     private fun startWda() {
         wdaProc.kill()
         wdaProc.start()
 
-        Thread.sleep(deviceAgentStartTime)
+        Thread.sleep(DEVICE_AGENT_START_TIME)
 
         pollFor(
             Duration.ofMinutes(1),
@@ -435,5 +410,7 @@ class Device(
         private const val WDA_PORT = 8100
         private const val DA_PORT = 27753
         private val PREPARE_TIMEOUT = Duration.ofMinutes(4)
+        private const val DEVICE_AGENT_START_TIME = 15_000L
+        private const val MAX_WDA_STATUS_CHECKS = 10
     }
 }
