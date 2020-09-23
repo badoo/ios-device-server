@@ -366,7 +366,7 @@ class Simulator(
         }
     }
 
-    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(10), retryInterval: Duration = Duration.ofSeconds(1)) {
+    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(30), retryInterval: Duration = Duration.ofSeconds(2)) {
         val maxRetries = 7
 
         for (attempt in 1..maxRetries) {
@@ -376,7 +376,7 @@ class Simulator(
                 webDriverAgent.kill()
                 webDriverAgent.start()
 
-                Thread.sleep(2000)
+                Thread.sleep(8000)
 
                 pollFor(
                     pollTimeout,
@@ -394,6 +394,12 @@ class Simulator(
             }
             catch (e: RuntimeException) {
                 logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for ${this@Simulator} failed: $e")
+
+                val wdaLogLines = webDriverAgent.deviceAgentLog.readLines().takeLast(200)
+                wdaLogLines.forEach { logLine ->
+                    logger.warn(logMarker, "[WDA]: $logLine")
+                }
+
                 if (attempt == maxRetries) {
                     throw e
                 }
@@ -636,7 +642,7 @@ class Simulator(
             "--color", "none",
             "--level", "info")
 
-        if (deviceInfo.os.contains("iOS 13")) {
+        if (deviceInfo.os.contains("iOS 13") || deviceInfo.os.contains("iOS 14")) {
             cmd.add("--process")
             cmd.add("SpringBoard")
         }
@@ -705,6 +711,8 @@ class Simulator(
         ) {
             requiredServices.all { it.booted }
         }
+
+        process.destroy()
 
         if (requiredServices.any { !it.booted }) {
             val failedServices = requiredServices.filter { !it.booted }

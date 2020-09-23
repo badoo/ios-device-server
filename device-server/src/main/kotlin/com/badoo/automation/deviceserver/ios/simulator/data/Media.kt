@@ -16,6 +16,7 @@ class Media(
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
     fun reset() {
+        terminateMobileSlideshowApp()
         val imagesPath = mediaPath.resolve("DCIM").toString()
         val photoDataPath = mediaPath.resolve("PhotoData").toString()
         val removeCmd = "rm -rf $imagesPath; rm -rf $photoDataPath; mkdir -p $imagesPath; mkdir -p $photoDataPath"
@@ -31,8 +32,7 @@ class Media(
 
         // starting MobileSlideshow app is essential for initializing PhotoData databases
         startMobileSlideshowApp()
-        Thread.sleep(3000) // to make sure app started
-        terminateMobileSlideshowApp()
+        Thread.sleep(5000) // to make sure app started
     }
 
     fun listPhotoData() : List<String> {
