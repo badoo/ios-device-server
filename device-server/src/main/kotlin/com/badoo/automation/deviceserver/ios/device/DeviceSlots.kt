@@ -73,6 +73,7 @@ class DeviceSlots(
             logger.info(logMarker, "Will add ${diff.added} devices")
             knownConnectedDevices.filter { diff.added.contains(it.udid) }.forEach {
                 addSlot(it)
+                Thread.sleep(30000)
             }
         }
     }
