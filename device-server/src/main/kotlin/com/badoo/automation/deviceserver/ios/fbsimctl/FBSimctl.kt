@@ -114,7 +114,7 @@ class FBSimctl(
             = fbsimctl(listOf("terminate", bundleId), udid, raiseOnError = raiseOnError)
 
     override fun uninstallApp(udid: UDID, bundleId: String) {
-        fbsimctl(listOf("uninstall", bundleId), udid, raiseOnError = true)
+        fbsimctl(listOf("uninstall", bundleId), udid, timeOut = Duration.ofSeconds(60), raiseOnError = true)
     }
 
     private fun fbsimctl(
