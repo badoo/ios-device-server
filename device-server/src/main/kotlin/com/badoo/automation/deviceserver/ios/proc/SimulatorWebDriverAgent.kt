@@ -38,7 +38,7 @@ class SimulatorWebDriverAgent(
     private val appInstaller: AppInstaller = AppInstaller(remote)
 
     override fun start() {
-        if (!isHostAppInstalled()) {
+        if (!isHostAppInstalled() || remote.isLocalhost()) {
             installHostApp()
         }
         super.start()
