@@ -428,7 +428,7 @@ class Simulator(
             copyMediaAssetsWithRetry()
         }
 
-        if (useWda) {
+        if (useWda && !remote.isLocalhost()) {
             webDriverAgent.installHostApp()
         }
 
