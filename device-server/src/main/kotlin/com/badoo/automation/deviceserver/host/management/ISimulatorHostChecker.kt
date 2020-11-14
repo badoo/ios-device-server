@@ -92,6 +92,7 @@ class SimulatorHostChecker(
 
         removeOldFiles("/private/var/folders/*/*/*/app_bundle_cache.*", 0) // remove local caches
         removeOldFiles(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, 0) // remove local caches
+        remote.shell("mkdir -p ${ApplicationConfiguration().appBundleCacheRemotePath.absolutePath}")
 
         // TODO: Use $TMPDIR instead of /private/var/folders/*/*/*
         val caches = listOf(
