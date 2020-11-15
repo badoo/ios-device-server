@@ -33,7 +33,6 @@ class ApplicationBundle(
 
     private var bundleZipSize: Long = -1
     val isDownloaded: Boolean get() = bundleZip.exists() && bundleZipSize > 0 && bundleZipSize == bundleZip.length()
-    var isDeployed: Boolean = false
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
