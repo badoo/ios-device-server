@@ -277,11 +277,8 @@ class DeviceManager(
 
         logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
 
-        if (!appBundle.isDeployed) {
-            nodeRegistry.getAll().parallelStream().forEach { nodeWrapper ->
-                nodeWrapper.node.deployApplication(appBundle)
-            }
-            appBundle.isDeployed = true
+        nodeRegistry.getAll().parallelStream().forEach { nodeWrapper ->
+            nodeWrapper.node.deployApplication(appBundle)
         }
 
         logger.debug(marker, "Successfully deployed application ${dto.appUrl}")
