@@ -99,6 +99,7 @@ class SimulatorHostChecker(
                 "/private/var/folders/*/*/*/*-*-*/*.app",
                 "/private/var/folders/*/*/*/fbsimctl-*",
                 "/var/folders/*/*/*/videoRecording_*",
+                File(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, "*").absolutePath,
                 "/private/var/folders/*/*/*/videoRecording_*",
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )
