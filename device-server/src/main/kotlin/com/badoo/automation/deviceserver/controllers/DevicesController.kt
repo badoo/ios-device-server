@@ -207,6 +207,10 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
+    fun getEnvironmentVariable(ref: DeviceRef, variableName: String): String {
+        return deviceManager.getEnvironmentVariable(ref, variableName)
+    }
+
     fun deployApplication(appBundleDto: AppBundleDto): EmptyMap {
         deviceManager.deployApplication(appBundleDto)
         return happy

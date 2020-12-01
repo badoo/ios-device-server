@@ -495,6 +495,10 @@ class DevicesNode(
         throw(NotImplementedError("Setting environment variables is not supported by physical devices"))
     }
 
+    override fun getEnvironmentVariable(deviceRef: DeviceRef, variableName: String): String {
+        throw(NotImplementedError("Getting environment variables is not supported by physical devices"))
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
