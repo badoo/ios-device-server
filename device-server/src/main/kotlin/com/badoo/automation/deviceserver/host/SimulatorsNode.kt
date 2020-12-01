@@ -416,6 +416,10 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).setEnvironmentVariables(envs)
     }
 
+    override fun getEnvironmentVariable(deviceRef: DeviceRef, variableName: String): String {
+        return getDeviceFor(deviceRef).getEnvironmentVariable(variableName)
+    }
+
     override fun toString(): String {
         return "${javaClass.simpleName} at $remoteAddress"
     }

@@ -198,4 +198,14 @@ class DevicesControllerTest {
         verify(deviceManager).setEnvironmentVariables(deviceRef, environmentVariables)
         assertThat(actualResult, equalTo(happyEmpty))
     }
+
+    @Test
+    fun getEnvironmentVariable() {
+        val environmentVariable = "ENV_NAME1"
+        val expectedValue = "ENV_VAL1"
+        whenever(deviceManager.getEnvironmentVariable(deviceRef, environmentVariable)).thenReturn(expectedValue)
+        val actualResult = deviceServer.getEnvironmentVariable(deviceRef, environmentVariable)
+
+        assertThat(actualResult, equalTo(expectedValue))
+    }
 }
