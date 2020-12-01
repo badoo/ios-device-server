@@ -14,6 +14,7 @@ import com.nhaarman.mockito_kotlin.*
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
+import org.junit.Assert
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -376,5 +377,17 @@ class SimulatorsNodeTest {
         simulatorsNode.setEnvironmentVariables(ref1, mapOf())
 
         verify(simulatorMock).setEnvironmentVariables(mapOf())
+    }
+
+    @Test
+    fun getEnvironmentVariable() {
+        createDeviceForTest()
+        var variableName = "ENV_VAR1s"
+        var expectedValue = "ENV_VAR1s"
+
+        whenever(simulatorMock.getEnvironmentVariable(variableName)).thenReturn(expectedValue)
+        
+        val actual = simulatorsNode.getEnvironmentVariable(ref1, variableName)
+        Assert.assertThat(actual, equalTo(expectedValue))
     }
 }

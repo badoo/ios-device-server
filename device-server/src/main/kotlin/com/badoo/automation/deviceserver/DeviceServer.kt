@@ -375,6 +375,15 @@ fun Application.module() {
                     val environmentVariables = jsonContent<Map<String, String>>(call)
                     call.respond(devicesController.setEnvironmentVariables(ref, environmentVariables))
                 }
+                get("environment/{variableName}") {
+                    val ref = param(call, "ref")
+                    val variableName = param(call, "variableName")
+                    if (variableName.isNullOrEmpty()) {
+                        throw IllegalArgumentException("Environment variable name shouldn't be empty")
+                    } else {
+                        call.respond(devicesController.getEnvironmentVariable(ref, variableName))
+                    }
+                }
             }
         }
     }

@@ -213,6 +213,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
     }
 
+    fun getEnvironmentVariable(ref: DeviceRef, variableName: String): String {
+        return nodeRegistry.activeDevices.getNodeFor(ref).getEnvironmentVariable(ref, variableName)
+    }
+
     fun resetMedia(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).resetMedia(ref)
     }
