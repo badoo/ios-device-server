@@ -65,6 +65,7 @@ class Simulator(
         private val PREPARE_TIMEOUT: Duration = Duration.ofMinutes(10)
         private val RESET_TIMEOUT: Duration = Duration.ofMinutes(5)
         private const val SAFARI_BUNDLE_ID = "com.apple.mobilesafari"
+        private val ENV_VAR_VALIDATE_REGEX = "[a-zA-Z0-9_]+$".toRegex()
     }
 
     override val ref = deviceRef
@@ -1072,5 +1073,14 @@ class Simulator(
             envsArguments.addAll(listOf(it, ShellUtils.escape(envs.getValue(it))))
         }
         remote.shell("xcrun simctl spawn $udid launchctl setenv ${envsArguments.joinToString(" ")}")
+    }
+
+    override fun getEnvironmentVariable(variableName: String): String {
+        logger.debug(logMarker, "Getting environment variable $variableName for Simulator $this")
+        if(!ENV_VAR_VALIDATE_REGEX.matches(variableName)) {
+            throw IllegalArgumentException("Variable name should contain only letters, numbers and underscores. Current value: $variableName")
+        }
+
+        return remote.shell("xcrun simctl getenv $udid $variableName").stdOut.trim() // remove last new_line
     }
 }
