@@ -18,6 +18,7 @@ import org.slf4j.Marker
 import java.io.File
 import java.net.URL
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.time.Duration
 import java.util.*
@@ -181,6 +182,14 @@ class DevicesNode(
 
     override fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
         throw(NotImplementedError("Push files is not supported by physical devices"))
+    }
+
+    override fun pushFile(ref: DeviceRef, data: ByteArray, path: Path) {
+        throw(NotImplementedError("Push files is not supported by physical devices"))
+    }
+
+    override fun deleteFile(ref: DeviceRef, path: Path) {
+        throw(NotImplementedError("Delete file is not supported by physical devices"))
     }
 
     override val remoteAddress: String get() = remote.hostName

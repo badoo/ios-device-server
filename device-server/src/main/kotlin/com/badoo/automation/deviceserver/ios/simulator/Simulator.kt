@@ -13,10 +13,7 @@ import com.badoo.automation.deviceserver.ios.proc.SimulatorXcrunWebDriverAgent
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupError
-import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
-import com.badoo.automation.deviceserver.ios.simulator.data.FileSystem
-import com.badoo.automation.deviceserver.ios.simulator.data.Media
-import com.badoo.automation.deviceserver.ios.simulator.data.MediaInconsistentcyException
+import com.badoo.automation.deviceserver.ios.simulator.data.*
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
@@ -1050,6 +1047,12 @@ class Simulator(
 
     override fun dataContainer(bundleId: String): DataContainer {
         return fileSystem.dataContainer(bundleId)
+    }
+
+    override fun sharedContainer(): SharedContainer {
+        val sharedResourceDirectory = getEnvironmentVariable("SIMULATOR_SHARED_RESOURCES_DIRECTORY")
+
+        return fileSystem.sharedContainer(sharedResourceDirectory)
     }
 
     override fun applicationContainer(bundleId: String): DataContainer {

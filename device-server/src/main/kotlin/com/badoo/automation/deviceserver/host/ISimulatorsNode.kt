@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import java.io.File
 import java.net.URL
+import java.nio.file.Path
 
 interface ISimulatorsNode {
     fun supports(desiredCaps: DesiredCapabilities): Boolean
@@ -59,6 +60,8 @@ interface ISimulatorsNode {
     fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>)
     fun getEnvironmentVariable(deviceRef: DeviceRef, variableName: String): String
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String)
+    fun pushFile(ref: DeviceRef, data: ByteArray, path: Path)
+    fun deleteFile(ref: DeviceRef, path: Path)
     fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto)
     fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Boolean>
     fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO)
