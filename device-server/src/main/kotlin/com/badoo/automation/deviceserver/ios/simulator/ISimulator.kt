@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.data.PermissionSet
 import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
+import com.badoo.automation.deviceserver.ios.simulator.data.SharedContainer
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
 import java.util.concurrent.locks.ReentrantLock
@@ -22,6 +23,7 @@ interface ISimulator: IDevice {
     fun openUrl(url: String): Boolean
     fun crashLogs(pastMinutes: Long?): List<CrashLog>
     fun dataContainer(bundleId: String): DataContainer
+    fun sharedContainer(): SharedContainer
     fun deleteCrashLogs(): Boolean
     fun setEnvironmentVariables(envs: Map<String, String>)
     fun getEnvironmentVariable(variableName: String): String

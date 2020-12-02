@@ -14,14 +14,10 @@ class DataContainer(
     private val remote: IRemote,
     internal val basePath: File,
     private val bundleId: String
-) {
-    private val logger = LoggerFactory.getLogger(DataContainer::class.java.simpleName)
-    private val logMarker = MapEntriesAppendingMarker(mapOf(
-        LogMarkers.HOSTNAME to remote.hostName
-    ))
+): SimulatorFilesystemContainer(remote) {
 
     fun listFiles(path: Path): List<String> {
-        val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
+        val expandedPath = sshNoEscapingWorkaround(expandPath(path, basePath).toString())
 
         val result = remote.execIgnoringErrors(listOf("ls", "-1", "-p", expandedPath))
         if (!result.isSuccess) {
@@ -32,7 +28,7 @@ class DataContainer(
     }
 
     fun readFile(path: Path): ByteArray {
-        val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
+        val expandedPath = sshNoEscapingWorkaround(expandPath(path, basePath).toString())
 
         try {
             return remote.captureFile(File(expandedPath))
@@ -41,21 +37,9 @@ class DataContainer(
         }
     }
 
-    fun writeFile(file: File, data: ByteArray) {
-        val dataContainerFile = File(basePath.absolutePath, file.name)
-
-        if (remote.isLocalhost()) {
-            dataContainerFile.writeBytes(data)
-            logger.debug(logMarker, "Successfully wrote data to file ${dataContainerFile.absolutePath}")
-        } else {
-            withDefers(logger) {
-                val tmpFile = File.createTempFile("${file.nameWithoutExtension}.", ".${file.extension}")
-                defer { tmpFile.delete() }
-                tmpFile.writeBytes(data)
-                remote.scpToRemoteHost(tmpFile.absolutePath, dataContainerFile.absolutePath)
-                logger.debug(logMarker, "Successfully wrote data to remote file ${dataContainerFile.absolutePath}")
-            }
-        }
+    override fun writeFile(file: File, data: ByteArray) {
+        val dataContainerFile =  File(basePath.absolutePath, file.name)
+        super.writeFile(dataContainerFile, data)
     }
 
     fun delete() {
@@ -64,12 +48,12 @@ class DataContainer(
     }
 
     fun setPlistValue(path: Path, key: String, value: String) {
-        val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
+        val expandedPath = sshNoEscapingWorkaround(expandPath(path, basePath).toString())
         remote.shell("/usr/libexec/PlistBuddy -c 'Set $key $value' $expandedPath", false) // TODO: Simple values only for now
     }
 
     fun addPlistValue(path: Path, key: String, value: String, type: String) {
-        val expandedPath = sshNoEscapingWorkaround(expandPath(path).toString())
+        val expandedPath = sshNoEscapingWorkaround(expandPath(path, basePath).toString())
         remote.shell("/usr/libexec/PlistBuddy -c 'Add $key $type $value' $expandedPath", false) // TODO: Simple values only for now
     }
 
@@ -79,14 +63,5 @@ class DataContainer(
             remote.isLocalhost() -> path
             else -> ShellUtils.escape(path)
         }
-    }
-
-    private fun expandPath(path: Path): Path {
-        val expanded = basePath.toPath().resolve(path).normalize()
-        if (!expanded.startsWith(basePath.absolutePath)) {
-            throw DataContainerException("$path points outside the container of $bundleId")
-        }
-
-        return expanded
     }
 }

@@ -18,6 +18,7 @@ import org.junit.Test
 import org.mockito.Mockito
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import java.io.File
 import java.net.URL
 
 class DeviceManagerTest {
@@ -183,6 +184,25 @@ class DeviceManagerTest {
         withDeviceOnHost(hostTwo) {
             deviceManager.setEnvironmentVariables(ref, mapOf())
             verify(hostTwo).setEnvironmentVariables(ref, mapOf())
+        }
+    }
+
+    @Test
+    fun deleteFile() {
+        withDeviceOnHost(hostTwo) {
+            val fakeFilePath = File("filePath").toPath()
+            deviceManager.deleteFile(ref, fakeFilePath)
+            verify(hostTwo).deleteFile(ref, fakeFilePath)
+        }
+    }
+
+    @Test
+    fun pushFile() {
+        withDeviceOnHost(hostTwo) {
+            val fakeFile = File("filePath").toPath()
+            val fakeData = ByteArray(3)
+            deviceManager.pushFile(ref, fakeData, fakeFile)
+            verify(hostTwo).pushFile(ref, fakeData, fakeFile)
         }
     }
 }

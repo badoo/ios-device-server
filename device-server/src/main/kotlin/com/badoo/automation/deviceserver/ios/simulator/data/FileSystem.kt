@@ -37,6 +37,14 @@ class FileSystem(
         )
     }
 
+    fun sharedContainer(sharedResourceDirectory: String): SharedContainer {
+        check(!sharedResourceDirectory.isBlank()) {
+            "Simulator shared resources directory must not be blank for simulator: $udid"
+        }
+
+        return SharedContainer(remote, File(sharedResourceDirectory))
+    }
+
     private fun getContainerPath(bundleId: String, containerType: String): File {
         val result = remote.exec(
             command = listOf(

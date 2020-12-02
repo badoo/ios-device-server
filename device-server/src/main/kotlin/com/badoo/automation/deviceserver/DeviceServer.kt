@@ -227,6 +227,18 @@ fun Application.module() {
                         call.respond(devicesController.getLastCrashLog(param(call, "ref")))
                     }
                 }
+                route("shared_resources") {
+                    delete {
+                        val deviceRef = param(call, "ref")
+                        val path = param(call, "path")
+                        call.respond(devicesController.deleteFile(deviceRef, File(path).toPath()))
+                    }
+                    post {
+                        val deviceRef = param(call, "ref")
+                        val sharedResource = jsonContent<SharedResourceDto>(call)
+                        call.respond(devicesController.pushFile(deviceRef, sharedResource.data, File(sharedResource.path).toPath()))
+                    }
+                }
                 route("data") {
                     post("pull_file") {
                         val ref = param(call, "ref")

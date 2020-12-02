@@ -7,6 +7,7 @@ import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.auth.UserIdPrincipal
 import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -185,6 +186,16 @@ class DevicesController(private val deviceManager: DeviceManager) {
 
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String): EmptyMap {
         deviceManager.pushFile(ref, fileName, data, bundleId)
+        return happy
+    }
+
+    fun pushFile(ref: DeviceRef, data: ByteArray, path: Path): EmptyMap {
+        deviceManager.pushFile(ref, data, path)
+        return happy
+    }
+
+    fun deleteFile(ref: DeviceRef, path: Path): EmptyMap {
+        deviceManager.deleteFile(ref, path)
         return happy
     }
 

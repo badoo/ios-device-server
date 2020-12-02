@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.deviceDTOStub
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.json
 import com.badoo.automation.deviceserver.mockThis
+import com.nhaarman.mockito_kotlin.doNothing
 import com.nhaarman.mockito_kotlin.whenever
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
@@ -12,6 +13,7 @@ import org.junit.Assert.assertThat
 import org.junit.Test
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import java.io.File
 import java.net.URL
 
 private val happyEmpty: Map<Unit, Unit> = mapOf()
@@ -207,5 +209,25 @@ class DevicesControllerTest {
         val actualResult = deviceServer.getEnvironmentVariable(deviceRef, environmentVariable)
 
         assertThat(actualResult, equalTo(expectedValue))
+    }
+
+    @Test
+    fun pushFile() {
+        val fakeData = ByteArray(3)
+        val fakeFile = File("fakeFile").toPath()
+        doNothing().`when`(deviceManager).pushFile(deviceRef, fakeData, fakeFile)
+        val actualResult = deviceServer.pushFile(deviceRef, fakeData, fakeFile)
+
+        verify(deviceManager, times(1)).pushFile(deviceRef, fakeData, fakeFile)
+        assertThat(actualResult, equalTo(happyEmpty))
+    }
+
+    @Test
+    fun deleteFile() {
+        val fakeFilePath = File("fakeFilePath").toPath()
+        doNothing().`when`(deviceManager).deleteFile(deviceRef, fakeFilePath)
+        deviceServer.deleteFile(deviceRef, fakeFilePath)
+
+        verify(deviceManager, times(1)).deleteFile(deviceRef, fakeFilePath)
     }
 }

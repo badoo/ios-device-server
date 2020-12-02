@@ -9,6 +9,7 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URL
+import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -207,6 +208,14 @@ class DeviceManager(
 
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
         nodeRegistry.activeDevices.getNodeFor(ref).pushFile(ref, fileName, data, bundleId)
+    }
+
+    fun pushFile(ref: DeviceRef, data: ByteArray, path: Path) {
+        nodeRegistry.activeDevices.getNodeFor(ref).pushFile(ref, data, path)
+    }
+
+    fun deleteFile(ref: DeviceRef, path: Path) {
+        nodeRegistry.activeDevices.getNodeFor(ref).deleteFile(ref, path)
     }
 
     fun setEnvironmentVariables(ref: DeviceRef, envs: Map<String, String>) {
