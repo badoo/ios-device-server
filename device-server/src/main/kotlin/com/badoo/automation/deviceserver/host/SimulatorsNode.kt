@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URL
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.*
 import java.util.concurrent.*
@@ -402,6 +403,14 @@ class SimulatorsNode(
 
     override fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
         getDeviceFor(ref).dataContainer(bundleId).writeFile(File(fileName), data)
+    }
+
+    override fun pushFile(ref: DeviceRef, data: ByteArray, path: Path) {
+        getDeviceFor(ref).sharedContainer().writeFile(data, path)
+    }
+
+    override fun deleteFile(ref: DeviceRef, path: Path) {
+        getDeviceFor(ref).sharedContainer().delete(path)
     }
 
     override fun openUrl(deviceRef: DeviceRef, url: String) {
