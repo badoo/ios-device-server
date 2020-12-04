@@ -126,6 +126,7 @@ class SimulatorsNodeTest {
         simulatorsNode.createDeviceAsync(desiredCapabilities)
     }
 
+    @Ignore
     @Test
     fun createDeviceAsyncSucceeds() {
         createDeviceForTest()
