@@ -18,4 +18,10 @@ class SharedContainer(
         val dataContainerFile = expandPath(path, basePath).toFile()
         super.writeFile(dataContainerFile, data)
     }
+
+    fun readFile(path: Path): ByteArray {
+        val expandedPath = sshNoEscapingWorkaround(expandPath(path, basePath).toString())
+
+        return super.readFile(expandedPath)
+    }
 }
