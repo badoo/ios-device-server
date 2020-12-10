@@ -30,11 +30,7 @@ class DataContainer(
     fun readFile(path: Path): ByteArray {
         val expandedPath = sshNoEscapingWorkaround(expandPath(path, basePath).toString())
 
-        try {
-            return remote.captureFile(File(expandedPath))
-        } catch (e: RuntimeException) {
-            throw DataContainerException("Could not read file $path for $bundleId", e)
-        }
+        return super.readFile(expandedPath)
     }
 
     override fun writeFile(file: File, data: ByteArray) {
@@ -55,13 +51,5 @@ class DataContainer(
     fun addPlistValue(path: Path, key: String, value: String, type: String) {
         val expandedPath = sshNoEscapingWorkaround(expandPath(path, basePath).toString())
         remote.shell("/usr/libexec/PlistBuddy -c 'Add $key $type $value' $expandedPath", false) // TODO: Simple values only for now
-    }
-
-    private fun sshNoEscapingWorkaround(path: String): String {
-        // FIXME: fix escaping on ssh side and remove workarounds
-        return when {
-            remote.isLocalhost() -> path
-            else -> ShellUtils.escape(path)
-        }
     }
 }

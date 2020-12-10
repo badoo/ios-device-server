@@ -184,6 +184,10 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.pullFile(ref, dataPath)
     }
 
+    fun pullFile(ref: DeviceRef, path: Path): ByteArray {
+        return deviceManager.pullFile(ref, path)
+    }
+
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String): EmptyMap {
         deviceManager.pushFile(ref, fileName, data, bundleId)
         return happy

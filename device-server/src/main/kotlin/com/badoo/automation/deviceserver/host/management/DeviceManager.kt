@@ -206,6 +206,10 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
     }
 
+    fun pullFile(ref: DeviceRef, path: Path): ByteArray {
+        return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, path)
+    }
+
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
         nodeRegistry.activeDevices.getNodeFor(ref).pushFile(ref, fileName, data, bundleId)
     }
