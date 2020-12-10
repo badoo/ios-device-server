@@ -1,11 +1,13 @@
 package com.badoo.automation.deviceserver.ios.simulator.data
 
 import com.badoo.automation.deviceserver.LogMarkers
+import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.util.withDefers
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.lang.RuntimeException
 import java.nio.file.Path
 
 abstract class SimulatorFilesystemContainer(private val remote: IRemote) {
@@ -29,6 +31,14 @@ abstract class SimulatorFilesystemContainer(private val remote: IRemote) {
         }
     }
 
+    fun readFile(path: String): ByteArray {
+        try {
+            return remote.captureFile(File(path))
+        } catch (e: RuntimeException) {
+            throw DataContainerException("Could not read file $path", e)
+        }
+    }
+
     fun expandPath(path: Path, basePath: File): Path {
         val expanded = basePath.toPath().resolve(path).normalize()
 
@@ -37,5 +47,13 @@ abstract class SimulatorFilesystemContainer(private val remote: IRemote) {
         }
 
         return expanded
+    }
+
+    internal fun sshNoEscapingWorkaround(path: String): String {
+        // FIXME: fix escaping on ssh side and remove workarounds
+        return when {
+            remote.isLocalhost() -> path
+            else -> ShellUtils.escape(path)
+        }
     }
 }

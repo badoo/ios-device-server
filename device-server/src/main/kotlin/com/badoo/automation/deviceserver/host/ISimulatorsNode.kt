@@ -30,6 +30,7 @@ interface ISimulatorsNode {
 
     fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String>
     fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray
+    fun pullFile(deviceRef: DeviceRef, path: Path): ByteArray
 
     fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray)
     fun syslog(deviceRef: DeviceRef): File
