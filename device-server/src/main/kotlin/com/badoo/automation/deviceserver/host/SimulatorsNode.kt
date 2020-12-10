@@ -401,6 +401,10 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).dataContainer(dataPath.bundleId).readFile(dataPath.path)
     }
 
+    override fun pullFile(deviceRef: DeviceRef, path: Path): ByteArray {
+        return getDeviceFor(deviceRef).sharedContainer().readFile(path)
+    }
+
     override fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
         getDeviceFor(ref).dataContainer(bundleId).writeFile(File(fileName), data)
     }

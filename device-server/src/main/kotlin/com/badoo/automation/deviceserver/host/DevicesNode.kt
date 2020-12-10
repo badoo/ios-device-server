@@ -412,6 +412,9 @@ class DevicesNode(
     override fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String> = throw(NotImplementedError())
 
     override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray = throw(NotImplementedError())
+
+    override fun pullFile(deviceRef: DeviceRef, path: Path): ByteArray = throw(NotImplementedError())
+
     // endregion
 
     private val appInstaller: AppInstaller = AppInstaller(remote)
