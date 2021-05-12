@@ -8,6 +8,7 @@ import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.XcodeVersion
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.ios.device.*
+import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import com.badoo.automation.deviceserver.util.AppInstaller
@@ -147,10 +148,6 @@ class DevicesNode(
         throw(NotImplementedError("Adding media is not supported by physical devices"))
     }
 
-    override fun syslog(deviceRef: DeviceRef): File {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
     override fun deviceAgentLog(deviceRef: DeviceRef): File {
         return slotByExternalRef(deviceRef).device.deviceAgentLog
     }
@@ -160,16 +157,25 @@ class DevicesNode(
         Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    override fun syslogStart(deviceRef: DeviceRef, predicateString: String) {
+    override fun syslog(deviceRef: DeviceRef): File {
+        val device = slotByExternalRef(deviceRef).device
+        val osLog: RealDeviceSysLog = device.osLog
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
+        val device: Device = slotByExternalRef(deviceRef).device
+        device.osLog.startWritingLog(sysLogCaptureOptions)
     }
 
     override fun syslogStop(deviceRef: DeviceRef) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val device = slotByExternalRef(deviceRef).device
+        device.osLog.stopWritingLog()
     }
 
     override fun syslogDelete(deviceRef: DeviceRef) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val device = slotByExternalRef(deviceRef).device
+        device.osLog.deleteLogFiles()
     }
 
     override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {

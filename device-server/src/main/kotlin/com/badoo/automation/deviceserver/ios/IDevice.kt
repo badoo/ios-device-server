@@ -28,4 +28,5 @@ interface IDevice {
     fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File)
     fun appInstallationStatus(): Map<String, Boolean>
     val deviceAgentLog: File
+    val osLog: ISysLog
 }

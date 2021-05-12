@@ -12,7 +12,6 @@ import java.util.concurrent.locks.ReentrantLock
 
 interface ISimulator: IDevice {
     val systemLog: SystemLog
-    val osLog: OsLog
     val media: Media
 
     fun resetAsync(): Runnable
