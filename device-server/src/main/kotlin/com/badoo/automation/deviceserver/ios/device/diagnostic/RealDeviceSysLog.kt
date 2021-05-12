@@ -1,4 +1,4 @@
-package com.badoo.automation.deviceserver.ios.simulator.diagnostic
+package com.badoo.automation.deviceserver.ios.device.diagnostic
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.SysLogCaptureOptions
@@ -16,12 +16,12 @@ import java.nio.file.StandardCopyOption
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
-class OsLog(
+class RealDeviceSysLog(
     private val remote: IRemote,
     private val udid: UDID,
-    override val osLogFile: File = File.createTempFile("iOS_SysLog_${udid}_", ".log"),
-    override val osLogStderr: File = File.createTempFile("iOS_SysLog_${udid}_", ".err.log")
-) : ISysLog {
+    override val osLogFile: File = File.createTempFile("iOS_RealDevice_SysLog_${udid}_", ".log"),
+    override val osLogStderr: File = File.createTempFile("iOS_RealDevice_SysLog_${udid}_", ".err.log")
+): ISysLog {
     private var outWritingTask: Future<*>? = null
     private var errWritingTask: Future<*>? = null
     private var osLogWriterProcess: Process? = null
@@ -82,25 +82,27 @@ class OsLog(
         stopWritingLog()
         deleteLogFiles()
 
-        val simulatorBootTimeOutMinutes = 20
         val cmd = mutableListOf(
-            "/usr/bin/xcrun", "simctl", "spawn", udid, "log", "stream",
-            "--timeout", "${simulatorBootTimeOutMinutes}m",
-            "--color", "none",
-            "--level", "debug")
+            "/usr/local/bin/idevicesyslog",
+            "--udid", udid,                 // target specific device by UDID
+            "--no-colors",                  // disable colored output
+            "--exit"                        // exit when device disconnects
+        )
 
-        if (sysLogCaptureOptions.predicateString.isNotBlank()) {
-            val predicate = if (remote.isLocalhost()) {
-                sysLogCaptureOptions.predicateString
-            } else {
-                "\"${sysLogCaptureOptions.predicateString}\""
-            }
-
-            cmd.add("--predicate")
-            cmd.add(predicate)
+        if (sysLogCaptureOptions.shouldMuteKernel) {
+            cmd.add("--no-kernel")          // suppress kernel messages
         }
 
-        val process: Process = remote.remoteExecutor.startProcess(cmd, mapOf(), logMarker)
+        if (sysLogCaptureOptions.matchingProcesses.isNotBlank()) {
+            cmd.add("--process")            // only print messages from matching process(es)
+            cmd.add(sysLogCaptureOptions.matchingProcesses)      // only print messages from matching process(es)
+        }
+
+        if (sysLogCaptureOptions.shouldMuteSystemProcesses) {
+            cmd.add("--quiet")              // set a filter to exclude common noisy processes (see --quiet-list)
+        }
+
+        val process: Process = remote.localExecutor.startProcess(cmd, mapOf(), logMarker)
 
         val executor = Executors.newFixedThreadPool(2)
         outWritingTask = executor.submit(write(process.inputStream, osLogFile.toPath()))

@@ -36,7 +36,7 @@ interface ISimulatorsNode {
     fun syslog(deviceRef: DeviceRef): File
     fun deviceAgentLog(deviceRef: DeviceRef): File
     fun deviceAgentLogDelete(deviceRef: DeviceRef)
-    fun syslogStart(deviceRef: DeviceRef, predicateString: String)
+    fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions)
     fun syslogStop(deviceRef: DeviceRef)
     fun syslogDelete(deviceRef: DeviceRef)
     fun resetMedia(deviceRef: DeviceRef)

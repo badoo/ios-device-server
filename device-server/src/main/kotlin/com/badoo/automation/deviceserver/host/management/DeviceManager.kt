@@ -314,8 +314,8 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).syslogDelete(ref)
     }
 
-    fun syslogStart(ref: DeviceRef, predicateString: String) {
-        nodeRegistry.activeDevices.getNodeFor(ref).syslogStart(ref, predicateString)
+    fun syslogStart(ref: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
+        nodeRegistry.activeDevices.getNodeFor(ref).syslogStart(ref, sysLogCaptureOptions)
     }
 
     fun syslogStop(ref: DeviceRef) {

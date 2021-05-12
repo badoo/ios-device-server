@@ -148,8 +148,8 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
-    fun syslogStart(ref: DeviceRef, predicateString: String): EmptyMap {
-        deviceManager.syslogStart(ref, predicateString)
+    fun syslogStart(ref: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions): EmptyMap {
+        deviceManager.syslogStart(ref, sysLogCaptureOptions)
         return happy
     }
 

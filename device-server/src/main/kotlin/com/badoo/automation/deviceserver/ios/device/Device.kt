@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.IDevice
+import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
@@ -39,6 +40,8 @@ class Device(
         val unsafe = Regex("[^\\-_a-zA-Z\\d]")
         "${udid}-${remote.publicHostName}".replace(unsafe, "-")
     }
+
+    override val osLog = RealDeviceSysLog(remote, udid)
 
     private val calabashProxy = usbProxy.create(
         udid = deviceInfo.udid,

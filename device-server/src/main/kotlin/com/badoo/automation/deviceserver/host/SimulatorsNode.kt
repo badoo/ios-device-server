@@ -208,8 +208,8 @@ class SimulatorsNode(
         Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    override fun syslogStart(deviceRef: DeviceRef, predicateString: String) {
-        getDeviceFor(deviceRef).osLog.startWritingLog(predicateString)
+    override fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
+        getDeviceFor(deviceRef).osLog.startWritingLog(sysLogCaptureOptions)
     }
 
     override fun syslogStop(deviceRef: DeviceRef) {

@@ -106,6 +106,7 @@ fun Application.module() {
     )
     val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.cleanupTemporaryFiles()
+    deviceManager.startPeriodicFileCleanup()
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchZombieReaper()
 
@@ -329,7 +330,7 @@ fun Application.module() {
                     }
                     post("start") {
                         val ref = param(call, "ref")
-                        call.respond(devicesController.syslogStart(ref, jsonContent<PredicateStringDTO>(call).predicateString))
+                        call.respond(devicesController.syslogStart(ref, jsonContent<SysLogCaptureOptions>(call)))
                     }
                     post("stop") {
                         val ref = param(call, "ref")
