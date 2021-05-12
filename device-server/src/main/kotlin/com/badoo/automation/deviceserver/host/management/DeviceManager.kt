@@ -5,17 +5,22 @@ import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
+import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URL
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.BasicFileAttributes
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureNanoTime
 
 private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
+private const val MAX_TEMP_FILE_AGE = 7_200_000L // MILLI SEC
 
 class DeviceManager(
         config: DeviceServerConfig,
@@ -42,19 +47,26 @@ class DeviceManager(
                 }
     }
 
+    private val File.isTestArtifact get(): Boolean {
+        return name.contains(".app.zip.")
+                || name.contains("fbsimctl-")
+                || name.contains("videoRecording_")
+                || name.contains("iOS_SysLog_")
+                || name.contains("device_agent_log_")
+
+    }
+
     fun cleanupTemporaryFiles() {
-        val tmpDir: String = when {
-            System.getProperty("os.name") == "Linux" -> "/tmp"
-            System.getenv("TMPDIR") != null -> System.getenv("TMPDIR")
-            else -> throw RuntimeException("Unknown TEMP directory to clean up")
+        val currentTime = System.currentTimeMillis()
+        fun File.isOld(): Boolean {
+            val attributes = Files.readAttributes(toPath(), BasicFileAttributes::class.java)
+            val lastModified = attributes.lastModifiedTime().toMillis()
+            return currentTime - lastModified > MAX_TEMP_FILE_AGE
         }
 
-        File(tmpDir).walk().forEach {
-            if (it.isFile && (it.name.contains(".app.zip.")
-                        || it.name.contains(Regex("videoRecording_.*(mjpeg|mp4)"))
-                        || it.name.contains("iOS_SysLog_"))) {
+        File(getTmpDir()).walk().forEach {
+            if (it.isFile && it.isTestArtifact && it.isOld()) {
                 try {
-                    logger.debug("Cleanup: deleting temporary file ${it.absolutePath}")
                     it.delete()
                 } catch (e: RuntimeException) {
                     logger.error("Failed to cleanup file ${it.absolutePath}. Error: ${e.message}", e)
@@ -62,11 +74,51 @@ class DeviceManager(
             }
         }
 
-        val appCache = ApplicationConfiguration().appBundleCachePath
-        appCache.deleteRecursively()
-        appCache.mkdirs()
+        val appCacheDir: File = ApplicationConfiguration().appBundleCachePath
+        appCacheDir.mkdirs()
+
+        appCacheDir.walk().forEach {
+            if (it != appCacheDir && it.isOld()) {
+                try {
+                    it.deleteRecursively()
+                } catch (e: RuntimeException) {
+                    logger.error("Failed to cleanup file ${it.absolutePath}. Error: ${e.message}", e)
+                }
+            }
+        }
 
         logger.debug("Cleanup complete.")
+    }
+
+    private fun getTmpDir(): String {
+        return when {
+            System.getProperty("os.name") == "Linux" -> "/tmp"
+            System.getenv("TMPDIR") != null -> System.getenv("TMPDIR")
+            else -> throw RuntimeException("Unknown TEMP directory to clean up")
+        }
+    }
+
+    private lateinit var cleanUpTask: ScheduledFuture<*>
+
+    fun startPeriodicFileCleanup() {
+        val runnable = Runnable {
+            try {
+                cleanupTemporaryFiles()
+            } catch (t: Throwable) {
+                logger.error(
+                    "Cleanup failed. ${t.javaClass.name} ${t.message}\n${
+                        t.stackTrace.map { it.toString() }.joinToString { "\n" }
+                    }"
+                )
+            }
+        }
+        cleanUpTask = periodicTasksPool.scheduleWithFixedDelay(
+            runnable,
+            0,
+            60,
+            TimeUnit.MINUTES
+        )
+
     }
 
     fun startAutoRegisteringDevices() {

@@ -96,11 +96,11 @@ class SimulatorHostChecker(
 
         // TODO: Use $TMPDIR instead of /private/var/folders/*/*/*
         val caches = listOf(
-                "/private/var/folders/*/*/*/*-*-*/*.app",
-                "/private/var/folders/*/*/*/fbsimctl-*",
+                "/var/folders/*/*/*/*-*-*/*.app",
+                "/var/folders/*/*/*/fbsimctl-*",
                 "/var/folders/*/*/*/videoRecording_*",
+                "/var/folders/*/*/*/device_agent_log_*",
                 File(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, "*").absolutePath,
-                "/private/var/folders/*/*/*/videoRecording_*",
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )
 
