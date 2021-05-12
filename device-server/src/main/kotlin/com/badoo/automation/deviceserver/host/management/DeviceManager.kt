@@ -174,10 +174,10 @@ class DeviceManager(
     fun createDeviceAsync(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
         try {
             return nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, userId)
-        } catch(e: NoNodesRegisteredException) {
+        } catch (e: NoNodesRegisteredException) {
             val erredNodes = autoRegistrar.nodeWrappers.filter { n -> n.lastError != null }
             val errors = erredNodes.joinToString { n -> "${n.node.remoteAddress} -> ${n.lastError?.localizedMessage}" }
-            throw(NoNodesRegisteredException(e.message+"\n$errors"))
+            throw(NoNodesRegisteredException(e.message + "\n$errors"))
         }
     }
 
@@ -185,7 +185,7 @@ class DeviceManager(
         nodeRegistry.deleteReleaseDevice(ref, reason)
     }
 
-    fun getDeviceRefs() : List<DeviceDTO> {
+    fun getDeviceRefs(): List<DeviceDTO> {
         return nodeRegistry.activeDevices.deviceList()
     }
 
@@ -290,7 +290,7 @@ class DeviceManager(
 
     fun deployApplication(dto: AppBundleDto) {
         val marker = MapEntriesAppendingMarker(mapOf("operation" to "app_deploy"))
-        val appBundle = applicationsCache.computeIfAbsent(dto.appUrl) { acquireBundle(dto, marker) }
+        val appBundle = acquireBundle(dto, marker)
 
         logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
 
@@ -303,10 +303,8 @@ class DeviceManager(
 
     private fun acquireBundle(dto: AppBundleDto, marker: MapEntriesAppendingMarker): ApplicationBundle {
         val appBundle = ApplicationBundle(URL(dto.appUrl))
-        if (!appBundle.isDownloaded) {
-            downloadApplicationBinary(marker, appBundle)
-            appBundle.unpack(logger, marker)
-        }
+        downloadApplicationBinary(marker, appBundle)
+        appBundle.unpack(logger, marker)
         return appBundle
     }
 
