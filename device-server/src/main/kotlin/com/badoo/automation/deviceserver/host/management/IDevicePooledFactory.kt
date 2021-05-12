@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.NodeConfig
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.ios.IDevice
+import com.badoo.automation.deviceserver.ios.ISysLog
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.AppInstaller
 import org.apache.commons.pool2.BaseKeyedPooledObjectFactory
@@ -98,6 +99,9 @@ class IDevicePooledFactory(
                 }
 
                 override val deviceAgentLog: File
+                    get() = TODO("Not yet implemented")
+
+                override val osLog: ISysLog
                     get() = TODO("Not yet implemented")
             }
         }
