@@ -121,7 +121,7 @@ class ApplicationBundle(
                 bundleZipSize = downloadLength
             }
         } catch (e: IOException) {
-            bundleZip.delete()
+            Files.deleteIfExists(bundleZip.toPath())
             throw e
         }
     }
