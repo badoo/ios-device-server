@@ -52,17 +52,12 @@ class SimulatorHostChecker(
         val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
         val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
 
-        if (xcodeVersion < XcodeVersion(9, 0)) {
-            throw RuntimeException("Expecting Xcode 9 or higher, but received $xcodeVersion. $xcodeOutput")
+        if (xcodeVersion < XcodeVersion(12, 1)) {
+            throw RuntimeException("Expecting Xcode 12.1 or higher, but received $xcodeVersion. $xcodeOutput")
         }
 
-        // temp solution, prereq should be satisfied without having to switch anything
-        val rv = remote.execIgnoringErrors(listOf("/usr/local/bin/brew", "switch", "fbsimctl", fbsimctlVersion), env = mapOf("RUBYOPT" to ""))
-        if (!rv.isSuccess) {
-            logger.warn(logMarker, "fbsimctl switch failed, see: $rv")
-        }
 
-        val fbsimctlPath = remote.execIgnoringErrors(listOf("readlink", FBSimctl.FBSIMCTL_BIN )).stdOut
+        val fbsimctlPath = remote.execIgnoringErrors(listOf("readlink", remote.fbsimctl.fbsimctlBinary )).stdOut
         val match = Regex("/fbsimctl/([-.\\w]+)/bin/fbsimctl").find(fbsimctlPath)
                 ?: throw RuntimeException("Could not read fbsimctl version from $fbsimctlPath")
         val actualFbsimctlVersion = match.groupValues[1]
@@ -77,7 +72,7 @@ class SimulatorHostChecker(
             remote.fbsimctl.shutdownAllBooted()
             logger.info(logMarker, "Done shutting down booted simulators")
             logger.info(logMarker, "Will kill abandoned long living fbsimctl processes")
-            remote.pkill("/usr/local/bin/fbsimctl", true)
+            remote.pkill(remote.fbsimctl.fbsimctlBinary, true)
         } catch (e: Exception) {
             logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")
         }

@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.command.ChildProcess
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.device.DeviceFbsimctlProc
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Before
 import org.junit.Test
@@ -20,13 +21,17 @@ class DeviceFbsimctlProcTest {
     private lateinit var endpoint: URI
     @Mock
     private lateinit var childProcess: ChildProcess
+    @Mock
+    private lateinit var fbsimctl: FBSimctl
     private lateinit var actualCommand: List<String>
 
     @Before
     fun setUp() {
         MockitoAnnotations.initMocks(this)
+        whenever(fbsimctl.fbsimctlBinary).thenReturn("/usr/local/bin/fbsimctl")
         whenever(remote.hostName).thenReturn("hostName")
         whenever(remote.userName).thenReturn("userName")
+        whenever(remote.fbsimctl).thenReturn(fbsimctl)
         whenever(endpoint.port).thenReturn(1)
     }
 

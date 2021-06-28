@@ -64,7 +64,7 @@ open class FbsimctlProc(
 
     protected open fun getFbsimctlCommand(): List<String> {
         val cmd = listOf(
-            FBSimctl.FBSIMCTL_BIN,
+            remote.fbsimctl.fbsimctlBinary,
             udid,
             "listen",
             "--http",

@@ -83,7 +83,7 @@ class RealDeviceSysLog(
         deleteLogFiles()
 
         val cmd = mutableListOf(
-            "/usr/local/bin/idevicesyslog",
+            File(remote.homeBrewPath, "idevicesyslog").absolutePath,
             "--udid", udid,                 // target specific device by UDID
             "--no-colors",                  // disable colored output
             "--exit"                        // exit when device disconnects
