@@ -18,7 +18,7 @@ class Remote(
     override val publicHostName: String,
     override val localExecutor: IShellCommand = ShellCommand(commonEnvironment = mapOf("HOME" to System.getProperty("user.home"))),
     override val remoteExecutor: IShellCommand = getRemoteCommandExecutor(hostName, userName),
-    override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, FBSimctlResponseParser())
+    override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(remoteExecutor), FBSimctlResponseParser())
 ) : IRemote {
     companion object {
         const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
@@ -31,6 +31,14 @@ class Remote(
                 RemoteShellCommand(hostName, userName)
             }
         }
+
+        fun getHomeBrewPath(executor: IShellCommand): File {
+            return when {
+                executor.exec(listOf("test", "-d", "/opt/homebrew/Cellar")).isSuccess -> File("/opt/homebrew/bin")
+                executor.exec(listOf("test", "-d", "/usr/local/Cellar")).isSuccess -> File("/usr/local/bin")
+                else -> throw RuntimeException("Failed to find Homebrew directory")
+            }
+        }
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -40,6 +48,10 @@ class Remote(
     private val userAtHost = if (userName.isBlank()) hostName else "$userName@$hostName"
 
     override fun toString(): String = "<Remote user:$userName node:$hostName>"
+
+    override val homeBrewPath: File by lazy {
+        getHomeBrewPath(remoteExecutor)
+    }
 
     override fun isReachable(): Boolean {
         //FIXME: We need a reliable way to determine if node is available. SSH request might just time-out if node is under heavy load.

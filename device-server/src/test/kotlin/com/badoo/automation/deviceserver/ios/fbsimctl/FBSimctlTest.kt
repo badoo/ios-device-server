@@ -11,6 +11,7 @@ import org.mockito.ArgumentMatchers.*
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.slf4j.Marker
+import java.io.File
 
 class FBSimctlTest {
     @Mock private lateinit var executor: IShellCommand
@@ -26,7 +27,7 @@ class FBSimctlTest {
 
     @Test fun mustTrimLastNewLine() {
         whenever(executor.exec(anyList(), anyMap(), anyType(), anyBoolean(), any<Marker>(), anyType())).thenReturn(CommandResult(fbsimctlResponse, "", 0, pid = 1))
-        val fbSimctl = FBSimctl(executor, FBSimctlResponseParser())
+        val fbSimctl = FBSimctl(executor, File("/usr/local/bin"), FBSimctlResponseParser())
         val deviceSets = fbSimctl.defaultDeviceSet()
         Assert.assertEquals("/a", deviceSets)
     }
@@ -35,7 +36,7 @@ class FBSimctlTest {
     fun shouldThrowWhenNoDeviceSets() {
         whenever(executor.exec(anyList(), anyMap(), anyType(), anyBoolean(), any(), anyType())).thenReturn(CommandResult("\n", "", 0, pid = 1))
         whenever(parser.parseDeviceSets(anyString())).thenReturn(emptyList())
-        val fbSimctl = FBSimctl(executor, parser)
+        val fbSimctl = FBSimctl(executor, File("/usr/local/bin"), parser)
         fbSimctl.defaultDeviceSet()
     }
 }

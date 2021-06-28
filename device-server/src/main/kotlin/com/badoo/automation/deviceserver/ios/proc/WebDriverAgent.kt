@@ -3,7 +3,6 @@ package com.badoo.automation.deviceserver.ios.proc
 import com.badoo.automation.deviceserver.command.ChildProcess
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.util.ensure
 import com.badoo.automation.deviceserver.util.uriWithPath
 import java.io.File
@@ -29,7 +28,7 @@ open class WebDriverAgent(
         ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName), IWebDriverAgent {
     private val launchXctestCommand: List<String> = listOf(
-            FBSimctl.FBSIMCTL_BIN,
+            remote.fbsimctl.fbsimctlBinary,
             udid,
             "launch_xctest",
             wdaRunnerXctest.absolutePath,

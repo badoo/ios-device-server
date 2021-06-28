@@ -7,6 +7,7 @@ import com.badoo.automation.deviceserver.host.IRemote
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.File
 
 class UsbProxy(
     private val udid: UDID,
@@ -32,11 +33,13 @@ class UsbProxy(
 
     override fun toString(): String = "<iproxy $localPort $devicePort $udid>"
 
+    val iproxyBinary = File(remote.homeBrewPath, "iproxy").absolutePath
+    val socatBinary = File(remote.homeBrewPath, "socat").absolutePath
     private var iproxy: ChildProcess? = null
     private var socat: ChildProcess? = null
 
     fun start() {
-        val iProxyCommand = listOf(IPROXY_BIN, "$localPort:$devicePort", "--udid", udid)
+        val iProxyCommand = listOf(iproxyBinary, "$localPort:$devicePort", "--udid", udid)
         iproxy = childFactory(
             remote.hostName,
             remote.userName,
@@ -49,7 +52,7 @@ class UsbProxy(
         socat = childFactory(
             remote.hostName,
             remote.userName,
-            listOf(SOCAT_BIN, "tcp-listen:$localPort,reuseaddr,fork", "tcp:0.0.0.0:$localPort"),
+            listOf(socatBinary, "tcp-listen:$localPort,reuseaddr,fork", "tcp:0.0.0.0:$localPort"),
             mapOf(),
             { message -> logger.trace(logMarker, "${this}: socat <o>: ${message.trim()}") },
             { message -> logger.debug(logMarker, "${this}: socat <e>: ${message.trim()}") }
@@ -72,10 +75,5 @@ class UsbProxy(
             socat!!.kill()
             socat = null
         }
-    }
-
-    companion object {
-        const val IPROXY_BIN = "/usr/local/bin/iproxy"
-        const val SOCAT_BIN = "/usr/local/bin/socat"
     }
 }

@@ -19,6 +19,7 @@ interface IRemote {
         }
     }
 
+    val homeBrewPath: File
     val hostName: String
     val userName: String
     val publicHostName: String

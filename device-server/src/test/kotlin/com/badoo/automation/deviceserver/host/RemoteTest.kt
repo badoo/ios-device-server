@@ -18,6 +18,9 @@ class RemoteTest {
     private lateinit var remote: Remote
 
     @Before fun setUp() {
+        whenever(remoteExecutor.exec(anyList(), anyMap(), anyType(), anyBoolean(), anyType(), anyType())).thenReturn(
+            CommandResult("", "", 0, pid = 1L)
+        )
         remote = Remote("host", "user", "", localExecutor, remoteExecutor)
     }
 
