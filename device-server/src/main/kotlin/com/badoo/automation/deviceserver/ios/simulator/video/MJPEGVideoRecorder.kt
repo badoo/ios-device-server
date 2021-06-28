@@ -208,7 +208,7 @@ MJPEGVideoRecorder(
     }
 
     private companion object {
-        val FFMPEG_PATH = listOf("/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg").find { File(it).canExecute() }
-        val FFPROBE_PATH = listOf("/usr/bin/ffprobe", "/usr/local/bin/ffprobe").find { File(it).canExecute() }
+        val FFMPEG_PATH = listOf("/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/opt/homebrew/bin/ffmpeg").find { File(it).canExecute() }
+        val FFPROBE_PATH = listOf("/usr/bin/ffprobe", "/usr/local/bin/ffprobe", "/opt/homebrew/bin/ffprobe").find { File(it).canExecute() }
     }
 }

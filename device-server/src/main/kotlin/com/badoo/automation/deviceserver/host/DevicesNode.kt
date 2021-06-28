@@ -461,21 +461,11 @@ class DevicesNode(
         val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
         val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
 
-        if (xcodeVersion < XcodeVersion(9, 2)) {
-            throw RuntimeException("Expecting Xcode 9.2 or higher, but it is $xcodeVersion")
+        if (xcodeVersion < XcodeVersion(12, 1)) {
+            throw RuntimeException("Expecting Xcode 12.1 or higher, but it is $xcodeVersion")
         }
 
-        // temp solution, prerequisites should be satisfied without having to switch anything
-        val switchRes = remote.execIgnoringErrors(
-            listOf("/usr/local/bin/brew", "switch", "fbsimctl", fbsimctlVersion),
-            env = mapOf("RUBYOPT" to "")
-        )
-
-        if (!switchRes.isSuccess) {
-            logger.warn(logMarker, "fbsimctl switch failed, see: $switchRes")
-        }
-
-        val fbsimctlPath = remote.execIgnoringErrors(listOf("readlink", FBSimctl.FBSIMCTL_BIN)).stdOut
+        val fbsimctlPath = remote.execIgnoringErrors(listOf("readlink", remote.fbsimctl.fbsimctlBinary)).stdOut
 
         val match = Regex("/fbsimctl/([-.\\w]+)/bin/fbsimctl").find(fbsimctlPath)
                 ?: throw RuntimeException("Could not read fbsimctl version from $fbsimctlPath")
@@ -484,12 +474,12 @@ class DevicesNode(
             throw RuntimeException("Expecting fbsimctl $fbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
         }
 
-        val iproxyResult = remote.execIgnoringErrors((listOf(UsbProxy.IPROXY_BIN, "--help")))
+        val iproxyResult = remote.execIgnoringErrors((listOf(File(remote.homeBrewPath, "iproxy").absolutePath, "--help")))
         if (!iproxyResult.isSuccess) {
            throw RuntimeException("Expecting iproxy to be installed. Exit code: ${iproxyResult.exitCode}\nStdErr: ${iproxyResult.stdErr}. StdOut: ${iproxyResult.stdOut}")
         }
 
-        val socatResult = remote.execIgnoringErrors((listOf(UsbProxy.SOCAT_BIN, "-V")))
+        val socatResult = remote.execIgnoringErrors((listOf(File(remote.homeBrewPath, "socat").absolutePath, "-V")))
         if (!socatResult.isSuccess) {
             throw RuntimeException("Expecting socat to be installed. Exit code: ${socatResult.exitCode}\nStdErr: ${socatResult.stdErr}. StdOut: ${socatResult.stdOut}")
         }
@@ -504,9 +494,9 @@ class DevicesNode(
 
     private fun cleanup() {
         // single instance of server on node is implied, so we can kill all simulators and fbsimctl processes
-        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/usr/local/bin/fbsimctl"))
-        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/usr/local/bin/socat"))
-        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/usr/local/bin/iproxy"))
+        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", remote.fbsimctl.fbsimctlBinary))
+        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/bin/socat"))
+        remote.execIgnoringErrors(listOf("/usr/bin/pkill", "-9", "-f", "/bin/iproxy"))
     }
 
     override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {

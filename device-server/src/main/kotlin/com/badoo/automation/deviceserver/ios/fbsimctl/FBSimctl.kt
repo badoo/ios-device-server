@@ -11,13 +11,15 @@ import java.time.Duration
 
 class FBSimctl(
         private val shellCommand: IShellCommand,
+        homeBrewPath: File,
         private val parser: IFBSimctlResponseParser = FBSimctlResponseParser()
 ) : IFBSimctl {
     companion object {
         private val SIMULATOR_SHUTDOWN_TIMEOUT: Duration = Duration.ofSeconds(90)
-        const val FBSIMCTL_BIN = "/usr/local/bin/fbsimctl"
         const val RESPONSE_FORMAT = "--json"
     }
+
+    override val fbsimctlBinary: String = File(homeBrewPath, "fbsimctl").absolutePath
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
@@ -161,7 +163,7 @@ class FBSimctl(
 
     private fun buildFbsimctlCommand(jsonFormat: Boolean, udid: UDID?, command: List<String>): ArrayList<String> {
         val cmd = arrayListOf<String>()
-        cmd.add(FBSIMCTL_BIN)
+        cmd.add(fbsimctlBinary)
 
         if (jsonFormat) {
             cmd.add(RESPONSE_FORMAT)

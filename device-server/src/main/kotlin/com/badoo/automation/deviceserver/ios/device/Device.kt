@@ -209,7 +209,7 @@ class Device(
     fun crashLogs(appName: String?): List<CrashLog> {
         val crashReportsPath = Files.createTempDirectory("crashReports")
         val filter = appName?.let { "--filter \"$appName\"" } ?: ""
-        val command = "/usr/local/bin/idevicecrashreport --udid $udid $filter ${crashReportsPath.toAbsolutePath()}"
+        val command = "${File(remote.homeBrewPath, "idevicecrashreport").absolutePath} --udid $udid $filter ${crashReportsPath.toAbsolutePath()}"
 
         try {
             val result = remote.shell(command, returnOnFailure = true)

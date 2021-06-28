@@ -3,7 +3,6 @@ package com.badoo.automation.deviceserver.ios.simulator.video
 import com.badoo.automation.deviceserver.command.ChildProcess
 import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl.Companion.FBSIMCTL_BIN
 import com.badoo.automation.deviceserver.ios.proc.LongRunningProc
 import com.badoo.automation.deviceserver.util.ensure
 import com.badoo.automation.deviceserver.util.pollFor
@@ -23,6 +22,7 @@ class SimulatorVideoRecorder(
 ) : LongRunningProc(deviceInfo.udid, remote.hostName), VideoRecorder {
 
     private val udid = deviceInfo.udid
+    private val ffmpegPath = File(remote.homeBrewPath, "ffmpeg").absolutePath
 
     @Volatile
     private var isStarted: Boolean = false
@@ -90,7 +90,7 @@ class SimulatorVideoRecorder(
                 logger.info(logMarker, "Stopping video recording")
 
                 // Regex.escape is incompatible with pkill regex, so let's not escape and hope
-                val pattern = """^$FFMPEG_PATH.*$uniqueTag"""
+                val pattern = """^$ffmpegPath.*$uniqueTag"""
                 remote.execIgnoringErrors(listOf("pkill", "-f", pattern))
 
                 pollFor(recorderStopTimeout, "Stop video recording", false, Duration.ofMillis(500), logger, logMarker) {
@@ -147,12 +147,12 @@ class SimulatorVideoRecorder(
     }
 
     private fun videoRecordingCmd(fps: Int = 5, frameWidth: Int, frameHeight: Int, crf: Int = 35): String {
-        val fbsimctlStream = "$FBSIMCTL_BIN $udid stream --bgra --fps $fps -"
+        val fbsimctlStream = "$ffmpegPath $udid stream --bgra --fps $fps -"
 
         val maxRecording = Duration.ofMinutes(15) // Video recording duration is capped
 
         val frameSize = "${frameWidth}x$frameHeight"
-        val recorder = "$FFMPEG_PATH -hide_banner -loglevel warning " +
+        val recorder = "$ffmpegPath -hide_banner -loglevel warning " +
                 "-f rawvideo " +
                 "-pixel_format bgra " +
                 "-s:v $frameSize " +
@@ -172,7 +172,7 @@ class SimulatorVideoRecorder(
     }
 
     private fun surfaceAttributes(): IOSurfaceAttributes {
-        val cmd = shell("set -eo pipefail; $FBSIMCTL_BIN --debug-logging $udid stream --bgra --fps 1 - | exit")
+        val cmd = shell("set -eo pipefail; $ffmpegPath --debug-logging $udid stream --bgra --fps 1 - | exit")
 
         val rv = remote.execIgnoringErrors(cmd)
 
@@ -185,7 +185,6 @@ class SimulatorVideoRecorder(
     }
 
     private companion object {
-        const val FFMPEG_PATH = "/usr/local/bin/ffmpeg"
         val RECORDER_STOP_TIMEOUT: Duration = Duration.ofSeconds(3)
     }
 }

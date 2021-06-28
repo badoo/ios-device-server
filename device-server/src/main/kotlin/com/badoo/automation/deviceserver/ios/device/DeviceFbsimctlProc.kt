@@ -7,7 +7,7 @@ import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
 import java.net.URI
 
 class DeviceFbsimctlProc(
-    remote: IRemote,
+    private val remote: IRemote,
     udid: String,
     fbsimctlEndpoint: URI,
     headless: Boolean,
@@ -24,7 +24,7 @@ class DeviceFbsimctlProc(
     override fun getFbsimctlCommand(): List<String> {
 
         return listOf(
-            FBSimctl.FBSIMCTL_BIN,
+            remote.fbsimctl.fbsimctlBinary,
             udid,
             "listen",
             "--http",
