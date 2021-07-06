@@ -6,10 +6,7 @@ import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
-import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
-import com.badoo.automation.deviceserver.ios.proc.IWebDriverAgent
-import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
-import com.badoo.automation.deviceserver.ios.proc.SimulatorXcrunWebDriverAgent
+import com.badoo.automation.deviceserver.ios.proc.*
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupError
@@ -127,6 +124,14 @@ class Simulator(
                 deviceRef
             )
             SimulatorXcrunWebDriverAgent::class.qualifiedName -> SimulatorXcrunWebDriverAgent(
+                remote,
+                wdaRunnerXctest,
+                deviceInfo.udid,
+                wdaEndpoint,
+                mjpegServerPort,
+                deviceRef
+            )
+            XcodeTestRunnerDeviceAgent::class.qualifiedName-> XcodeTestRunnerDeviceAgent(
                 remote,
                 wdaRunnerXctest,
                 deviceInfo.udid,
