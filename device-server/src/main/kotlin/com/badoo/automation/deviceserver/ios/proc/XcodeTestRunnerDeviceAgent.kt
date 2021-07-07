@@ -8,9 +8,11 @@ import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.XcodeVersion
 import com.badoo.automation.deviceserver.util.ensure
+import com.badoo.automation.deviceserver.util.pollFor
 import com.badoo.automation.deviceserver.util.uriWithPath
 import java.io.File
 import java.net.URI
+import java.time.Duration
 
 class XcodeTestRunnerDeviceAgent(
     private val remote: IRemote,
@@ -101,10 +103,13 @@ class XcodeTestRunnerDeviceAgent(
 
     override val deviceAgentLog: File = File.createTempFile("device_agent_log_", ".txt")
 
+    @Volatile
+    private var wdaRunnerStarted = false
+
     override fun start() {
         ensure(childProcess == null) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
         ensure(remote.isDirectory(wdaRunnerXctest.absolutePath)) { WebDriverAgentError("WebDriverAgent ${wdaRunnerXctest.absolutePath} does not exist or is not a directory") }
-        logger.debug(logMarker, "$this — Starting child process")
+        logger.debug(logMarker, "$this — Starting child process WebDriverAgent on port: $port with bundle id: $testRunnerBundleId")
 
         cleanupLogs()
         prepareXctestrunFile()
@@ -117,11 +122,33 @@ class XcodeTestRunnerDeviceAgent(
             remote.userName,
             launchXctestCommand,
             mapOf(),
-            { message -> deviceAgentLog.appendText(message + "\n") },
+            { message ->
+                deviceAgentLog.appendText(message + "\n")
+                if (!wdaRunnerStarted && message.contains("Started HTTP server on port")) {
+                    wdaRunnerStarted = true
+                    logger.debug(logMarker, "$this — WebDriverAgent has reported that it has Started HTTP server on port: $port with bundle id: $testRunnerBundleId . Message: $message")
+                }
+            },
             { message -> deviceAgentLog.appendText(message + "\n") }
         )
 
-        Thread.sleep(5000) // 5 should be ok
+        try {
+            pollFor(
+                Duration.ofSeconds(15),
+                reasonName = "$this Waiting for DeviceAgent to start serving requests",
+                retryInterval = Duration.ofSeconds(1),
+                logger = logger,
+                marker = logMarker
+            ) {
+                wdaRunnerStarted
+            }
+        } catch (e: Throwable) {
+            logger.error(logMarker, "$this — WebDriverAgent on port: $port with bundle id: $testRunnerBundleId failed to start. Detailed log follows:")
+            deviceAgentLog.readLines().forEach { logger.error("WDA OUT: $it") }
+            throw e
+        }
+
+        Thread.sleep(2000) // 2 extra should be ok
         logger.debug(logMarker, "$this WDA: $childProcess")
     }
 
@@ -144,13 +171,16 @@ class XcodeTestRunnerDeviceAgent(
     }
 
     override fun checkHealth(): Boolean {
+        if (!wdaRunnerStarted) {
+            logger.debug(logMarker, "$this WebDriverAgent has not yet started.")
+            return false
+        }
+
         return try {
             val url = if (wdaRunnerXctest.name.contains("DeviceAgent")) daUri.toURL() else uri.toURL()
+            logger.debug(logMarker, "Checking health for WebDriverAgent on $udid on url: $url")
             val result = client.get(url)
-            if (!result.isSuccess) {
-                logger.warn(logMarker, "WDA returned not success result - ${result.httpCode}")
-                return result.isSuccess
-            }
+            logger.debug(logMarker, "WDA on $udid on url: $url returned result - ${result.httpCode} , ${result.responseBody}, Success: ${result.isSuccess}")
             return result.isSuccess
         } catch (e: RuntimeException) {
             logger.warn(logMarker, "Failed to determine WDA driver state. Exception: $e")
