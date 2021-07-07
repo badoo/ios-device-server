@@ -137,7 +137,8 @@ class Simulator(
                 deviceInfo.udid,
                 wdaEndpoint,
                 mjpegServerPort,
-                deviceRef
+                deviceRef,
+                isRealDevice = false
             )
             else -> throw IllegalArgumentException(
                 "Wrong class specified as WDA for Simulator: $wdaClassName. " +
