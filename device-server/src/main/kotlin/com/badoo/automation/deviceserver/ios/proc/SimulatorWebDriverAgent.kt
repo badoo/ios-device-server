@@ -80,6 +80,6 @@ class SimulatorWebDriverAgent(
     }
 
     private fun isHostAppInstalled(): Boolean {
-        return appInstaller.isAppInstalledOnSimulator(udid, ApplicationConfiguration().wdaSimulatorBundleId)
+        return appInstaller.isAppInstalledOnSimulator(udid, ApplicationConfiguration().wdaBundleId)
     }
 }

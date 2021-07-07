@@ -35,6 +35,6 @@ interface IFBSimctl {
     fun shutdownAllBooted(): String
     fun delete(udid: UDID): String
     fun terminateApp(udid: UDID, bundleId: String, raiseOnError: Boolean = false): String
-    fun uninstallApp(udid: UDID, bundleId: String)
+    fun uninstallApp(udid: UDID, bundleId: String, raiseOnError: Boolean = true)
     val fbsimctlBinary: String
 }
