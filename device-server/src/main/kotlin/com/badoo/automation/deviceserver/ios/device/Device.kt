@@ -8,6 +8,7 @@ import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
+import com.badoo.automation.deviceserver.ios.proc.XcodeTestRunnerDeviceAgent
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.AppInstaller
@@ -80,7 +81,16 @@ class Device(
         }
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
-    private val wdaProc = DeviceWebDriverAgent(remote, wdaRunnerXctest, deviceInfo.udid, wdaEndpoint, wdaProxy.devicePort, mjpegServerPort)
+    private val wdaProc = XcodeTestRunnerDeviceAgent(
+        remote = remote,
+        wdaRunnerXctest = wdaRunnerXctest,
+        udid = deviceInfo.udid,
+        wdaEndpoint = wdaEndpoint,
+        mjpegServerPort = mjpegServerPort,
+        deviceRef = ref,
+        isRealDevice = true,
+        port = wdaProxy.devicePort
+    )
     override val deviceAgentLog get() = wdaProc.deviceAgentLog
 
     private val status = SimulatorStatus()
