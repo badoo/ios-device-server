@@ -53,156 +53,156 @@ class DeviceManagerTest {
 
     private val activeDevices: ActiveDevices = mockThis()
 
-    private val deviceManager = DeviceManager(
-            DeviceServerConfig(
-                    emptyMap(),
-                    setOf()
-            ),
-            hostFactory,
-            activeDevices
-    )
+//    private val deviceManager = DeviceManager(
+//            DeviceServerConfig(
+//                    emptyMap(),
+//                    setOf()
+//            ),
+//            hostFactory,
+//            activeDevices
+//    )
 
-    @Test
-    fun getDeviceRefsEmpty() {
-        hostsMap.forEach { _, mock -> whenever(mock.list()).thenReturn(emptyList()) }
-
-        val actualRefs = deviceManager.getDeviceRefs() // .list()
-
-        assertThat(actualRefs.size, equalTo(0))
-    }
-
-    @Test
-    fun deleteReleaseDeviceThatHasBeenReleased() {
-        val sessionId = "defaultSessionId"
-        whenever(activeDevices.getNodeFor(ref)).thenThrow(
-                DeviceNotFoundException("Device [$ref] not found in [$sessionId] activeDevices")
-        )
-        deviceManager.deleteReleaseDevice(ref, "httpRequest")
-        verify(activeDevices, times(0)).unregisterDeleteDevice(any())
-    }
-
-    private fun withDeviceOnHost(host: ISimulatorsNode, block: () -> Unit) {
-        whenever(activeDevices.getNodeFor(ref)).thenReturn(host)
-        block()
-    }
-
-    @Test
-    fun getMethodReturningDeviceDTO() {
-        withDeviceOnHost(hostTwo ) {
-        whenever(hostTwo.getDeviceDTO(ref)).thenReturn(expectedDto)
-
-        val actualDto = deviceManager.getGetDeviceDTO(ref)
-
-        assertThat(actualDto, equalTo(expectedDto))
-    }
-    }
-
-    @Test
-    fun clearSafariCookies() {
-        withDeviceOnHost(hostTwo ) {
-        deviceManager.clearSafariCookies(ref)
-        verify(hostTwo).clearSafariCookies(ref)
-    }
-    }
-
-    @Test
-    fun resetAsyncDevice() {
-        withDeviceOnHost(hostTwo ) {
-
-        deviceManager.resetAsyncDevice(ref)
-
-        verify(hostTwo).resetAsync(ref)
-    }
-    }
-
-    @Test
-    fun getEndpointFor() {
-        withDeviceOnHost(hostTwo ) {
-        whenever(hostTwo.endpointFor(ref, 1234)).thenReturn(someUrl)
-        val actual = deviceManager.getEndpointFor(ref, 1234)
-        assertThat(actual, equalTo(someUrl))
-    }
-    }
-
-    @Test
-    fun getLastCrashLog() {
-        withDeviceOnHost(hostTwo) {
-            val crashLog = CrashLog("some/path", "stdout from cat of filename")
-            whenever(hostTwo.lastCrashLog(ref)).thenReturn(crashLog)
-            val actual = deviceManager.getLastCrashLog(ref)
-            assertThat(actual, equalTo(crashLog))
-        }
-    }
-
-    @Test
-    fun startVideo() {
-        withDeviceOnHost(hostTwo) {
-            deviceManager.startVideo(ref)
-            verify(hostTwo).videoRecordingStart(ref)
-        }
-    }
-
-    @Test
-    fun stopVideo() {
-        withDeviceOnHost(hostTwo) {
-            deviceManager.stopVideo(ref)
-            verify(hostTwo).videoRecordingStop(ref)
-        }
-    }
-
-    @Test
-    fun getVideo() {
-        withDeviceOnHost(hostTwo) {
-            val bytes = ByteArray(3)
-            whenever(hostTwo.videoRecordingGet(ref)).thenReturn(bytes)
-            val actual = deviceManager.getVideo(ref)
-            assertThat(actual, sameInstance(bytes))
-        }
-    }
-
-    @Test
-    fun deleteVideo() {
-        withDeviceOnHost(hostTwo) {
-            deviceManager.deleteVideo(ref)
-            verify(hostTwo).videoRecordingDelete(ref)
-        }
-    }
-
-    @Test
-    fun getDeviceState() { // deviceStateDTO
-        withDeviceOnHost(hostTwo ) {
-        val deviceOrSimulatorStatusBloodyContradictoryNonsense = SimulatorStatusDTO(
-            false, false, false, DeviceState.NONE.value, null)
-        whenever(hostTwo.state(ref)).thenReturn(deviceOrSimulatorStatusBloodyContradictoryNonsense)
-        val actual = deviceManager.getDeviceState(ref)
-        assertThat(actual, equalTo(deviceOrSimulatorStatusBloodyContradictoryNonsense))
-    }
-    }
-
-    @Test
-    fun setEnvironmentVariables() {
-        withDeviceOnHost(hostTwo) {
-            deviceManager.setEnvironmentVariables(ref, mapOf())
-            verify(hostTwo).setEnvironmentVariables(ref, mapOf())
-        }
-    }
-
-    @Test
-    fun deleteFile() {
-        withDeviceOnHost(hostTwo) {
-            val fakeFilePath = File("filePath").toPath()
-            deviceManager.deleteFile(ref, fakeFilePath)
-            verify(hostTwo).deleteFile(ref, fakeFilePath)
-        }
-    }
-
-    @Test
-    fun pushFile() {
-        withDeviceOnHost(hostTwo) {
-            val fakeFile = File("filePath").toPath()
-            val fakeData = ByteArray(3)
-            deviceManager.pushFile(ref, fakeData, fakeFile)
-            verify(hostTwo).pushFile(ref, fakeData, fakeFile)
-        }
-    }
+//    @Test
+//    fun getDeviceRefsEmpty() {
+//        hostsMap.forEach { _, mock -> whenever(mock.list()).thenReturn(emptyList()) }
+//
+//        val actualRefs = deviceManager.getDeviceRefs() // .list()
+//
+//        assertThat(actualRefs.size, equalTo(0))
+//    }
+//
+//    @Test
+//    fun deleteReleaseDeviceThatHasBeenReleased() {
+//        val sessionId = "defaultSessionId"
+//        whenever(activeDevices.getNodeFor(ref)).thenThrow(
+//                DeviceNotFoundException("Device [$ref] not found in [$sessionId] activeDevices")
+//        )
+//        deviceManager.deleteReleaseDevice(ref, "httpRequest")
+//        verify(activeDevices, times(0)).unregisterDeleteDevice(any())
+//    }
+//
+//    private fun withDeviceOnHost(host: ISimulatorsNode, block: () -> Unit) {
+//        whenever(activeDevices.getNodeFor(ref)).thenReturn(host)
+//        block()
+//    }
+//
+//    @Test
+//    fun getMethodReturningDeviceDTO() {
+//        withDeviceOnHost(hostTwo ) {
+//        whenever(hostTwo.getDeviceDTO(ref)).thenReturn(expectedDto)
+//
+//        val actualDto = deviceManager.getGetDeviceDTO(ref)
+//
+//        assertThat(actualDto, equalTo(expectedDto))
+//    }
+//    }
+//
+//    @Test
+//    fun clearSafariCookies() {
+//        withDeviceOnHost(hostTwo ) {
+//        deviceManager.clearSafariCookies(ref)
+//        verify(hostTwo).clearSafariCookies(ref)
+//    }
+//    }
+//
+//    @Test
+//    fun resetAsyncDevice() {
+//        withDeviceOnHost(hostTwo ) {
+//
+//        deviceManager.resetAsyncDevice(ref)
+//
+//        verify(hostTwo).resetAsync(ref)
+//    }
+//    }
+//
+//    @Test
+//    fun getEndpointFor() {
+//        withDeviceOnHost(hostTwo ) {
+//        whenever(hostTwo.endpointFor(ref, 1234)).thenReturn(someUrl)
+//        val actual = deviceManager.getEndpointFor(ref, 1234)
+//        assertThat(actual, equalTo(someUrl))
+//    }
+//    }
+//
+//    @Test
+//    fun getLastCrashLog() {
+//        withDeviceOnHost(hostTwo) {
+//            val crashLog = CrashLog("some/path", "stdout from cat of filename")
+//            whenever(hostTwo.lastCrashLog(ref)).thenReturn(crashLog)
+//            val actual = deviceManager.getLastCrashLog(ref)
+//            assertThat(actual, equalTo(crashLog))
+//        }
+//    }
+//
+//    @Test
+//    fun startVideo() {
+//        withDeviceOnHost(hostTwo) {
+//            deviceManager.startVideo(ref)
+//            verify(hostTwo).videoRecordingStart(ref)
+//        }
+//    }
+//
+//    @Test
+//    fun stopVideo() {
+//        withDeviceOnHost(hostTwo) {
+//            deviceManager.stopVideo(ref)
+//            verify(hostTwo).videoRecordingStop(ref)
+//        }
+//    }
+//
+//    @Test
+//    fun getVideo() {
+//        withDeviceOnHost(hostTwo) {
+//            val bytes = ByteArray(3)
+//            whenever(hostTwo.videoRecordingGet(ref)).thenReturn(bytes)
+//            val actual = deviceManager.getVideo(ref)
+//            assertThat(actual, sameInstance(bytes))
+//        }
+//    }
+//
+//    @Test
+//    fun deleteVideo() {
+//        withDeviceOnHost(hostTwo) {
+//            deviceManager.deleteVideo(ref)
+//            verify(hostTwo).videoRecordingDelete(ref)
+//        }
+//    }
+//
+//    @Test
+//    fun getDeviceState() { // deviceStateDTO
+//        withDeviceOnHost(hostTwo ) {
+//        val deviceOrSimulatorStatusBloodyContradictoryNonsense = SimulatorStatusDTO(
+//            false, false, false, DeviceState.NONE.value, null)
+//        whenever(hostTwo.state(ref)).thenReturn(deviceOrSimulatorStatusBloodyContradictoryNonsense)
+//        val actual = deviceManager.getDeviceState(ref)
+//        assertThat(actual, equalTo(deviceOrSimulatorStatusBloodyContradictoryNonsense))
+//    }
+//    }
+//
+//    @Test
+//    fun setEnvironmentVariables() {
+//        withDeviceOnHost(hostTwo) {
+//            deviceManager.setEnvironmentVariables(ref, mapOf())
+//            verify(hostTwo).setEnvironmentVariables(ref, mapOf())
+//        }
+//    }
+//
+//    @Test
+//    fun deleteFile() {
+//        withDeviceOnHost(hostTwo) {
+//            val fakeFilePath = File("filePath").toPath()
+//            deviceManager.deleteFile(ref, fakeFilePath)
+//            verify(hostTwo).deleteFile(ref, fakeFilePath)
+//        }
+//    }
+//
+//    @Test
+//    fun pushFile() {
+//        withDeviceOnHost(hostTwo) {
+//            val fakeFile = File("filePath").toPath()
+//            val fakeData = ByteArray(3)
+//            deviceManager.pushFile(ref, fakeData, fakeFile)
+//            verify(hostTwo).pushFile(ref, fakeData, fakeFile)
+//        }
+//    }
 }

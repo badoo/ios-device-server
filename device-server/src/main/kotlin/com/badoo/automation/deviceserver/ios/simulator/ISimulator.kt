@@ -16,6 +16,7 @@ interface ISimulator: IDevice {
 
     fun resetAsync(): Runnable
     fun sendPushNotification(bundleId: String, notificationContent: ByteArray)
+    fun sendPasteboard(payload: ByteArray)
     fun setPermissions(bundleId: String, permissions: PermissionSet)
     fun clearSafariCookies(): Map<String, String>
     fun shake(): Boolean

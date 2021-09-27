@@ -48,16 +48,18 @@ open class FbsimctlProc(
 
     override fun checkHealth(): Boolean {
         return try {
+            logger.debug(logMarker, "Checking health for ${javaClass.simpleName} on $udid on url: $uri")
             val result = client.get(uri.toURL())
+            logger.debug(logMarker, "${javaClass.simpleName} on $udid on url: $uri returned result - ${result.httpCode} , ${result.responseBody}, Success: ${result.isSuccess}")
 
             return if (result.isSuccess) {
                 true
             } else {
-                logger.debug(logMarker, "Failed fbsimctl health check. Result: $result")
+                logger.debug(logMarker, "Failed ${javaClass.simpleName} health check. Result: $result")
                 false
             }
         } catch (e: RuntimeException) {
-            logger.warn(logMarker, "Failed to determine fbsimctl device state. Exception: $e")
+            logger.warn(logMarker, "Failed to determine ${javaClass.simpleName} device state. Exception: $e")
             false
         }
     }

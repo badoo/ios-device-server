@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.EmptyMap
 import com.badoo.automation.deviceserver.JsonMapper
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.DeviceManager
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.auth.UserIdPrincipal
 import java.io.File
@@ -54,6 +55,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
+    fun sendPasteboard(ref: DeviceRef, payload: ByteArray): EmptyMap {
+        deviceManager.sendPasteboard(ref, payload)
+        return happy
+    }
+
     fun setPermissions(ref: DeviceRef, json: JsonNode): EmptyMap {
         val permissions = JsonMapper().fromJson<AppPermissionsDto>(json)
         deviceManager.setPermissions(ref, permissions)
@@ -72,6 +78,8 @@ class DevicesController(private val deviceManager: DeviceManager) {
             mapOf("filename" to it.filename, "content" to it.content)
         }
     }
+
+    fun listApps(ref: DeviceRef): List<FBSimctlAppInfo> = deviceManager.listApps(ref)
 
     fun crashLogs(ref: DeviceRef, appName: String?): List<Map<String, String>> {
         val logs = deviceManager.crashLogs(ref, appName)

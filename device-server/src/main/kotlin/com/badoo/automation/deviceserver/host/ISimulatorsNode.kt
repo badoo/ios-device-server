@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import java.io.File
 import java.net.URL
 import java.nio.file.Path
@@ -12,6 +13,7 @@ interface ISimulatorsNode {
     fun resetAsync(deviceRef: DeviceRef)
 
     fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray)
+    fun sendPasteboard(deviceRef: DeviceRef, payload: ByteArray)
     fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto)
     fun clearSafariCookies(deviceRef: DeviceRef)
     fun shake(deviceRef: DeviceRef)
@@ -68,4 +70,5 @@ interface ISimulatorsNode {
     fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO)
     val publicHostName: String
     fun deployApplication(appBundle: ApplicationBundle)
+    fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo>
 }

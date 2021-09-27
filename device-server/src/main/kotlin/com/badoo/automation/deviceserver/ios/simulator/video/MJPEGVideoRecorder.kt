@@ -1,41 +1,40 @@
 package com.badoo.automation.deviceserver.ios.simulator.video
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
+import com.badoo.automation.deviceserver.command.ChildProcess
 import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.ios.WdaClient
-import com.badoo.automation.deviceserver.util.CustomHttpClient
+import com.badoo.automation.deviceserver.ios.proc.LongRunningProc
+import com.badoo.automation.deviceserver.util.ensure
+import com.badoo.automation.deviceserver.util.pollFor
 import net.logstash.logback.marker.MapEntriesAppendingMarker
-import okhttp3.Call
-import okhttp3.Request
-import okio.buffer
-import okio.sink
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.awt.Rectangle
 import java.io.File
+import java.io.InputStream
 import java.net.URI
 import java.net.URL
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.time.Duration
 import java.util.concurrent.Executors
-import java.util.concurrent.Future
 
-class
-MJPEGVideoRecorder(
+class MJPEGVideoRecorder(
     private val deviceInfo: DeviceInfo,
-    private val remote: IRemote,
-    wdaEndpoint: URI,
+    remote: IRemote,
     mjpegServerPort: Int,
     private val ref: DeviceRef,
     udid: UDID,
-    maxVideoDuration: Duration = Duration.ofMinutes(15),
-    private val videoFile: File = File.createTempFile("videoRecording_${deviceInfo.udid}_", ".mjpeg"),
-    private val encodedVideoFile: File = File.createTempFile("videoRecording_${deviceInfo.udid}_", ".mp4")
+    private val config: ApplicationConfiguration = ApplicationConfiguration(),
+    private val videoFile: File = File(config.tempFolder, "videoRecording_${deviceInfo.udid}.mp4")
 ) : VideoRecorder {
+    // val tempFolder = File(System.getenv("TMPDIR") ?: System.getenv("TMP") ?: System.getenv("TEMP") ?: System.getenv("PWD"))
+    // mktemp -t XXXXXXXXXX_video_blah_blah.mp4
+
     private val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(
         mapOf(
@@ -44,171 +43,171 @@ MJPEGVideoRecorder(
             LogMarkers.DEVICE_REF to ref
         )
     )
-
-    private val httpClient = CustomHttpClient.client.newBuilder().readTimeout(maxVideoDuration).build()
-    private var videoRecordingTask: Future<*>? = null
-    private var videoRecordingHttpCall: Call? = null
+    private val videoRecorder = FfmpegVideoRecorder(
+        udid,
+        remote,
+        mjpegServerPort,
+        videoFile,
+        config
+    )
 
     override fun toString(): String = "${javaClass.simpleName} for $ref"
 
-    private val uniqueTag = "video-recording-$udid"
-    private val wdaClient = WdaClient(wdaEndpoint.toURL())
-    private val mjpegStreamUrl = URL("http://${remote.publicHostName}:${mjpegServerPort}")
-
     override fun delete() {
-        logger.debug(logMarker, "Deleting video recording")
-        deleteVideoFile(videoFile)
-        deleteVideoFile(encodedVideoFile)
-    }
-
-    private fun deleteVideoFile(file: File) {
-        try {
-            Files.deleteIfExists(file.toPath())
-
-            if (file.exists()) {
-                logger.error(logMarker, "Video file still exists: ${file.absolutePath}")
-            }
-        } catch (e: RuntimeException) {
-            logger.error(logMarker, "Error while deleting Video file ${file.absolutePath}", e)
-        }
+        val wasDeleted = Files.deleteIfExists(videoFile.toPath())
+        val logMessage =
+            if (wasDeleted) "Video recording was deleted: ${videoFile.absolutePath}" else "Video recording did not exist: ${videoFile.absolutePath}"
+        logger.debug(logMarker, logMessage)
     }
 
     override fun start() {
-        logger.info(logMarker, "Starting video recording")
+        logger.debug(logMarker, "Starting video recording - ${videoFile.absolutePath}")
 
-        stopVideoRecording()
-        delete()
-        // TODO: no such an endpoint in DeviceAgent
-        // adjustVideoStreamSettings()
+        dispose() // old if exists
 
-        val executor = Executors.newSingleThreadExecutor()
-        val request: Request = Request.Builder()
-            .get()
-            .url(mjpegStreamUrl)
-            .build()
+        videoRecorder.start()
 
-        videoRecordingHttpCall = httpClient.newCall(request)
-
-        videoRecordingTask = executor.submit {
-            try {
-                videoRecordingHttpCall!!.execute().use { response ->
-                    response.body!!.byteStream().use { inputStream ->
-                        Files.copy(inputStream, videoFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                    }
-                }
-            } catch (e: Exception) {
-                logger.error(logMarker, "Failed to download video from remote device due to: ${e.message}", e)
-            }
-        }
-        executor.shutdown()
-
-        logger.info(logMarker, "Started video recording")
-    }
-
-    private fun adjustVideoStreamSettings() {
-        wdaClient.attachToSession()
-        val response = wdaClient.updateAppiumSettings(
-            mapOf(
-                "settings" to mapOf(
-                    "mjpegServerFramerate" to 4,
-                    "mjpegScalingFactor" to 50,
-                    "mjpegServerScreenshotQuality" to 100
-                )
-            )
-        )
-        logger.debug(logMarker, "Updated MJPEG server settings: $response")
+        logger.info(logMarker, "Started video recording - ${videoFile.absolutePath}")
     }
 
     override fun stop() {
-        logger.info(logMarker, "Stopping video recording")
-
-        stopVideoRecording()
-
-        logger.info(logMarker, "Stopped video recording stopped")
-    }
-
-    private fun stopVideoRecording() {
-        try {
-            videoRecordingHttpCall?.cancel()
-        } catch (e: RuntimeException) {
-            logger.warn(logMarker, "Failed to cancel video recording call. ${e.message}", e)
-        } finally {
-            videoRecordingHttpCall = null
-        }
-
-        try {
-            videoRecordingTask?.cancel(true)
-        } catch (e: RuntimeException) {
-            logger.warn(logMarker, "Failed to cancel video recording task. ${e.message}", e)
-        } finally {
-            videoRecordingTask = null
-        }
+        logger.debug(logMarker, "Stopping video recording")
+        videoRecorder.stop()
+        logger.info(logMarker, "Stopped video recording - ${videoFile.absolutePath}")
     }
 
     override fun getRecording(): ByteArray {
-        try {
-            logger.info(logMarker, "Getting video recording")
-
-            if (FFMPEG_PATH == null) {
-                logger.error("Failed to find ffmpeg. Returning mjpeg.")
-                return videoFile.readBytes()
-            }
-
-            val cmd = listOf(
-                 FFMPEG_PATH,
-                    "-hide_banner",
-                    "-loglevel", "warning",
-                    "-f", "mjpeg",
-                    "-framerate", "4",
-                    "-i", videoFile.absolutePath,
-                    "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
-                    "-an",
-                    "-vcodec", "h264",
-                    "-preset", "ultrafast",
-                    "-tune", "fastdecode",
-                    "-pix_fmt", "yuv420p",
-                    "-metadata", "comment=$uniqueTag",
-                    "-y",
-                    encodedVideoFile.absolutePath
-            )
-
-            val result = remote.localExecutor.exec(cmd, timeOut = Duration.ofSeconds(60L))
-
-            if (!result.isSuccess && (!encodedVideoFile.exists() || Files.size(encodedVideoFile.toPath()) == 0L)) {
-                val message = "Could not read video file. Result stdErr: ${result.stdErr}"
-                logger.error(message)
-                throw SimulatorVideoRecordingException(message)
-            }
-
-            logger.info(logMarker, "Successfully encoded video recording.")
-            return encodedVideoFile.readBytes()
-        } finally {
-            delete()
-        }
+        logger.info(logMarker, "Getting video recording - ${videoFile.absolutePath}")
+        return videoFile.readBytes()
     }
 
     override fun dispose() {
-        logger.info(logMarker, "Disposing video recording")
-        stopVideoRecording()
+        logger.debug(logMarker, "Disposing video recording - ${videoFile.absolutePath}")
+        videoRecorder.stop()
         delete()
-        logger.info(logMarker, "Disposed video recording")
+        logger.debug(logMarker, "Disposed video recording - ${videoFile.absolutePath}")
     }
 
-    private fun getVideoResolution(file: File): Rectangle {
-        val cmd = "$FFPROBE_PATH -v error -show_entries stream=width,height -of csv=p=0:s=x ${file.absolutePath}"
-        val result = remote.localExecutor.exec(cmd.split(" "), timeOut = Duration.ofSeconds(60L))
+    class FfmpegVideoRecorder(
+        private val udid: String,
+        private val remote: IRemote,
+        mjpegServerPort: Int,
+        private val encodedVideoFile: File,
+        private val config: ApplicationConfiguration,
+        private val childFactory: (
+            remoteHost: String,
+            userName: String,
+            cmd: List<String>,
+            commandEnvironment: Map<String, String>,
+            out_reader: ((line: String) -> Unit)?,
+            err_reader: ((line: String) -> Unit)?
+        ) -> ChildProcess = ChildProcess.Companion::fromCommand
+    ) : LongRunningProc(udid, remote.hostName) {
+        private val mjpegStreamUrl = URL("http://${remote.publicHostName}:${mjpegServerPort}")
+        private val uniqueTag = "video_recording_$udid"
+        private fun ffmpegCommand(): List<String> {
+            val remoteVideoFile: File = if (remote.isLocalhost()) {
+                encodedVideoFile
+            } else {
+                encodedVideoFile.name
+                val temporaryFileTemplate = "${encodedVideoFile.name}_XXXXXXXXXX"
+                val result = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-t", temporaryFileTemplate))
+                if (result.isSuccess) {
+                    File(result.stdOut.trim())
+                } else {
+                    throw RuntimeException("Failed to create remote file for video recording. $result")
+                }
+            }
 
-        if (!result.isSuccess) {
-            return Rectangle(0, 0, 0, 0)
+
+            return listOf(
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel", "warning",
+                "-f", "mjpeg",
+                "-framerate", "4",
+                "-i", mjpegStreamUrl.toExternalForm(),
+                "-t", "${maxVideoDuration.toSeconds()}",
+                "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+                "-an",
+                "-vcodec", "h264",
+                "-preset", "ultrafast",
+                "-tune", "animation",
+                "-pix_fmt", "yuv420p",
+                "-metadata", "comment=$uniqueTag",
+                "-y",
+                remoteVideoFile.absolutePath
+            )
         }
 
-        val res = result.stdOut.split("x")
+        override fun start() {
+            ensure(childProcess == null && !checkHealth()) { RuntimeException("Previous ffmpeg childProcess $childProcess is still running") }
+            logger.debug(logMarker, "$this — Starting ffmpeg child process")
 
-        return Rectangle(0, 0, 0, 0)
-    }
 
-    private companion object {
-        val FFMPEG_PATH = listOf("/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/opt/homebrew/bin/ffmpeg").find { File(it).canExecute() }
-        val FFPROBE_PATH = listOf("/usr/bin/ffprobe", "/usr/local/bin/ffprobe", "/opt/homebrew/bin/ffprobe").find { File(it).canExecute() }
+
+             val ffmpegProcess = childFactory(
+                remote.hostName,
+                remote.userName,
+                ffmpegCommand(),
+                mapOf(),
+                { logger.debug(logMarker, it.trim()) },
+                { logger.warn(logMarker, it.trim()) }
+            )
+            ffmpegProcess.onExit.thenApply {
+                when (it.exitValue()) {
+                    0 -> logger.info(logMarker, "ffmpeg process exited normally for $udid")
+                    255 -> logger.info(logMarker, "ffmpeg process terminated for $udid")
+                    else -> logger.error(logMarker, "ffmpeg process exited abnormally for $udid")
+                }
+            }
+
+            Thread.sleep(1000)
+
+            check(ffmpegProcess.isAlive()) { "ffmpeg is not running" }
+
+
+            childProcess = ffmpegProcess
+
+            logger.debug(logMarker, "$this Started ffmpeg child process: $childProcess")
+        }
+
+        fun stop() {
+            super.kill()
+
+            // just in case there are some left-over process
+            val result = remote.localExecutor.exec(
+                command = listOf("pkill", "-f", uniqueTag),
+                environment = mapOf("PATH" to config.path),
+                returnFailure = true,
+                logMarker = logMarker
+            )
+
+            if (result.isSuccess) {
+                Thread.sleep(2000)
+            }
+            // else — no process found
+        }
+
+        override fun checkHealth(): Boolean {
+            val result = remote.localExecutor.exec(
+                command = listOf("pgrep", "-f", uniqueTag),
+                environment = mapOf("PATH" to config.path),
+                returnFailure = true,
+                logMarker = logMarker
+            )
+
+            return result.isSuccess
+        }
+
+        private companion object {
+            val FFMPEG_PATH: String = listOf(
+                "/usr/bin/ffmpeg",
+                "/usr/local/bin/ffmpeg",
+                "/opt/homebrew/bin/ffmpeg"
+            ).find { File(it).exists() }
+                ?: throw RuntimeException("Unable to find ffmpeg binary")
+            val maxVideoDuration = Duration.ofMinutes(30)
+        }
     }
 }

@@ -18,6 +18,7 @@ interface ISimulatorHostChecker {
     fun setupHost()
     fun killDiskCleanupThread()
     fun copyWdaBundleToHost()
+    fun copyTestHelperBundleToHost()
 }
 
 class SimulatorHostChecker(
@@ -25,6 +26,7 @@ class SimulatorHostChecker(
         private val diskCleanupInterval: Duration = Duration.ofMinutes(15),
         private val wdaBundle: File,
         private val remoteWdaBundleRoot: File,
+        private val remoteTestHelperAppRoot: File,
         private val fbsimctlVersion: String,
         private val shutdownSimulators: Boolean
 ) : ISimulatorHostChecker {
@@ -40,6 +42,20 @@ class SimulatorHostChecker(
         remote.rm(remoteWdaBundleRoot.absolutePath)
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteWdaBundleRoot.absolutePath))
         remote.scpToRemoteHost(wdaBundle.absolutePath, remoteWdaBundleRoot.absolutePath)
+    }
+
+    override fun copyTestHelperBundleToHost() {
+        logger.debug(logMarker, "Setting up remote node: copying TestHelper app to node ${remote.hostName}")
+        val testHelperAppBundle = File(remoteTestHelperAppRoot, "TestHelper.app")
+
+        if (!testHelperAppBundle.exists()) {
+            logger.debug(logMarker, "Failed to copy TestHelper app to node ${remote.hostName}. TestHelper app does not exist")
+            return
+        }
+
+        remote.rm(testHelperAppBundle.absolutePath)
+        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteTestHelperAppRoot.absolutePath))
+        remote.scpToRemoteHost(testHelperAppBundle.absolutePath, remoteTestHelperAppRoot.absolutePath)
     }
 
     override fun killDiskCleanupThread() {

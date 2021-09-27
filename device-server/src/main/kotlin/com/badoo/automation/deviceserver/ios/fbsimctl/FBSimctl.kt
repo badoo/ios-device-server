@@ -13,7 +13,7 @@ class FBSimctl(
         private val shellCommand: IShellCommand,
         homeBrewPath: File,
         private val parser: IFBSimctlResponseParser = FBSimctlResponseParser()
-) : IFBSimctl {
+) : ISimulatorControl {
     companion object {
         private val SIMULATOR_SHUTDOWN_TIMEOUT: Duration = Duration.ofSeconds(90)
         const val RESPONSE_FORMAT = "--json"
@@ -24,7 +24,7 @@ class FBSimctl(
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
     override fun installApp(udid: UDID, bundlePath: File) {
-        val response = fbsimctl(listOf("install", bundlePath.absolutePath), udid, raiseOnError = true)
+        val response = fbsimctl(listOf("install", bundlePath.absolutePath), udid, raiseOnError = true, timeOut = Duration.ofSeconds(120))
         val result = parser.parseInstallApp(response)
         if (!result.isSuccess) {
             throw FBSimctlError("Failed to install application [${bundlePath.absolutePath}]. Error:\n${result.errorMessage}")

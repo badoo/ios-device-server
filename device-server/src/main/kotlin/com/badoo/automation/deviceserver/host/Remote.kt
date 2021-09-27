@@ -1,5 +1,7 @@
 package com.badoo.automation.deviceserver.host
 
+import XCRunSimctl
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.*
 import com.badoo.automation.deviceserver.host.IRemote.Companion.isLocalhost
@@ -18,7 +20,8 @@ class Remote(
     override val publicHostName: String,
     override val localExecutor: IShellCommand = ShellCommand(commonEnvironment = mapOf("HOME" to System.getProperty("user.home"))),
     override val remoteExecutor: IShellCommand = getRemoteCommandExecutor(hostName, userName),
-    override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(remoteExecutor), FBSimctlResponseParser())
+    override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(remoteExecutor), FBSimctlResponseParser()),
+    override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor)
 ) : IRemote {
     companion object {
         const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
@@ -30,6 +33,14 @@ class Remote(
             } else {
                 RemoteShellCommand(hostName, userName)
             }
+        }
+
+        fun getLocalCommandExecutor(): IShellCommand {
+            val config = ApplicationConfiguration()
+            return ShellCommand(commonEnvironment = mapOf(
+                "HOME" to System.getProperty("user.home"),
+                "PATH" to config.path
+            ))
         }
 
         fun getHomeBrewPath(executor: IShellCommand): File {
@@ -115,31 +126,6 @@ class Remote(
 
     override fun isDirectory(path: String): Boolean {
         return remoteExecutor.exec(listOf("test", "-d", path), mapOf(), returnFailure = true).isSuccess
-    }
-
-    override fun rsync(from: String, to: String, flags: Set<String>) {
-        val cmd = mutableListOf("/usr/bin/rsync")
-        val rsyncFlags = mutableSetOf("--archive", "--partial")
-        rsyncFlags.addAll(flags)
-
-        cmd.addAll(rsyncFlags)
-        cmd.add(from)
-        cmd.add("$userAtHost:$to")
-
-        val env = environmentForRsync()
-
-        logger.debug(logMarker, "Executing rsync command: ${cmd.joinToString(" ")}")
-        var result = localExecutor.exec(cmd, env)
-
-        if (!result.isSuccess) {
-            logger.warn(logMarker, "Executing second time rsync command: ${cmd.joinToString(" ")}")
-            result = localExecutor.exec(cmd)
-        }
-
-        ensure(result.isSuccess) {
-            logger.error(logMarker, "Executing rsync command failed. Result: $result")
-            RuntimeException("Remote $cmd failed with $result")
-        }
     }
 
     override fun scpToRemoteHost(from: String, to: String, timeOut: Duration) {

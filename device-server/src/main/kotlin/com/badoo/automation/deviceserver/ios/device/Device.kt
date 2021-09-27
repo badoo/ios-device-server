@@ -1,11 +1,13 @@
 package com.badoo.automation.deviceserver.ios.device
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
 import com.badoo.automation.deviceserver.ios.proc.XcodeTestRunnerDeviceAgent
@@ -28,6 +30,8 @@ import java.nio.file.Files
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 class Device(
     private val remote: IRemote,
@@ -43,6 +47,8 @@ class Device(
     }
 
     override val osLog = RealDeviceSysLog(remote, udid)
+
+    private val useFbsimctlProc = ApplicationConfiguration().useFbsimctlProc
 
     private val calabashProxy = usbProxy.create(
         udid = deviceInfo.udid,
@@ -66,7 +72,13 @@ class Device(
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}/$udid/")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     override val calabashPort = calabashProxy.localPort
-    override val videoRecorder: VideoRecorder = MJPEGVideoRecorder(deviceInfo, remote, wdaEndpoint, mjpegServerPort, deviceRefFromUDID(deviceInfo.udid, remote.publicHostName), deviceInfo.udid)
+    override val videoRecorder: VideoRecorder = MJPEGVideoRecorder(
+        deviceInfo,
+        remote,
+        mjpegServerPort,
+        deviceRefFromUDID(deviceInfo.udid, remote.publicHostName),
+        deviceInfo.udid
+    )
 
     @Volatile
     override var lastException: Exception? = null
@@ -144,7 +156,7 @@ class Device(
         }
 
         val isWdaHealty = wdaProc.isHealthy()
-        val fbsimctlStatus = fbsimctlProc.isHealthy()
+        val fbsimctlStatus = if (useFbsimctlProc) fbsimctlProc.isHealthy() else true
 
         // check if WDA or fbsimctl crashed after being ok for some time
 
@@ -180,6 +192,7 @@ class Device(
     }
 
     override fun release(reason: String) {
+        installTask?.cancel(true)
         renewPromise?.cancel(true)
         preparePromise?.cancel(true)
 
@@ -187,17 +200,42 @@ class Device(
         disposeResources()
     }
 
+    private val deviceLock = ReentrantLock()
+
+    @Volatile
+    private var installTask: Future<Boolean>? = null
+
+
     override fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        deviceLock.withLock {
+            installTask?.let { oldInstallTask ->
+                if (!oldInstallTask.isDone) {
+                    val message =
+                        "Failed to install app $appBundleId to simulator $udid due to previous task is not finished"
+                    logger.error(logMarker, message)
+                    throw RuntimeException(message)
+                }
+            }
+
+            installTask = appInstaller.installApplication(udid, appBundleId, appBinaryPath)
+        }
     }
 
     override fun appInstallationStatus(): Map<String, Boolean> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val task = installTask
+        val status = mapOf<String, Boolean>(
+            "task_exists" to (task != null),
+            "task_complete" to (task != null && task.isDone),
+            "success" to (task != null && task.isDone && task.get())
+        )
+        return status
     }
 
     private fun disposeResources() {
         stopPeriodicHealthCheck()
-        ignoringDisposeErrors { fbsimctlProc.kill() }
+        if (useFbsimctlProc) {
+            ignoringDisposeErrors { fbsimctlProc.kill() }
+        }
         ignoringDisposeErrors { wdaProc.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
@@ -219,7 +257,12 @@ class Device(
     fun crashLogs(appName: String?): List<CrashLog> {
         val crashReportsPath = Files.createTempDirectory("crashReports")
         val filter = appName?.let { "--filter \"$appName\"" } ?: ""
-        val command = "${File(remote.homeBrewPath, "idevicecrashreport").absolutePath} --udid $udid $filter ${crashReportsPath.toAbsolutePath()}"
+        val command = "${
+            File(
+                remote.homeBrewPath,
+                "idevicecrashreport"
+            ).absolutePath
+        } --udid $udid $filter ${crashReportsPath.toAbsolutePath()}"
 
         try {
             val result = remote.shell(command, returnOnFailure = true)
@@ -242,10 +285,14 @@ class Device(
         }
     }
 
+    val asyncExecutor = Executors.newFixedThreadPool(3)
+
     private fun executeAsync(action: () -> Unit?): Future<*>? {
-        val executor = Executors.newSingleThreadExecutor()
-        val future =  executor.submit(action)
-        executor.shutdown()
+//        val executor = Executors.newSingleThreadExecutor()
+//        val future = executor.submit(action)
+//        executor.shutdown()
+
+        val future = asyncExecutor.submit(action)
 
         return future
     }
@@ -300,6 +347,8 @@ class Device(
         }
     }
 
+    override fun listApps(): List<FBSimctlAppInfo> = remote.fbsimctl.listApps(udid)
+
     private fun uninstallUserApps(whitelistedApps: Set<String>) {
         logger.debug(logMarker, "About to uninstall user apps on $this")
         val listApps = remote.fbsimctl.listApps(udid)
@@ -323,7 +372,9 @@ class Device(
 
         logger.info(logMarker, "Starting to prepare $this")
 
-        fbsimctlProc.kill()
+        if (useFbsimctlProc) {
+            fbsimctlProc.kill()
+        }
         wdaProc.kill()
 
         wdaProxy.stop()
@@ -349,7 +400,10 @@ class Device(
                 throw DeviceException("Failed to start $calabashProxy")
             }
 
-            startFbsimctl()
+            if (useFbsimctlProc) {
+                startFbsimctl()
+            }
+
             startWdaWithRetry()
             startPeriodicHealthCheck()
             logger.info(logMarker, "Finished preparing $this")
@@ -357,12 +411,13 @@ class Device(
         }
     }
 
-    @Volatile private var healthChecker: Job? = null
+    @Volatile
+    private var healthChecker: Job? = null
 
     private fun startPeriodicHealthCheck() {
         stopPeriodicHealthCheck()
 
-        val healthCheckInterval = Duration.ofSeconds(20).toMillis()
+        val healthCheckInterval = Duration.ofSeconds(30).toMillis()
 
         healthChecker = launch {
             while (isActive) {
@@ -388,7 +443,10 @@ class Device(
             }
 
             if (wdaFailCount >= maxWDAFailCount) {
-                logger.error(logMarker, "WebDriverAgent health check failed $wdaFailCount times. Restarting WebDriverAgent")
+                logger.error(
+                    logMarker,
+                    "WebDriverAgent health check failed $wdaFailCount times. Restarting WebDriverAgent"
+                )
 
                 try {
                     wdaProc.kill()
@@ -419,17 +477,19 @@ class Device(
     private fun startFbsimctl() {
         logger.info(logMarker, "Starting fbsimctl on $this")
 
-        fbsimctlProc.kill()
-        fbsimctlProc.start()
+        if (useFbsimctlProc) {
+            fbsimctlProc.kill()
+            fbsimctlProc.start()
 
-        pollFor(
-            Duration.ofSeconds(10),
-            reasonName = "$this Fbsimctl health check",
-            retryInterval = Duration.ofSeconds(1),
-            logger = logger,
-            marker = logMarker
-        ) {
-            fbsimctlProc.isHealthy()
+            pollFor(
+                Duration.ofSeconds(30),
+                reasonName = "$this Fbsimctl health check",
+                retryInterval = Duration.ofSeconds(1),
+                logger = logger,
+                marker = logMarker
+            ) {
+                fbsimctlProc.isHealthy()
+            }
         }
     }
 
@@ -485,7 +545,7 @@ class Device(
         private const val CALABASH_PORT = 37265
         private const val WDA_PORT = 8100
         private const val DA_PORT = 27753
-        private val PREPARE_TIMEOUT = Duration.ofMinutes(4)
+        private val PREPARE_TIMEOUT = Duration.ofMinutes(5)
         private const val DEVICE_AGENT_START_TIME = 15_000L
         private const val MAX_WDA_STATUS_CHECKS = 10
     }

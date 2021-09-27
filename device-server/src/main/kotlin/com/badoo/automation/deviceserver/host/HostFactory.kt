@@ -12,7 +12,8 @@ class HostFactory(
     private val remoteWdaSimulatorBundleRoot: File,
     private val wdaDeviceBundle: File,
     private val remoteWdaDeviceBundleRoot: File,
-    private val fbsimctlVersion: String
+    private val fbsimctlVersion: String,
+    private val remoteTestHelperAppRoot: File
 ) : IHostFactory {
     companion object {
         val WDA_XCTEST = File("PlugIns/WebDriverAgentRunner.xctest")
@@ -41,6 +42,7 @@ class HostFactory(
                     remote,
                     wdaBundle = wdaSimulatorBundle,
                     remoteWdaBundleRoot = remoteWdaSimulatorBundleRoot,
+                    remoteTestHelperAppRoot = remoteTestHelperAppRoot,
                     fbsimctlVersion = fbsimctlVersion,
                     shutdownSimulators = config.shutdownSimulators
                 ),

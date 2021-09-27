@@ -9,6 +9,7 @@ import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import com.badoo.automation.deviceserver.util.AppInstaller
@@ -117,6 +118,7 @@ class SimulatorsNode(
 
         if (!remote.isLocalhost()) {
             hostChecker.copyWdaBundleToHost()
+            hostChecker.copyTestHelperBundleToHost()
         }
 
         hostChecker.cleanup()
@@ -265,6 +267,10 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).sendPushNotification(bundleId, notificationContent)
     }
 
+    override fun sendPasteboard(deviceRef: DeviceRef, payload: ByteArray) {
+        getDeviceFor(deviceRef).sendPasteboard(payload)
+    }
+
     override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
         getDeviceFor(deviceRef).setPermissions(appPermissions.bundleId, appPermissions.permissions)
     }
@@ -316,6 +322,8 @@ class SimulatorsNode(
     override fun lastCrashLog(deviceRef: DeviceRef): CrashLog {
         return getDeviceFor(deviceRef).lastCrashLog()
     }
+
+    override fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo> = getDeviceFor(deviceRef).listApps()
 
     override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
         return getDeviceFor(deviceRef).crashLogs(pastMinutes)

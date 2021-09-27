@@ -9,6 +9,7 @@ import com.badoo.automation.deviceserver.host.management.XcodeVersion
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
@@ -65,8 +66,9 @@ class DevicesNode(
         val marker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remote.publicHostName, "action_name" to "scp_application"))
         logger.debug(marker, "Copying application ${appBundle.appUrl} to $this")
 
+        remote.exec(listOf("/bin/rm", "-rf", ApplicationConfiguration().appBundleCacheRemotePath.absolutePath), mapOf(), false, 90).stdOut.trim()
+
         val remoteDirectory = File(ApplicationConfiguration().appBundleCacheRemotePath, UUID.randomUUID().toString()).absolutePath
-        remote.exec(listOf("/bin/rm", "-rf", remoteDirectory), mapOf(), false, 90).stdOut.trim()
         remote.exec(listOf("/bin/mkdir", "-p", remoteDirectory), mapOf(), false, 90).stdOut.trim()
 
         val nanos = measureNanoTime {
@@ -81,8 +83,12 @@ class DevicesNode(
 
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
         logger.info(logMarker, "Ready to install app ${appBundleDto.appUrl} on device $deviceRef")
-        val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
+        var appBinaryPath: File = appBinariesCache[appBundleDto.appUrl]
             ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
+
+        if (appBinaryPath.absolutePath.endsWith("/Payload")) {
+            appBinaryPath = File("${appBinaryPath.parentFile.absolutePath}.ipa")
+        }
 
         val device = slotByExternalRef(deviceRef).device
         val udid = device.udid
@@ -223,6 +229,10 @@ class DevicesNode(
 
     override fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray) {
         throw(NotImplementedError("Simulating push notifications is not supported by physical devices"))
+    }
+
+    override fun sendPasteboard(deviceRef: DeviceRef, payload: ByteArray) {
+        throw(NotImplementedError("Set pasteboard is not supported by physical devices"))
     }
 
     override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
@@ -385,6 +395,9 @@ class DevicesNode(
         return device.lastCrashLog()
     }
 
+    override fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo> = slotByExternalRef(deviceRef).device.listApps()
+
+
     override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
         throw NotImplementedError()
     }
@@ -518,7 +531,14 @@ class DevicesNode(
     }
 
     override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Boolean> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+//        return slotByExternalRef(deviceRef).device.appInstallationStatus()
+
+        val status = mapOf<String, Boolean>(
+            "task_exists" to true,
+            "task_complete" to true,
+            "success" to true
+        )
+        return status
     }
     override fun hashCode(): Int {
         return publicHostName.hashCode()
