@@ -2,9 +2,11 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
+import com.badoo.automation.deviceserver.command.ShellCommand
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
@@ -35,6 +37,7 @@ class DeviceManager(
             nodeFactory = nodeFactory,
             nodeRegistry = nodeRegistry
     )
+    private val appConfig = ApplicationConfiguration()
 
     init {
         val timeoutFromConfig: Long? = config.timeouts["device"]?.toLong()
@@ -56,6 +59,42 @@ class DeviceManager(
 
     }
 
+    private val shellExecutor = ShellCommand(commonEnvironment = mapOf(
+        "HOME" to System.getProperty("user.home"),
+        "PATH" to System.getenv("PATH")
+    ))
+
+    fun extractTestApp() {
+        val testHelperArchiveFileName = "TestHelper.app.tar.bz2"
+        val testHelperRoot = File(appConfig.remoteTestHelperAppBundleRoot)
+        val testHelperArchive = File(testHelperRoot, testHelperArchiveFileName)
+
+        logger.info("Start to extract TestHelper application $testHelperArchiveFileName to ${testHelperRoot.absolutePath}")
+
+        testHelperRoot.deleteRecursively()
+        testHelperRoot.mkdirs()
+
+        val testHelperStream = DeviceManager::class.java.classLoader.getResourceAsStream(testHelperArchiveFileName)
+
+        if (testHelperStream == null) {
+            logger.error("Failed to find test helper file $testHelperArchiveFileName in resources")
+            return
+        }
+
+        testHelperStream.use { inputStream ->
+            testHelperArchive.outputStream().use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
+
+        val result = shellExecutor.exec(listOf("tar", "--directory=$testHelperRoot", "-jxvf", testHelperArchive.absolutePath))
+        check(result.isSuccess) {
+            "Failed to unpack test helper app. STDOUT: ${result.stdOut}, STDERR ${result.stdErr}"
+        }
+
+        logger.info("Successfully extracted TestHelper application $testHelperArchiveFileName to ${testHelperRoot.absolutePath}")
+    }
+
     fun cleanupTemporaryFiles() {
         val currentTime = System.currentTimeMillis()
         fun File.isOld(): Boolean {
@@ -74,7 +113,7 @@ class DeviceManager(
             }
         }
 
-        val appCacheDir: File = ApplicationConfiguration().appBundleCachePath
+        val appCacheDir: File = appConfig.appBundleCachePath
         appCacheDir.mkdirs()
 
         appCacheDir.walk().forEach {
@@ -162,6 +201,10 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).sendPushNotification(ref, bundleId, notificationContent)
     }
 
+    fun sendPasteboard(ref: DeviceRef, payload: ByteArray) {
+        nodeRegistry.activeDevices.getNodeFor(ref).sendPasteboard(ref, payload)
+    }
+
     fun setPermissions(ref: DeviceRef, permissions: AppPermissionsDto) {
         nodeRegistry.activeDevices.getNodeFor(ref).setPermissions(ref, permissions)
     }
@@ -186,6 +229,8 @@ class DeviceManager(
     fun getLastCrashLog(ref: DeviceRef): CrashLog {
         return nodeRegistry.activeDevices.getNodeFor(ref).lastCrashLog(ref)
     }
+
+    fun listApps(ref: DeviceRef): List<FBSimctlAppInfo> = nodeRegistry.activeDevices.getNodeFor(ref).listApps(ref)
 
     fun shake(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).shake(ref)
@@ -364,6 +409,14 @@ class DeviceManager(
         var size: Long = 0
         val nanos = measureNanoTime {
             logger.debug(marker, "Downloading app bundle to cache ${appBundle.appUrl}. Url: ${appBundle.appUrl}")
+            try {
+                logger.info(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath}")
+                appConfig.appBundleCachePath.deleteRecursively()
+                appConfig.appBundleCachePath.mkdirs()
+                logger.info(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} is done")
+            } catch (t: Throwable) {
+                logger.error(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} failed! Error: ${t.message}", t)
+            }
             appBundle.downloadApp(logger, marker)
             size = appBundle.bundleZip.length()
         }

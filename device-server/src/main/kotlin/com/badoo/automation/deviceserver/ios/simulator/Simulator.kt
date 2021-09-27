@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.proc.*
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
@@ -36,6 +37,7 @@ import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.NANOSECONDS
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -51,8 +53,9 @@ class Simulator(
         private val concurrentBootsPool: ExecutorService,
         headless: Boolean,
         private val useWda: Boolean,
-        private val trustStoreFile: String = ApplicationConfiguration().trustStorePath,
-        private val assetsPath: String = ApplicationConfiguration().assetsPath
+        private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
+        private val trustStoreFile: String = appConfig.trustStorePath,
+        private val assetsPath: String = appConfig.assetsPath
 ) : ISimulator
 {
     private companion object {
@@ -71,7 +74,7 @@ class Simulator(
     override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
 
     private fun createVideoRecorder(): VideoRecorder {
-        val recorderClassName = ApplicationConfiguration().videoRecorderClassName
+        val recorderClassName = appConfig.videoRecorderClassName
 
         return when (recorderClassName) {
             SimulatorVideoRecorder::class.qualifiedName -> SimulatorVideoRecorder(
@@ -82,7 +85,6 @@ class Simulator(
             MJPEGVideoRecorder::class.qualifiedName -> MJPEGVideoRecorder(
                 deviceInfo,
                 remote,
-                wdaEndpoint,
                 mjpegServerPort,
                 ref,
                 udid
@@ -112,7 +114,7 @@ class Simulator(
     private val webDriverAgent: IWebDriverAgent
 
     init {
-        val wdaClassName = ApplicationConfiguration().simulatorWdaClassName
+        val wdaClassName = appConfig.simulatorWdaClassName
 
         webDriverAgent = when (wdaClassName) {
             SimulatorWebDriverAgent::class.qualifiedName -> SimulatorWebDriverAgent(
@@ -258,6 +260,10 @@ class Simulator(
 
             logTiming("simulator boot") { boot() }
 
+            dismissTutorials()
+
+            installTestHelperApp()
+
             fbsimctlProc.start()
 
             if (useWda) {
@@ -268,6 +274,59 @@ class Simulator(
             startPeriodicHealthCheck()
             deviceState = DeviceState.CREATED
         }
+    }
+
+    private fun installTestHelperApp() {
+        val testHelperAppBundle = File(appConfig.remoteTestHelperAppBundleRoot, "TestHelper.app")
+        if (!remote.shell("test -d ${testHelperAppBundle.absolutePath}").isSuccess) {
+            logger.error(logMarker, "Failed to install Test Helper app. App directory does not exist: ${testHelperAppBundle.absolutePath}")
+        }
+
+        logger.debug(logMarker, "Installing Test Helper app on Simulator $udid with xcrun simctl")
+
+        val nanos = measureNanoTime {
+            val result = remote.execIgnoringErrors(listOf("xcrun", "simctl", "install", udid, testHelperAppBundle.absolutePath), timeOutSeconds = 120)
+
+            if (!result.isSuccess) {
+                val errorMessage = "Failed to install TestHelper app $testHelperAppBundle.absolutePath to simulator $udid. Result: $result"
+                logger.error(logMarker, errorMessage)
+                throw RuntimeException(errorMessage)
+            }
+
+            pollFor(
+                Duration.ofSeconds(60),
+                "Installing TestHelper host application ${testHelperAppBundle.absolutePath}",
+                true,
+                Duration.ofSeconds(5),
+                logger,
+                logMarker
+            ) {
+                remote.execIgnoringErrors(listOf(
+                    "/usr/bin/xcrun",
+                    "simctl",
+                    "get_app_container",
+                    udid,
+                    "com.bumble.automation.TestHelper"
+                )).isSuccess
+
+            }
+        }
+
+        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+        val measurement = mutableMapOf(
+            "action_name" to "install_TestHelperApp",
+            "duration" to seconds
+        )
+        measurement.putAll(commonLogMarkerDetails)
+
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed TestHelper app on Simulator with xcrun simctl. Took $seconds seconds")
+
+    }
+
+    private fun dismissTutorials() {
+        logger.info(logMarker, "Saving Preference that Continuous Path Introduction was shown")
+        writeSimulatorDefaults("com.apple.Preferences DidShowContinuousPathIntroduction -bool true") // iOS 13
+        writeSimulatorDefaults("com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool true") // iOS 14.5 and up
     }
 
     private fun startPeriodicHealthCheck() {
@@ -422,11 +481,7 @@ class Simulator(
         logger.info(logMarker, "Booting ${this@Simulator} before creating a backup")
         logTiming("initial boot") { boot() }
 
-        val osVersion = Regex("[0-9.]+").find(deviceInfo.os)?.value?.toFloat()
-        if (osVersion != null && osVersion >= 13) {
-            logger.info(logMarker, "Saving Preference that Continuous Path Introduction was shown")
-            writeSimulatorDefaults("com.apple.Preferences DidShowContinuousPathIntroduction -bool true")
-        }
+        dismissTutorials()
 
         if (assetsPath.isNotEmpty()) {
             copyMediaAssetsWithRetry()
@@ -435,6 +490,11 @@ class Simulator(
         if (useWda && !remote.isLocalhost()) {
             webDriverAgent.installHostApp()
         }
+
+        installTestHelperApp()
+
+        launchMobileSafari("https://localhost")
+        Thread.sleep(5000)
 
         logger.info(logMarker, "Shutting down ${this@Simulator} before creating a backup")
         shutdown()
@@ -527,6 +587,7 @@ class Simulator(
             timeOut = Duration.ofSeconds(90),
             retryInterval = Duration.ofSeconds(5),
             reasonName = "${this@Simulator} to shutdown",
+            shouldReturnOnTimeout = true,
             logger = logger,
             marker = logMarker
         ) {
@@ -748,6 +809,10 @@ class Simulator(
         remote.shell("/usr/bin/xcrun simctl spawn $udid defaults write $setting", true)
     }
 
+    private fun launchMobileSafari(url: String) {
+        remote.shell("/usr/bin/xcrun simctl openurl $udid $url", true)
+    }
+
     private fun readSimulatorDefaults(): String {
         return remote.execIgnoringErrors("/usr/bin/xcrun simctl spawn $udid defaults read".split(" ")).stdOut
     }
@@ -897,6 +962,29 @@ class Simulator(
         }
     }
 
+    override fun sendPasteboard(payload: ByteArray) {
+        withDefers(logger) {
+            val pasteboardPayloadFile: File = File.createTempFile("pasteboard_${deviceInfo.udid}_", ".data")
+            defer { pasteboardPayloadFile.delete() }
+            pasteboardPayloadFile.writeBytes(payload)
+
+            val pasteboardPayloadPath: String = if (remote.isLocalhost()) {
+                pasteboardPayloadFile.absolutePath
+            } else {
+                val remotePasteboardDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
+                defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remotePasteboardDir)) }
+                remote.scpToRemoteHost(pasteboardPayloadFile.absolutePath, remotePasteboardDir, Duration.ofMinutes(1))
+                File(remotePasteboardDir, pasteboardPayloadFile.name).absolutePath
+            }
+
+            val result = remote.shell("cat $pasteboardPayloadPath | /usr/bin/xcrun simctl pbcopy -v $udid")
+
+            if (!result.isSuccess) {
+                throw RuntimeException("Could not send pasteboard to device $udid: $result")
+            }
+        }
+    }
+
     //endregion
 
     //region release
@@ -969,6 +1057,8 @@ class Simulator(
 
         return mapOf("status" to "true")
     }
+
+    override fun listApps(): List<FBSimctlAppInfo> = remote.fbsimctl.listApps(udid)
 
     override fun shake() : Boolean {
         val command = listOf("xcrun", "simctl", "notify_post", udid, "com.apple.UIKit.SimulatorShake")

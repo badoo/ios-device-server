@@ -102,10 +102,12 @@ fun Application.module() {
         remoteWdaSimulatorBundleRoot = File(appConfiguration.remoteWdaSimulatorBundleRoot).canonicalFile,
         wdaDeviceBundle = File(appConfiguration.wdaDeviceBundlePath).canonicalFile,
         remoteWdaDeviceBundleRoot = File(appConfiguration.remoteWdaDeviceBundleRoot).canonicalFile,
-        fbsimctlVersion = appConfiguration.fbsimctlVersion
+        fbsimctlVersion = appConfiguration.fbsimctlVersion,
+        remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile
     )
     val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.cleanupTemporaryFiles()
+    deviceManager.extractTestApp()
     deviceManager.startPeriodicFileCleanup()
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchZombieReaper()
@@ -205,6 +207,10 @@ fun Application.module() {
                     val notification = jsonContent<PushNotificationDto>(call)
                     call.respond(devicesController.sendPushNotification(param(call, "ref"), notification.bundleId, notification.notificationContent))
                 }
+                post("pasteboard") {
+                    val pasteboard = jsonContent<PasteboardDto>(call)
+                    call.respond(devicesController.sendPasteboard(param(call, "ref"), pasteboard.pasteboardСontent))
+                }
                 post("permissions") {
                     call.respond(devicesController.setPermissions(param(call, "ref"), jsonContent(call)))
                 }
@@ -294,6 +300,9 @@ fun Application.module() {
                         val ref = param(call, "ref")
                         val plistEntries = jsonContent<PlistEntryDTO>(call)
                         call.respond(devicesController.updateApplicationPlist(ref, plistEntries))
+                    }
+                    get("list") {
+                        call.respond(devicesController.listApps(param(call, "ref")))
                     }
                 }
                 route("media") {

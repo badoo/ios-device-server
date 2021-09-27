@@ -13,12 +13,12 @@ import java.time.Duration
 import java.util.concurrent.*
 
 class ChildProcess private constructor(
-        command: List<String>,
-        executor: IShellCommand,
-        remoteHostname: String,
-        commandEnvironment: Map<String, String> = mapOf(),
-        outWriter: ((line: String) -> Unit)?,
-        errWriter: ((line: String) -> Unit)?
+    command: List<String>,
+    executor: IShellCommand,
+    remoteHostname: String,
+    commandEnvironment: Map<String, String> = mapOf(),
+    outWriter: ((line: String) -> Unit)?,
+    errWriter: ((line: String) -> Unit)?
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHostname))
@@ -38,23 +38,26 @@ class ChildProcess private constructor(
         logger.debug(logMarker, "Started long living process $this from command [$command]")
     }
 
+    val onExit: CompletableFuture<Process> = process.onExit()
+
     override fun toString(): String = "< PID: ${process.pid()}>"
 
     fun isAlive(): Boolean = process.isAlive
+    private val processDestroyTimeOut = Duration.ofSeconds(15)
 
     fun kill() {
         logger.debug(logMarker, "Sending SIGTERM to process $this")
-        val timeOut = Duration.ofSeconds(15)
         try {
             process.destroy()
-            val exited = process.waitFor(timeOut.seconds, TimeUnit.SECONDS)
+            val exited = process.waitFor(processDestroyTimeOut.seconds, TimeUnit.SECONDS)
             if (!exited) {
-                logger.warn(logMarker, "Process $this did not terminate gracefully within [${timeOut.seconds}] seconds. Sending SIGKILL")
+                logger.warn(logMarker, "Process $this did not terminate gracefully within [${processDestroyTimeOut.seconds}] seconds. Sending SIGKILL")
                 process.destroyForcibly()
             }
         } catch (e: RuntimeException) {
             logger.error(logMarker, "Error while terminating process $this. ${e.message}", e)
-        }    }
+        }
+    }
 
     private fun lineReader(inputStream: InputStream, writer: ((line: String) -> Unit)?): Runnable {
         return Runnable {
@@ -72,7 +75,6 @@ class ChildProcess private constructor(
         }
     }
 
-
     companion object {
         fun fromCommand(
             remoteHost: String,
@@ -87,6 +89,23 @@ class ChildProcess private constructor(
                 command = cmd,
                 commandEnvironment = commandEnvironment,
                 executor = executor,
+                remoteHostname = remoteHost,
+                outWriter = out_reader,
+                errWriter = err_reader
+            )
+        }
+        fun fromLocalCommand(
+            remoteHost: String,
+            userName: String,
+            cmd: List<String>,
+            commandEnvironment: Map<String, String>,
+            out_reader: ((line: String) -> Unit)?,
+            err_reader: ((line: String) -> Unit)?
+        ): ChildProcess {
+            return ChildProcess(
+                command = cmd,
+                commandEnvironment = commandEnvironment,
+                executor = Remote.getLocalCommandExecutor(),
                 remoteHostname = remoteHost,
                 outWriter = out_reader,
                 errWriter = err_reader

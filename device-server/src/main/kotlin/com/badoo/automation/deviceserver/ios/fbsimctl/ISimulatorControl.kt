@@ -4,7 +4,7 @@ import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.data.UDID
 import java.io.File
 
-interface IFBSimctl {
+interface ISimulatorControl {
     fun installApp(udid: UDID, bundlePath: File)
 
     /**
