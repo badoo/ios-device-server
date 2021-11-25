@@ -7,13 +7,20 @@ import org.slf4j.LoggerFactory
 import java.io.File
 
 class HostFactory(
-    private val remoteProvider: (hostName: String, userName: String, publicHost: String) -> IRemote = { hostName, userName, publicHostName -> Remote(hostName, userName, publicHostName) },
+    private val remoteProvider: (hostName: String, userName: String, publicHost: String) -> IRemote = { hostName, userName, publicHostName ->
+        Remote(
+            hostName,
+            userName,
+            publicHostName
+        )
+    },
     private val wdaSimulatorBundle: File,
     private val remoteWdaSimulatorBundleRoot: File,
     private val wdaDeviceBundle: File,
     private val remoteWdaDeviceBundleRoot: File,
     private val fbsimctlVersion: String,
-    private val remoteTestHelperAppRoot: File
+    private val remoteTestHelperAppRoot: File,
+    private val remoteVideoRecorder: File
 ) : IHostFactory {
     companion object {
         val WDA_XCTEST = File("PlugIns/WebDriverAgentRunner.xctest")
@@ -43,6 +50,7 @@ class HostFactory(
                     wdaBundle = wdaSimulatorBundle,
                     remoteWdaBundleRoot = remoteWdaSimulatorBundleRoot,
                     remoteTestHelperAppRoot = remoteTestHelperAppRoot,
+                    remoteVideoRecorder = remoteVideoRecorder,
                     fbsimctlVersion = fbsimctlVersion,
                     shutdownSimulators = config.shutdownSimulators
                 ),

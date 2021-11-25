@@ -119,9 +119,8 @@ class MJPEGVideoRecorder(
                 }
             }
 
-
             return listOf(
-                "ffmpeg",
+                FFMPEG_PATH,
                 "-hide_banner",
                 "-loglevel", "warning",
                 "-f", "mjpeg",
@@ -144,8 +143,6 @@ class MJPEGVideoRecorder(
             ensure(childProcess == null && !checkHealth()) { RuntimeException("Previous ffmpeg childProcess $childProcess is still running") }
             logger.debug(logMarker, "$this — Starting ffmpeg child process")
 
-
-
              val ffmpegProcess = childFactory(
                 remote.hostName,
                 remote.userName,
@@ -166,7 +163,6 @@ class MJPEGVideoRecorder(
 
             check(ffmpegProcess.isAlive()) { "ffmpeg is not running" }
 
-
             childProcess = ffmpegProcess
 
             logger.debug(logMarker, "$this Started ffmpeg child process: $childProcess")
@@ -178,7 +174,7 @@ class MJPEGVideoRecorder(
             // just in case there are some left-over process
             val result = remote.localExecutor.exec(
                 command = listOf("pkill", "-f", uniqueTag),
-                environment = mapOf("PATH" to config.path),
+                environment = mapOf(),
                 returnFailure = true,
                 logMarker = logMarker
             )
@@ -192,7 +188,7 @@ class MJPEGVideoRecorder(
         override fun checkHealth(): Boolean {
             val result = remote.localExecutor.exec(
                 command = listOf("pgrep", "-f", uniqueTag),
-                environment = mapOf("PATH" to config.path),
+                environment = mapOf(),
                 returnFailure = true,
                 logMarker = logMarker
             )

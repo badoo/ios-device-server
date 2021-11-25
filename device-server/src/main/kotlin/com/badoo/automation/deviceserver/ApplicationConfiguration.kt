@@ -30,9 +30,10 @@ class ApplicationConfiguration {
 
     val remoteWdaDeviceBundleRoot = System.getProperty("remote.wda.device.bundle.path", "/usr/local/opt/web_driver_agent_device")
     val remoteTestHelperAppBundleRoot = System.getProperty("remote.test.helper.app.bundle.path", "/usr/local/opt/ios-device-server/test_helper_app")
+    val remoteVideoRecorder = File(System.getProperty("remote.video.recorder.path", "/usr/local/opt/ios-device-server-utils/record_video_x264.sh"))
     val useFbsimctlProc = java.lang.Boolean.getBoolean("useFbsimctlProc")
-    val tempFolder = File(System.getenv("TMPDIR") ?: System.getenv("TMP") ?: System.getenv("TEMP") ?: System.getenv("PWD"))
-    val path = getUnifiedPath()
+    val tempFolder = File(System.getenv("TMPDIR") ?: "/tmp")
+//    val path = getUnifiedPath()
 
     val trustStorePath: String = System.getProperty("trust.store.path", "")
     val assetsPath: String = System.getProperty("media.assets.path", "")
@@ -42,18 +43,18 @@ class ApplicationConfiguration {
     val simulatorWdaClassName = System.getProperty("simulator.wda", SimulatorWebDriverAgent::class.qualifiedName)
     val simulatorBackupPath: String? = System.getProperty("simulator.backup.path")
 
-    private fun getUnifiedPath(): String {
-        val originalPath = System.getenv("PATH") ?: "/usr/bin"
-
-        val path: Set<String> = originalPath.split(":").toSet() + setOf(
-            "/usr/bin",
-            "/usr/sbin",
-            "/usr/local/bin",
-            "/usr/local/sbin",
-            "/opt/homebrew/bin",
-            "/opt/homebrew/sbin"
-        )
-
-        return path.joinToString(":")
-    }
+//    private fun getUnifiedPath(): String {
+//        val originalPath = System.getenv("PATH") ?: "/usr/bin"
+//
+//        val path: Set<String> = originalPath.split(":").toSet() + setOf(
+//            "/usr/bin",
+//            "/usr/sbin",
+//            "/usr/local/bin",
+//            "/usr/local/sbin",
+//            "/opt/homebrew/bin",
+//            "/opt/homebrew/sbin"
+//        )
+//
+//        return path.joinToString(":")
+//    }
 }

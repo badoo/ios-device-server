@@ -18,18 +18,17 @@ class Remote(
     override val hostName: String,
     override val userName: String,
     override val publicHostName: String,
-    override val localExecutor: IShellCommand = ShellCommand(commonEnvironment = mapOf("HOME" to System.getProperty("user.home"))),
+    override val localExecutor: IShellCommand = ShellCommand(),
     override val remoteExecutor: IShellCommand = getRemoteCommandExecutor(hostName, userName),
     override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(remoteExecutor), FBSimctlResponseParser()),
     override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor)
 ) : IRemote {
     companion object {
         const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
-        private const val INITIAL_BUFFER_SIZE = 10 * 1024 * 1024 //FIXME: looks arbitrary. taken as an average of video file sizes
 
         fun getRemoteCommandExecutor(hostName: String, userName: String): IShellCommand {
             return if (isLocalhost(hostName, userName)) {
-                ShellCommand(commonEnvironment = mapOf("HOME" to System.getProperty("user.home")))
+                ShellCommand()
             } else {
                 RemoteShellCommand(hostName, userName)
             }
@@ -37,10 +36,7 @@ class Remote(
 
         fun getLocalCommandExecutor(): IShellCommand {
             val config = ApplicationConfiguration()
-            return ShellCommand(commonEnvironment = mapOf(
-                "HOME" to System.getProperty("user.home"),
-                "PATH" to config.path
-            ))
+            return ShellCommand()
         }
 
         fun getHomeBrewPath(executor: IShellCommand): File {
@@ -83,13 +79,18 @@ class Remote(
 
     override fun escape(value: String) = remoteExecutor.escape(value)
 
-    override fun shell(command: String, returnOnFailure: Boolean): CommandResult {
+    override fun shell(command: String, returnOnFailure: Boolean, environment: Map<String, String>): CommandResult {
         val cmd = when {
             isLocalhost() -> listOf("bash", "-c", command)
             else -> listOf("bash", "-c", ShellUtils.escape(command)) // workaround for how ssh executor is designed
         }
 
-        return remoteExecutor.exec(cmd, emptyMap(), returnFailure = returnOnFailure)
+        return try {
+            remoteExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
+        } catch (e: SshConnectionException) {
+            logger.error("Remote retrying shell command on SSH error. Command: $cmd")
+            remoteExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
+        }
     }
 
     //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
@@ -129,7 +130,7 @@ class Remote(
     }
 
     override fun scpToRemoteHost(from: String, to: String, timeOut: Duration) {
-        val result = localExecutor.exec(listOf("/usr/bin/scp", "-r", from, "$userAtHost:$to"), timeOut = timeOut, returnFailure = true)
+        val result = localExecutor.exec(listOf("/usr/bin/scp", "-v", "-r", from, "$userAtHost:$to"), timeOut = timeOut, returnFailure = true)
 
         ensure(result.isSuccess) {
             val message = "Copying files to remote host failed with ${result.stdErr}"

@@ -19,6 +19,7 @@ interface ISimulatorHostChecker {
     fun killDiskCleanupThread()
     fun copyWdaBundleToHost()
     fun copyTestHelperBundleToHost()
+    fun copyVideoRecorderHelperToHost()
 }
 
 class SimulatorHostChecker(
@@ -28,7 +29,8 @@ class SimulatorHostChecker(
         private val remoteWdaBundleRoot: File,
         private val remoteTestHelperAppRoot: File,
         private val fbsimctlVersion: String,
-        private val shutdownSimulators: Boolean
+        private val shutdownSimulators: Boolean,
+        private val remoteVideoRecorder: File
 ) : ISimulatorHostChecker {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
@@ -49,13 +51,27 @@ class SimulatorHostChecker(
         val testHelperAppBundle = File(remoteTestHelperAppRoot, "TestHelper.app")
 
         if (!testHelperAppBundle.exists()) {
-            logger.debug(logMarker, "Failed to copy TestHelper app to node ${remote.hostName}. TestHelper app does not exist")
+            logger.error(logMarker, "Failed to copy TestHelper app to node ${remote.hostName}. TestHelper app does not exist")
             return
         }
 
         remote.rm(testHelperAppBundle.absolutePath)
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteTestHelperAppRoot.absolutePath))
         remote.scpToRemoteHost(testHelperAppBundle.absolutePath, remoteTestHelperAppRoot.absolutePath)
+    }
+
+    override fun copyVideoRecorderHelperToHost() {
+        logger.debug(logMarker, "Setting up remote node: Copying Video recorder helper to node ${remote.hostName}")
+
+        if (!remoteVideoRecorder.exists()) {
+            logger.error(logMarker, "Failed to copy Video recorder to node ${remote.hostName}. Video recorder does not exist")
+            return
+        }
+
+        remote.rm(remoteVideoRecorder.absolutePath)
+        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteVideoRecorder.parent))
+        remote.scpToRemoteHost(remoteVideoRecorder.absolutePath, remoteVideoRecorder.absolutePath)
+        remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteVideoRecorder.absolutePath))
     }
 
     override fun killDiskCleanupThread() {
@@ -110,10 +126,17 @@ class SimulatorHostChecker(
                 "/var/folders/*/*/*/*-*-*/*.app",
                 "/var/folders/*/*/*/fbsimctl-*",
                 "/var/folders/*/*/*/videoRecording_*",
+                "/var/folders/*/*/*/videoRecording_*",
+                "/var/folders/*/*/*/derivedDataDir_*",
+                "/var/folders/*/*/*/xctestRunDir_*",
                 "/var/folders/*/*/*/device_agent_log_*",
                 File(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, "*").absolutePath,
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )
+
+        caches.forEach { path ->
+            removeOldFiles(path, 1)
+        }
 
         val cleanUpRunnable = Runnable {
             caches.forEach { path ->

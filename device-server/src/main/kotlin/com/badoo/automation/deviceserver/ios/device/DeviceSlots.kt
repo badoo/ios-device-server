@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.ios.device
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.DeviceInfo
+import com.badoo.automation.deviceserver.data.DeviceState
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.DesiredCapabilitiesMatcher
@@ -141,7 +142,7 @@ class DeviceSlots(
     private data class Diff(val added: Set<UDID>, val removed: Set<UDID>)
 
     private fun diff(deviceInfos: List<DeviceInfo>): Diff {
-        val current = activeSlots.map { it.device.udid }.toSet()
+        val current = activeSlots.filter { it.device.deviceState != DeviceState.FAILED }.map { it.device.udid }.toSet()
         val new = deviceInfos.map { it.udid }.toSet()
 
         val added = new - current

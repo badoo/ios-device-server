@@ -13,7 +13,7 @@ import kotlin.streams.toList
 class ZombieReaper {
     private val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val executor = Executors.newScheduledThreadPool(1)
-    private val commandExecutor = ShellCommand(mapOf())
+    private val commandExecutor = ShellCommand()
 
     fun launchReapingZombies() {
         executor.scheduleWithFixedDelay(

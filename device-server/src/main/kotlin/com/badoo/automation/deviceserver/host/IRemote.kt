@@ -34,7 +34,7 @@ interface IRemote {
 
     fun exec(command: List<String>, env: Map<String, String>, returnFailure: Boolean, timeOutSeconds: Long): CommandResult
 
-    fun shell(command: String, returnOnFailure: Boolean = true) : CommandResult
+    fun shell(command: String, returnOnFailure: Boolean = true, environment: Map<String, String> = emptyMap()) : CommandResult
 
     fun escape(value: String) : String
 

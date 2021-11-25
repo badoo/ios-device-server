@@ -10,8 +10,8 @@ class RemoteShellCommand(
     private val remoteHost: String,
     userName: String,
     commonEnvironment: Map<String, String> = mapOf(),
-    isVerboseMode: Boolean = false,
-    connectionTimeout: Int = 15
+    private val isVerboseMode: Boolean = false,
+    private val connectionTimeout: Int = 15
 ) : ShellCommand(commonEnvironment) {
     private val userAtHost: String = if (userName.isBlank()) { remoteHost } else { "$userName@$remoteHost" }
     override val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
@@ -33,7 +33,6 @@ class RemoteShellCommand(
             sshPrefix.add("-vvv")
         }
 
-        sshPrefix.add(userAtHost)
         sshCommandPrefix = ArrayList<String>(sshPrefix)
 
         //ssh environment
@@ -49,9 +48,9 @@ class RemoteShellCommand(
 
     override fun exec(command: List<String>, environment: Map<String, String>, timeOut: Duration,
                       returnFailure: Boolean, logMarker: Marker?, processBuilder: ProcessBuilder): CommandResult {
-        val cmd = getCommandWithSSHPrefix(command)
+        val cmd = getCommandWithSSHPrefix(command, environment.keys)
         val startTime = System.nanoTime()
-        val result = super.exec(cmd, getEnvironmentForSSH(), timeOut, returnFailure, logMarker, processBuilder)
+        val result = super.exec(cmd, getEnvironmentForSSH(environment), timeOut, returnFailure, logMarker, processBuilder)
         val elapsedTime = System.nanoTime() - startTime
         val elapsedMillis = TimeUnit.NANOSECONDS.toMillis(elapsedTime)
         val marker = MapEntriesAppendingMarker(
@@ -74,21 +73,42 @@ class RemoteShellCommand(
     }
 
     override fun startProcess(command: List<String>, environment: Map<String, String>, logMarker: Marker?, processBuilder: ProcessBuilder): Process {
-        return super.startProcess(getCommandWithSSHPrefix(command), getEnvironmentForSSH(), logMarker, processBuilder)
+        return super.startProcess(getCommandWithSSHPrefix(command, environment.keys), getEnvironmentForSSH(environment), logMarker, processBuilder)
     }
 
     override fun escape(value: String): String {
         return ShellUtils.escape(value)
     }
 
-    private fun getEnvironmentForSSH(): HashMap<String, String> {
+    private fun getEnvironmentForSSH(environment: Map<String, String>): HashMap<String, String> {
         val envWithSsh = HashMap<String, String>(sshEnv)
-        envWithSsh.putAll(envWithSsh)
+        envWithSsh.putAll(environment)
         return envWithSsh
     }
 
-    private fun getCommandWithSSHPrefix(command: List<String>): ArrayList<String> {
-        val commandWithSshPrefix = ArrayList<String>(sshCommandPrefix)
+    private fun getCommandWithSSHPrefix(command: List<String>, environmentVariables: Set<String>): ArrayList<String> {
+        val commandWithSshPrefix = ArrayList<String>()
+        commandWithSshPrefix.addAll(listOf(
+            SSH_COMMAND,
+            "-o", "ConnectTimeout=$connectionTimeout",
+            "-o", "PreferredAuthentications=publickey"
+        ))
+
+        environmentVariables.forEach {
+            commandWithSshPrefix.add("-o")
+            commandWithSshPrefix.add("SendEnv=$it")
+        }
+
+        commandWithSshPrefix.addAll(FORCE_PSEUDO_TERMINAL_ALLOCATION)
+
+        if (isVerboseMode) {
+            commandWithSshPrefix.add("-vvv")
+        } else {
+            commandWithSshPrefix.add(QUIET_MODE)
+        }
+
+        commandWithSshPrefix.add(userAtHost)
+
         commandWithSshPrefix.addAll(command)
         return commandWithSshPrefix
     }

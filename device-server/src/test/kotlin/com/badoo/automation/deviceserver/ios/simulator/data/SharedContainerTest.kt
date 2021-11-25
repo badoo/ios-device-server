@@ -6,10 +6,12 @@ import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.doNothing
 import com.nhaarman.mockito_kotlin.whenever
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito
 import java.io.File
 
+@Ignore
 class SharedContainerTest {
     private val remote: IRemote = mockThis()
 

@@ -103,11 +103,13 @@ fun Application.module() {
         wdaDeviceBundle = File(appConfiguration.wdaDeviceBundlePath).canonicalFile,
         remoteWdaDeviceBundleRoot = File(appConfiguration.remoteWdaDeviceBundleRoot).canonicalFile,
         fbsimctlVersion = appConfiguration.fbsimctlVersion,
-        remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile
+        remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile,
+        remoteVideoRecorder = appConfiguration.remoteVideoRecorder
     )
     val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.cleanupTemporaryFiles()
     deviceManager.extractTestApp()
+    deviceManager.extractVideoRecorder()
     deviceManager.startPeriodicFileCleanup()
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchZombieReaper()

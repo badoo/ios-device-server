@@ -9,6 +9,7 @@ import com.nhaarman.mockito_kotlin.whenever
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 class SimulatorProviderTest {
@@ -50,7 +51,7 @@ class SimulatorProviderTest {
         assertThat(actual, sameInstance(dev1))
     }
 
-    @Test
+    @Test @Ignore
     fun matchByCreating() {
         whenever(fbSimctl.create("model", "os")).thenReturn(dev2)
         val actual = provider.provideSimulator(DesiredCapabilities(null, "model", "os", headless, existing = false), emptySet())

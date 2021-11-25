@@ -20,6 +20,7 @@ import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 import java.io.File
 
+@Ignore
 class SimulatorBackupTest {
     private val metaJson = """
         {"version":${SimulatorBackup.CURRENT_VERSION},"created":"2018-01-12 01:46:48 +0000"}

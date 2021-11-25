@@ -42,7 +42,7 @@ class SimulatorVideoRecorder(
 
         val result = remote.execIgnoringErrors(listOf("rm", "-f", recordingLocation.toString()))
         ensure(result.isSuccess) {
-            SimulatorVideoRecordingException("Could not delete stale recordings. Reason: $result")
+            VideoRecordingException("Could not delete stale recordings. Reason: $result")
         }
     }
 
@@ -52,7 +52,7 @@ class SimulatorVideoRecorder(
             if (isStarted) {
                 val message = "Video recording already started"
                 logger.error(logMarker, message)
-                throw SimulatorVideoRecordingException(message)
+                throw VideoRecordingException(message)
             }
 
             delete()
@@ -123,7 +123,7 @@ class SimulatorVideoRecorder(
         } catch (e: RuntimeException) {
             val message = "Could not read video file. Cause: ${e.message}"
             logger.error(message)
-            throw SimulatorVideoRecordingException(message)
+            throw VideoRecordingException(message)
         }
     }
 
