@@ -11,6 +11,7 @@ import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
 import com.badoo.automation.deviceserver.ios.proc.XcodeTestRunnerDeviceAgent
+import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.AppInstaller
@@ -72,8 +73,15 @@ class Device(
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}/$udid/")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     override val calabashPort = calabashProxy.localPort
-    override val videoRecorder: VideoRecorder = MJPEGVideoRecorder(
-        deviceInfo,
+//    override val videoRecorder: VideoRecorder = MJPEGVideoRecorder(
+//        deviceInfo,
+//        remote,
+//        mjpegServerPort,
+//        deviceRefFromUDID(deviceInfo.udid, remote.publicHostName),
+//        deviceInfo.udid
+//    )
+
+    override val videoRecorder: VideoRecorder = FFMPEGVideoRecorder(
         remote,
         mjpegServerPort,
         deviceRefFromUDID(deviceInfo.udid, remote.publicHostName),
@@ -481,10 +489,11 @@ class Device(
             fbsimctlProc.kill()
             fbsimctlProc.start()
 
+            Thread.sleep(5000)
             pollFor(
-                Duration.ofSeconds(30),
+                Duration.ofSeconds(60),
                 reasonName = "$this Fbsimctl health check",
-                retryInterval = Duration.ofSeconds(1),
+                retryInterval = Duration.ofSeconds(2),
                 logger = logger,
                 marker = logMarker
             ) {

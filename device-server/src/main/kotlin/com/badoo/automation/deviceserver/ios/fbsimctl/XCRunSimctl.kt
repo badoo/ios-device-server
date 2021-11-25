@@ -7,7 +7,7 @@ import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceDiagnosticInfo
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlError
 import com.badoo.automation.deviceserver.ios.fbsimctl.ISimulatorControl
-import com.badoo.automation.deviceserver.util.ensure
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.Duration
 
@@ -15,6 +15,7 @@ class XCRunSimctl(
     private val shellCommand: IShellCommand,
     override val fbsimctlBinary: String = "Unsupported here"
 ) : ISimulatorControl {
+    private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
     override fun installApp(udid: UDID, bundlePath: File) {
         TODO("Not yet implemented")
@@ -28,6 +29,7 @@ class XCRunSimctl(
         val result = try {
             shellCommand.exec(fbsimctlCommand, timeOut = timeOut, returnFailure = true)
         } catch (e: SshConnectionException) {
+            logger.error("XCRunSimctl retrying command on SSH error. Command: ${fbsimctlCommand.joinToString(" ")}")
             shellCommand.exec(fbsimctlCommand, timeOut = timeOut, returnFailure = true)
         }
 
@@ -61,32 +63,63 @@ class XCRunSimctl(
     }
 
     override fun eraseSimulator(udid: UDID): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun create(model: String?, os: String?): FBSimctlDevice {
-        val deviceName = "$model-$os".replace(" ", "-")
-        val command = listOf("xcrun", "simctl", "create", deviceName, model ?: "iPhone 7", os?.replace(" ", "") ?: "iOS15.0")
+        val command: List<String> = listOf("xcrun", "simctl", "erase", udid)
 
         val timeOut = Duration.ofSeconds(30)
 
         val result = try {
             shellCommand.exec(command, timeOut = timeOut, returnFailure = true)
         } catch (e: SshConnectionException) {
+            logger.error("XCRunSimctl retrying command on SSH error. Command: ${command.joinToString(" ")}")
             shellCommand.exec(command, timeOut = timeOut, returnFailure = true)
         }
 
-
-        val raiseOnError = false
-        if (raiseOnError) {
-            if (result.exitCode != 0) {
-                throw FBSimctlError("Error while running command. Result: $result", null)
-            }
+        if (result.exitCode != 0) {
+            throw FBSimctlError(
+                "Error while running command.  Exit code: ${result.exitCode}\n" +
+                        "StdErr: ${result.stdErr}. StdOut: ${result.stdOut}", null
+            )
         }
 
-        result.stdOut.trim() // remove last new_line
+        return result.stdOut.trim()
+    }
 
-        return FBSimctlDevice(state = "", udid = "")
+    override fun create(model: String?, os: String?): FBSimctlDevice {
+        val modelString = model ?: "iPhone 7"
+        val osString = os ?: "iOS 15.0"
+
+        val deviceModel = getDeviceModel(modelString)
+        val deviceName = (model ?: "iPhone 7").replace(simDeviceTypeRegex, "_")
+
+        val deviceRuntime = "com.apple.CoreSimulator.SimRuntime.${osString.replace(runtimeRegex, "-")}"
+        val command: List<String> = listOf("xcrun", "simctl", "create", deviceName, deviceModel, deviceRuntime)
+
+        val timeOut = Duration.ofSeconds(30)
+
+        val result = try {
+            shellCommand.exec(command, timeOut = timeOut, returnFailure = true)
+        } catch (e: SshConnectionException) {
+            logger.error("XCRunSimctl retrying command on SSH error. Command: ${command.joinToString(" ")}")
+            shellCommand.exec(command, timeOut = timeOut, returnFailure = true)
+        }
+
+        if (result.exitCode != 0) {
+            throw FBSimctlError(
+                "Error while running command.  Exit code: ${result.exitCode}\n" +
+                        "StdErr: ${result.stdErr}. StdOut: ${result.stdOut}", null
+            )
+        }
+
+        val udid = result.stdOut.trim() // remove last new_line
+
+        return FBSimctlDevice(
+            arch = "x86_64",
+            state = "Shutdown",
+            model = modelString,
+            name = modelString,
+            udid = udid,
+            os = osString
+        )
     }
 
     override fun diagnose(udid: UDID): FBSimctlDeviceDiagnosticInfo {
@@ -111,6 +144,41 @@ class XCRunSimctl(
 
     override fun uninstallApp(udid: UDID, bundleId: String, raiseOnError: Boolean) {
         TODO("Not yet implemented")
+    }
+
+    companion object {
+        val quirkyDeviceTypes: Map<String, String> = mapOf(
+            "iPhone SE (1st generation)" to "com.apple.CoreSimulator.SimDeviceType.iPhone-SE",
+            "iPhone Xs" to "com.apple.CoreSimulator.SimDeviceType.iPhone-XS",
+            "iPhone Xs Max" to "com.apple.CoreSimulator.SimDeviceType.iPhone-XS-Max",
+            "iPhone Xʀ" to "com.apple.CoreSimulator.SimDeviceType.iPhone-XR",
+            "iPhone XR" to "com.apple.CoreSimulator.SimDeviceType.iPhone-XR",
+            "iPad Pro (12.9-inch) (1st generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-Pro",
+            "iPad Pro (11-inch) (1st generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-Pro--11-inch-",
+            "iPad (9th generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-9th-generation",
+            "iPad Pro (11-inch) (3rd generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-3rd-generation",
+            "iPad Pro (12.9-inch) (5th generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-5th-generation",
+            "iPad mini (6th generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-mini-6th-generation"
+        )
+        private val simDeviceTypeRegex = Regex("[ ().]")
+        private val runtimeRegex = Regex("[ .]")
+
+        fun getDeviceModel(model: String): String {
+            return quirkyDeviceTypes[model] ?: "com.apple.CoreSimulator.SimDeviceType.${
+                if (model.contains("Watch")) {
+                    model.replace(" - ", " ").replace(simDeviceTypeRegex, "-")
+                } else {
+                    model.replace(simDeviceTypeRegex, "-")
+                }
+            }"
+        }
+
+        val runtimes: Map<String, String> = mapOf(
+            "iOS 12.4" to "com.apple.CoreSimulator.SimRuntime.iOS-12-4",
+            "iOS 13.7" to "com.apple.CoreSimulator.SimRuntime.iOS-13-7",
+            "iOS 14.5" to "com.apple.CoreSimulator.SimRuntime.iOS-14-5",
+            "iOS 15.0" to "com.apple.CoreSimulator.SimRuntime.iOS-15-0"
+        )
     }
 
 }

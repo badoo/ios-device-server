@@ -37,7 +37,8 @@ class XcodeTestRunnerDeviceAgent(
         remote.shell("/usr/bin/mktemp -d -t derivedDataDir_$udid", returnOnFailure = false).stdOut.trim()
     private val xctestrunDir =
         remote.shell("/usr/bin/mktemp -d -t xctestRunDir_$udid", returnOnFailure = false).stdOut.trim()
-    private val xctestrunFile = File(xctestrunDir, "DeviceAgent_$udid.xctestrun")
+    val xctestrunSuffix = "DeviceAgent_$udid.xctestrun"
+    private val xctestrunFile = File(xctestrunDir, xctestrunSuffix)
     private val commonLogMarkerDetails = mapOf(
         LogMarkers.DEVICE_REF to deviceRef,
         LogMarkers.UDID to udid,
@@ -117,7 +118,7 @@ class XcodeTestRunnerDeviceAgent(
         remote.fbsimctl.uninstallApp(udid, testRunnerBundleId, false)
         installHostApp()
 
-        childProcess = childFactory(
+        val process = childFactory(
             remote.hostName,
             remote.userName,
             launchXctestCommand,
@@ -132,9 +133,11 @@ class XcodeTestRunnerDeviceAgent(
             { message -> deviceAgentLog.appendText(message + "\n") }
         )
 
+        childProcess = process
+
         try {
             pollFor(
-                Duration.ofSeconds(15),
+                Duration.ofSeconds(45),
                 reasonName = "$this Waiting for DeviceAgent to start serving requests",
                 retryInterval = Duration.ofSeconds(1),
                 logger = logger,
@@ -161,7 +164,7 @@ class XcodeTestRunnerDeviceAgent(
     private fun terminateHostApp() {
         remote.fbsimctl.terminateApp(udid, bundleId = testRunnerBundleId, raiseOnError = false)
         Thread.sleep(1000)
-        remote.pkill(xctestrunFile.absolutePath, false)
+        remote.pkill(xctestrunSuffix, false)
         Thread.sleep(3000)
     }
 

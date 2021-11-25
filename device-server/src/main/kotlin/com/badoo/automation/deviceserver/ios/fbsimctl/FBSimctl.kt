@@ -145,6 +145,7 @@ class FBSimctl(
         val result = try {
             shellCommand.exec(fbsimctlCommand, timeOut = timeOut, returnFailure = true)
         } catch (e: SshConnectionException) {
+            logger.error("FBSimctl retrying command on SSH error. Command: $fbsimctlCommand")
             shellCommand.exec(fbsimctlCommand, timeOut = timeOut, returnFailure = true)
         }
 

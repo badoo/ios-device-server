@@ -14,6 +14,7 @@ import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupErr
 import com.badoo.automation.deviceserver.ios.simulator.data.*
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
+import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
@@ -84,6 +85,12 @@ class Simulator(
             )
             MJPEGVideoRecorder::class.qualifiedName -> MJPEGVideoRecorder(
                 deviceInfo,
+                remote,
+                mjpegServerPort,
+                ref,
+                udid
+            )
+            FFMPEGVideoRecorder::class.qualifiedName -> FFMPEGVideoRecorder(
                 remote,
                 mjpegServerPort,
                 ref,
@@ -320,13 +327,16 @@ class Simulator(
         measurement.putAll(commonLogMarkerDetails)
 
         logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed TestHelper app on Simulator with xcrun simctl. Took $seconds seconds")
-
     }
 
     private fun dismissTutorials() {
         logger.info(logMarker, "Saving Preference that Continuous Path Introduction was shown")
         writeSimulatorDefaults("com.apple.Preferences DidShowContinuousPathIntroduction -bool true") // iOS 13
         writeSimulatorDefaults("com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool true") // iOS 14.5 and up
+        writeSimulatorDefaults("com.apple.mobileslideshow LastWhatsNewShown -int 7") // iOS 15.0 What's New
+        writeSimulatorDefaults("com.apple.suggestions SuggestionsAppLibraryEnabled -bool false") // iOS 15.0 What's New
+        writeSimulatorDefaults("com.apple.mt KeepAppsUpToDateAppList -dict com.apple.news 0") // iOS 15.0 News App
+        writeSimulatorDefaults("com.apple.suggestions SiriCanLearnFromAppBlacklist -array com.apple.mobileslideshow com.apple.mobilesafari") // iOS 15.0 News App
     }
 
     private fun startPeriodicHealthCheck() {
@@ -472,7 +482,7 @@ class Simulator(
 
     private fun eraseSimulatorAndCreateBackup() {
         logger.info(logMarker, "Erasing simulator ${this@Simulator} before creating a backup")
-        remote.fbsimctl.eraseSimulator(udid)
+        remote.xcrunSimctl.eraseSimulator(udid)
 
         if (trustStoreFile.isNotEmpty()) {
             copyTrustStore()
@@ -495,8 +505,102 @@ class Simulator(
 
         launchMobileSafari("https://localhost")
         Thread.sleep(5000)
+//        2F3F7A68-5D24-4073-96D1-37B57DBA058E % /usr/bin/xcrun simctl spawn 2F3F7A68-5D24-4073-96D1-37B57DBA058E defaults write
+//        Command line interface to a user's defaults.
+//        Syntax:
+//
+//        'defaults' [-currentHost | -host <hostname>] followed by one of the following:
+//
+//        read                                 shows all defaults
+//                read <domain>                        shows defaults for given domain
+//                read <domain> <key>                  shows defaults for given domain, key
+//
+//        read-type <domain> <key>             shows the type for the given domain, key
+//
+//        write <domain> <domain_rep>          writes domain (overwrites existing)
+//        write <domain> <key> <value>         writes key for domain
+//
+//        rename <domain> <old_key> <new_key>  renames old_key to new_key
+//
+//        delete <domain>                      deletes domain
+//        delete <domain> <key>                deletes key in domain
+//
+//        import <domain> <path to plist>      writes the plist at path to domain
+//        import <domain> -                    writes a plist from stdin to domain
+//        export <domain> <path to plist>      saves domain as a binary plist to path
+//                export <domain> -                    writes domain as an xml plist to stdout
+//                domains                              lists all domains
+//                find <word>                          lists all entries containing word
+//                help                                 print this help
+//
+//        <domain> is ( <domain_name> | -app <application_name> | -globalDomain )
+//        or a path to a file omitting the '.plist' extension
+//
+//        <value> is one of:
+//        <value_rep>
+//                -string <string_value>
+//        -data <hex_digits>
+//        -int[eger] <integer_value>
+//        -float  <floating-point_value>
+//                -bool[ean] (true | false | yes | no)
+//        -date <date_rep>
+//        -array <value1> <value2> ...
+//        -array-add <value1> <value2> ...
+//        -dict <key1> <value1> <key2> <value2> ...
+//        -dict-add <key1> <value1> ...
 
-        logger.info(logMarker, "Shutting down ${this@Simulator} before creating a backup")
+        // +            "com.apple.Preferences" = 1;
+
+//        +    "com.apple.mt" =     {
+//            +        KeepAppsUpToDateAppList =         {
+//                +            "com.apple.news" = 0;
+//                +        };
+//            +    };
+
+//        com.apple.voiceservices
+//        +        ReduceMotionAutoplayMessagesEffectsEnabled = 0;
+
+//        "com.apple.assistant.support" =     {
+//            +        "Assistant Enabled" = 0;
+
+//        +    "com.apple.siri.embeddedspeech" =     {
+//            +    };
+//
+//        +    "com.apple.spotlightui" =     {
+//            +        "11.2.Migrated" = 1;
+//            +        SBSearchDisabledApps =         (
+//                    +            "com.apple.mobileslideshow"
+//                            +        );
+//            +        SBSearchDisabledBundles =         (
+//                    +            "com.apple.mobileslideshow"
+//                            +        );
+//            +        SBSearchDisabledDomains =         (
+//                    +            "DOMAIN_ZKWS",
+//            +            "DOMAIN_PARSEC"
+//            +        );
+//            +        ShowInLookupEnabled = 0;
+//            +    };
+//        +        SiriCanLearnFromAppBlacklist =         (
+//                +            "com.apple.mobileslideshow",
+//        +            "com.apple.mobilesafari"
+//        +        );
+
+//
+        // TODO: wait until PSCoreSpolightIndexerHasPerformediOS13Migration = 1 ?
+//        "com.apple.Preferences" =     {
+//            +        PSCoreSpolightIndexerHasPerformediOS13Migration = 1;
+//            +        PSCoreSpolightIndexerLastIndexBuild = 19A339;
+//            +        PSCoreSpolightIndexerLastIndexDate = "2021-11-16 12:53:23 +0000";
+//            +        PSCoreSpolightIndexerLastIndexLanguage = en;
+//            +        PSCoreSpolightIndexerNeedsIndex = 0;
+//            +        VSDeveloperIdentityProviderAvailabilityStatus = 2;
+//            +        VSIdentityProviderAvailabilityStatus = 2;
+//            +        VSStoreIdentityProviderAvailabilityStatus = 2;
+//            +        WebDatabaseDirectory = "/Users/vfrolov/Library/Developer/CoreSimulator/Devices/2F3F7A68-5D24-4073-96D1-37B57DBA058E/data/Library/WebKit/Databases";
+//            +        WebKitLocalStorageDatabasePathPreferenceKey = "/Users/vfrolov/Library/Developer/CoreSimulator/Devices/2F3F7A68-5D24-4073-96D1-37B57DBA058E/data/Library/WebKit/LocalStorage";
+
+
+            logger.info(logMarker, "Shutting down ${this@Simulator} before creating a backup")
         shutdown()
 
         backup.create()
@@ -508,12 +612,7 @@ class Simulator(
         (1..MEDIA_COPY_ATTEMPTS).forEach {
             try {
                 logger.info(logMarker, "Copying media assets to simulator. Attempt: $it")
-
-                val mediaTask =
-                    concurrentBootsPool.submit { // using limited amount of workers to copy assets to simulator
-                        copyMediaAssets()
-                    }
-                mediaTask.get()
+                copyMediaAssets()
                 logger.info(logMarker, "Copied media assets to simulator successfully")
                 return
             } catch (e: MediaInconsistentcyException) {
@@ -541,7 +640,6 @@ class Simulator(
 
     private fun copyMediaAssets() {
         logger.debug(logMarker, "Copying assets to ${this@Simulator}")
-        media.reset()
 
         val mediaFiles = File(assetsPath).walk().filter { it.isFile }.toList()
         media.addMedia(mediaFiles)
@@ -573,7 +671,7 @@ class Simulator(
         stopPeriodicHealthCheck()
         bootTask?.cancel(true)
         installTask?.cancel(true)
-        ignoringErrors({ videoRecorder.stop() })
+        ignoringErrors({ videoRecorder.dispose() })
         ignoringErrors({ webDriverAgent.kill() })
         ignoringErrors({ fbsimctlProc.kill() })
 
@@ -596,16 +694,38 @@ class Simulator(
 
         logger.info(logMarker, "Successfully shut down ${this@Simulator}")
     }
-    
+
     private fun disabledServices(): List<String> {
         val cmdLine = listOf(
             "Spotlight",
             "Spotlight.app",
             "UIKitApplication:com.apple.Spotlight",
             "com.apple.Maps.mapspushd",
+            "com.apple.Maps",
+            "com.apple.MapsUI",
+            "com.apple.Maps.GeneralMapsWidget",
             "com.apple.NPKCompanionAgent",
             "com.apple.SafariBookmarksSyncAgent",
+            "com.apple.ScreenTimeAgent",
+            "com.apple.GameController.gamecontrollerd",
+            "com.apple.ScreenTimeWidgetApplication",
+            "com.apple.ScreenTimeWidgetApplication.ScreenTimeWidgetExtension",
+
+            "com.apple.nanonewscd",
+//            "com.apple.nanoregistryd",
+//            "com.apple.nanoregistrylaunchd",
+//            "com.apple.nanoprefsyncd.2",
+//            "com.apple.nanomapscd",
+//            "com.apple.nanosystemsettingsd",
+//            "com.apple.nanobackupd",
+//            "com.apple.nanoappregistryd",
+//            "com.apple.nanotimekitcompaniond",
+
+
+            "com.apple.MapKit.SnapshotService",
             "com.apple.Spotlight",
+            "com.apple.WallpaperKit",
+            "com.apple.WallpaperKit.WallpaperMigrator",
             "com.apple.WebBookmarks.webbookmarksd",
             "com.apple.accessibility.AccessibilityUIServer",
             "com.apple.addressbooksyncd",
@@ -627,10 +747,26 @@ class Simulator(
             "com.apple.healthappd",
             "com.apple.healthd",
             "com.apple.homed",
-            "com.apple.mobileassetd",
+//            "com.apple.mobileassetd","com.apple.MobileAsset",
             "com.apple.mobilecal",
+            "com.apple.mobilecal.CalendarWidgetExtension",
+            "com.apple.mobileslideshow.PhotosReliveWidget",
             "com.apple.mobiletimerd",
             "com.apple.navd",
+            "com.apple.news",
+            "NewsToday2",
+            "com.apple.news.widget",
+            "com.apple.news.articlenotificationextension",
+            "com.apple.news.NewsArticleQuickLook",
+            "com.apple.news.openinnews",
+            "com.apple.news.tag",
+            "com.apple.news.engagementExtension",
+            "com.apple.news.articlenotificationserviceextension",
+            "com.apple.news.marketingnotificationextension",
+            "com.apple.news.widget",
+            "com.apple.news.NewsAudioExtension",
+            "com.apple.news.widgetintents",
+            "com.apple.news",
             "com.apple.pairedsyncd",
             "com.apple.parsecd", // https://jira.badoojira.com/browse/IOS-33218
             "com.apple.photoanalysisd",
@@ -708,7 +844,7 @@ class Simulator(
             "--color", "none",
             "--level", "info")
 
-        if (deviceInfo.os.contains("iOS 13") || deviceInfo.os.contains("iOS 14")) {
+        if (deviceInfo.os.contains("iOS 13") || deviceInfo.os.contains("iOS 14") || deviceInfo.os.contains("iOS 15")) {
             cmd.add("--process")
             cmd.add("SpringBoard")
         }
@@ -730,6 +866,8 @@ class Simulator(
         simulatorServices.clear()
         simulatorServices.addAll(requiredServices)
         simulatorServices.addAll(longWaitedServices)
+
+//        remote.localExecutor.exec(listOf("/Users/vfrolov/GitHub/ios-device-server-badoo/device-server/simulator_logs_record.sh", udid))
 
         val process = remote.remoteExecutor.startProcess(cmd, mapOf(), logMarker)
 
@@ -997,6 +1135,11 @@ class Simulator(
 
     private fun deleteSimulatorKeepingMetadata() {
         val simulatorDataDirectoryPath = simulatorDataDirectory.absolutePath
+        val chmodResult = remote.execIgnoringErrors(listOf("/bin/chmod", "-RP", "755", simulatorDataDirectoryPath), timeOutSeconds = 120L)
+        if (!chmodResult.isSuccess) {
+            logger.error(logMarker, "Failed to chmod at path: [$simulatorDataDirectoryPath]. Result: $chmodResult")
+        }
+
         val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 120L)
 
         if (!deleteResult.isSuccess) {
@@ -1013,7 +1156,7 @@ class Simulator(
 
     private fun disposeResources() {
         ignoringErrors({ videoRecorder.dispose() })
-        deleteSimulatorKeepingMetadata()
+//        deleteSimulatorKeepingMetadata()
     }
 
     private fun ignoringErrors(action: () -> Unit?) {

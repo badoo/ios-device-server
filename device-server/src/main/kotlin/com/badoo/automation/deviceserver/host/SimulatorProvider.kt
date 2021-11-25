@@ -66,7 +66,6 @@ class SimulatorProvider(
     private fun create(model: String?, os: String?): FBSimctlDevice {
         cachedSimulatorList = emptyList()
         cachedBackupsList = emptyList()
-//        remote.xcrunSimctl.create(model, os)
-        return remote.fbsimctl.create(model, os)
+        return remote.xcrunSimctl.create(model, os)
     }
 }

@@ -59,10 +59,7 @@ class DeviceManager(
 
     }
 
-    private val shellExecutor = ShellCommand(commonEnvironment = mapOf(
-        "HOME" to System.getProperty("user.home"),
-        "PATH" to System.getenv("PATH")
-    ))
+    private val shellExecutor = ShellCommand()
 
     fun extractTestApp() {
         val testHelperArchiveFileName = "TestHelper.app.tar.bz2"
@@ -93,6 +90,32 @@ class DeviceManager(
         }
 
         logger.info("Successfully extracted TestHelper application $testHelperArchiveFileName to ${testHelperRoot.absolutePath}")
+    }
+
+    fun extractVideoRecorder() {
+        val videoRecorderFile = appConfig.remoteVideoRecorder
+        videoRecorderFile.delete()
+        videoRecorderFile.parentFile.mkdirs()
+
+        logger.info("Start to copy Video recorder script ${videoRecorderFile.name} from resources to ${videoRecorderFile.absolutePath}")
+
+        val videoRecorderFileStream = DeviceManager::class.java.classLoader.getResourceAsStream(videoRecorderFile.name)
+
+        if (videoRecorderFileStream == null) {
+            logger.error("Failed to find Video recorder script ${videoRecorderFile.name} in resources")
+            return
+        }
+
+        videoRecorderFileStream.use { inputStream ->
+            videoRecorderFile.outputStream().use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
+
+        videoRecorderFile.setWritable(false)
+        videoRecorderFile.setExecutable(true)
+
+        logger.info("Successfully copied Video recorder script ${videoRecorderFile.name} from resources to ${videoRecorderFile.absolutePath}")
     }
 
     fun cleanupTemporaryFiles() {

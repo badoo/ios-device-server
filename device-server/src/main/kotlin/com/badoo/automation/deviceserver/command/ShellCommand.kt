@@ -16,7 +16,7 @@ import java.time.Duration
 import java.util.concurrent.*
 
 open class ShellCommand(
-    private val commonEnvironment: Map<String, String>
+    private val commonEnvironment: Map<String, String> = mapOf<String, String>("HOME" to System.getProperty("user.home"), "TMPDIR" to (System.getenv("TMPDIR") ?: "/tmp"))
 ) : IShellCommand {
     protected val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     protected open val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to "localhost"))
@@ -48,7 +48,7 @@ open class ShellCommand(
             }
 
             if (!hasExited) {
-                logger.error(logMarker, "Command has failed to complete in time. Command: $commandString, PID: $pid")
+                logger.error(logMarker, "Command has failed to complete in time. Timeout: ${timeOut.toSeconds()} seconds. Command: $commandString, PID: $pid")
                 executor.submit {
                     waitForProcessToComplete(process, logMarker, commandString, pid.toInt(), timeOut)
                 }

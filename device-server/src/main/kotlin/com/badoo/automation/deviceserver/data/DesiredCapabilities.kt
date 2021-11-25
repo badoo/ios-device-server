@@ -6,7 +6,7 @@ data class DesiredCapabilities(
         val udid: String?,
         val model: String?,
         val os: String?,
-        val headless: Boolean = true,
+        val headless: Boolean = false,
         val existing: Boolean = true,
         val arch: String? = null,
 

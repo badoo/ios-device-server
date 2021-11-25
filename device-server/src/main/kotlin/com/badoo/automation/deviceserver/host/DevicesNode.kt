@@ -344,7 +344,7 @@ class DevicesNode(
                 try {
                     slots.registerDevices()
                 } catch (e: Exception) {
-                    logger.warn(logMarker, "Failed to register devices: $e")
+                    logger.error(logMarker, "Failed to register devices: $e")
                 }
             },
             deviceRegistrationInterval.toMillis(),
@@ -474,7 +474,8 @@ class DevicesNode(
         val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
 
         if (xcodeVersion < XcodeVersion(12, 1)) {
-            throw RuntimeException("Expecting Xcode 12.1 or higher, but it is $xcodeVersion")
+//            throw RuntimeException("Expecting Xcode 12.1 or higher, but it is $xcodeVersion")
+            logger.error(logMarker, "Expecting Xcode 12.1 or higher, but it is $xcodeVersion")
         }
 
         val fbsimctlPath = remote.execIgnoringErrors(listOf("readlink", remote.fbsimctl.fbsimctlBinary)).stdOut
