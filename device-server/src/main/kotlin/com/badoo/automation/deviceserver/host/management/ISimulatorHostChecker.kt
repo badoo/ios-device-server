@@ -181,6 +181,8 @@ class SimulatorHostChecker(
         // disable node hardware keyboard, i.e. use on-screen one
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false".split(" "))
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator PasteboardAutomaticSync -bool false".split(" "))
+        remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator StartLastDeviceOnLaunch -bool false".split(" "))
+        remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator DetachOnWindowClose -bool true".split(" "))
 
         // disable simulator location
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator LocationMode \"3101\"".split(" "))

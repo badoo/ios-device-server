@@ -269,7 +269,7 @@ class Simulator(
 
             dismissTutorials()
 
-            installTestHelperApp()
+//            installTestHelperApp()
 
             fbsimctlProc.start()
 
@@ -501,7 +501,8 @@ class Simulator(
             webDriverAgent.installHostApp()
         }
 
-        installTestHelperApp()
+
+//        installTestHelperApp()
 
         launchMobileSafari("https://localhost")
         Thread.sleep(5000)
@@ -604,6 +605,41 @@ class Simulator(
         shutdown()
 
         backup.create()
+    }
+
+    private fun openSimulatorApp() {
+        try {
+            val result = remote.execIgnoringErrors(listOf("/bin/ps", "axo", "pid,stat,command"))
+            val simulatorApp = "/Simulator.app/"
+
+            if (result.isSuccess && result.stdOut.lines().none { it.contains(simulatorApp) }) {
+                remote.shell("open -a Simulator.app")
+            }
+        } catch (t: Throwable) {
+            logger.error(logMarker, "Failed to launch Simulator.app application. Error ${t.javaClass.name} ${t.message}")
+        }
+    }
+
+    private fun useSoftwareKeyboard() {
+        try {
+            val devicePreferencesResult = remote.execIgnoringErrors(listOf("/usr/bin/defaults", "read", "com.apple.iphonesimulator", "DevicePreferences"))
+            if (devicePreferencesResult.isSuccess) {
+                if (devicePreferencesResult.stdOut.contains(udid)) {
+                    return
+                }
+            }
+
+            val cmd = listOf("/usr/bin/defaults", "write", "com.apple.iphonesimulator", "DevicePreferences", "-dict-add", udid, "'<dict><key>ConnectHardwareKeyboard</key><integer>0</integer></dict>'")
+            val result = remote.execIgnoringErrors(cmd)
+
+            val simulatorApp = "/Simulator.app/"
+
+            if (result.isSuccess && result.stdOut.lines().none { it.contains(simulatorApp) }) {
+                remote.shell("open -a Simulator.app")
+            }
+        } catch (t: Throwable) {
+            logger.error(logMarker, "Failed to launch Simulator.app application. Error ${t.javaClass.name} ${t.message}")
+        }
     }
 
     private val MEDIA_COPY_ATTEMPTS = 3
@@ -799,7 +835,16 @@ class Simulator(
         logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
         val nanos = measureNanoTime {
             val task = concurrentBootsPool.submit { // using limited amount of workers to boot simulator
+                if (remote.isLocalhost()) {
+                    useSoftwareKeyboard()
+                }
+
                 bootSimulator()
+
+                if (remote.isLocalhost()) {
+                    openSimulatorApp()
+                }
+
                 waitUntilSimulatorBooted()
             }
             bootTask = task
