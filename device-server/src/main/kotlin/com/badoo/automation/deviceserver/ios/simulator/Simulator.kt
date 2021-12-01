@@ -1255,10 +1255,15 @@ class Simulator(
     }
 
     override fun openUrl(url: String) : Boolean {
-        val urlString = if (remote.isLocalhost()) { url } else { "\"$url\"" }
-
-        val command = listOf("xcrun", "simctl", "openurl", udid, urlString)
+        val urlString = if (remote.isLocalhost()) url else "\"${url}\""
+        val command = listOf("/usr/bin/xcrun", "simctl", "openurl", udid, urlString)
         val result = remote.execIgnoringErrors(command)
+
+        if (!result.isSuccess) {
+            logger.error("Failed to open url $url \nResult:\n$result")
+            throw RuntimeException("Failed to open url $url \nResult:\n$result")
+        }
+
         return result.isSuccess
     }
 
