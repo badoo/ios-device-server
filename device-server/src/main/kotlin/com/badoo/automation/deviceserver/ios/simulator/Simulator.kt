@@ -1180,28 +1180,27 @@ class Simulator(
 
     private fun deleteSimulatorKeepingMetadata() {
         val simulatorDataDirectoryPath = simulatorDataDirectory.absolutePath
-        val chmodResult = remote.execIgnoringErrors(listOf("/bin/chmod", "-RP", "755", simulatorDataDirectoryPath), timeOutSeconds = 120L)
-        if (!chmodResult.isSuccess) {
-            logger.error(logMarker, "Failed to chmod at path: [$simulatorDataDirectoryPath]. Result: $chmodResult")
-        }
 
-        val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 120L)
+        (1..3).any {
+            val chmodResult = remote.execIgnoringErrors(listOf("/bin/chmod", "-RP", "755", simulatorDataDirectoryPath), timeOutSeconds = 120L)
 
-        if (!deleteResult.isSuccess) {
-            logger.error(logMarker, "Failed to delete at path: [$simulatorDataDirectoryPath]. Result: $deleteResult")
-
-            val r = remote.execIgnoringErrors(listOf("/usr/bin/sudo", "/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 120L);
-
-            if (!r.isSuccess) {
-                val undeletedFiles = remote.execIgnoringErrors(listOf("/usr/bin/find", simulatorDataDirectoryPath), timeOutSeconds = 90L);
-                logger.error(logMarker, "Failed to delete at path: [$simulatorDataDirectoryPath]. Not deleted files: ${undeletedFiles.stdOut}")
+            if (!chmodResult.isSuccess) {
+                logger.error(logMarker, "Attempt number $it: Failed to chmod at path: [$simulatorDataDirectoryPath]. Result: $chmodResult")
             }
+
+            val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 120L)
+
+            if (!deleteResult.isSuccess) {
+                logger.error(logMarker, "Attempt number $it: Failed to delete at path: [$simulatorDataDirectoryPath]. Result: $deleteResult")
+            }
+
+            deleteResult.isSuccess
         }
     }
 
     private fun disposeResources() {
         ignoringErrors({ videoRecorder.dispose() })
-//        deleteSimulatorKeepingMetadata()
+        deleteSimulatorKeepingMetadata()
     }
 
     private fun ignoringErrors(action: () -> Unit?) {
