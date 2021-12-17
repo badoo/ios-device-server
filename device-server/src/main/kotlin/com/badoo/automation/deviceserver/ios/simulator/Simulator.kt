@@ -269,7 +269,9 @@ class Simulator(
 
             dismissTutorials()
 
-//            installTestHelperApp()
+            if (appConfig.useTestHelperApp) {
+                installTestHelperApp()
+            }
 
             fbsimctlProc.start()
 
@@ -501,8 +503,9 @@ class Simulator(
             webDriverAgent.installHostApp()
         }
 
-
-//        installTestHelperApp()
+        if (appConfig.useTestHelperApp) {
+            installTestHelperApp()
+        }
 
         launchMobileSafari("https://localhost")
         Thread.sleep(5000)

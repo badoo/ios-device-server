@@ -118,7 +118,9 @@ class SimulatorsNode(
 
         if (!remote.isLocalhost()) {
             hostChecker.copyWdaBundleToHost()
-            hostChecker.copyTestHelperBundleToHost()
+            if (applicationConfiguration.useTestHelperApp) {
+                hostChecker.copyTestHelperBundleToHost()
+            }
             hostChecker.copyVideoRecorderHelperToHost()
         }
 

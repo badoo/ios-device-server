@@ -108,7 +108,9 @@ fun Application.module() {
     )
     val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.cleanupTemporaryFiles()
-    deviceManager.extractTestApp()
+    if (appConfiguration.useTestHelperApp) {
+        deviceManager.extractTestApp()
+    }
     deviceManager.extractVideoRecorder()
     deviceManager.startPeriodicFileCleanup()
     deviceManager.startAutoRegisteringDevices()
