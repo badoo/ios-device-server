@@ -4,7 +4,7 @@ data class XcodeVersion(val major: Int, val minor: Int):Comparable<XcodeVersion>
     companion object {
         fun fromXcodeBuildOutput(output: String): XcodeVersion {
             val regex = Regex("Xcode (\\d+)\\.(\\d+)(\\.(\\d+))?")
-            val versionLine = output.lines().first()
+            val versionLine = output.lines().first { it.startsWith("Xcode ") }
             val match = regex.matchEntire(versionLine)
 
             match?.destructured?.let {
