@@ -56,7 +56,7 @@ class FFMPEGVideoRecorder(
         if (result.isSuccess) {
             logger.info(logMarker, "Started video recording ${videoFile.name}")
         } else {
-            val errorMessage = "Failed to start video recording ${videoFile.name}"
+            val errorMessage = "Failed to start video recording ${videoFile.name}. Exit code: ${result.exitCode} StdOut: ${result.stdOut} StdErr: ${result.stdErr}. Log contents: ${getLogContents()}"
             logger.error(errorMessage)
             throw VideoRecordingException(errorMessage)
         }
@@ -89,15 +89,17 @@ class FFMPEGVideoRecorder(
         }
     }
 
-    private fun getLogContents() = if (remote.isLocalhost()) {
-        if (videoLogFile.exists()) videoLogFile.readText() else "Failed to find ${videoLogFile.name}"
-    } else {
-        val logFileResult = remote.shell("find ${'$'}{TMPDIR}${videoLogFile.name}")
-
-        if (logFileResult.isSuccess) {
-            remote.execIgnoringErrors(listOf("cat", logFileResult.stdOut.trim())).stdOut
+    private fun getLogContents(): String {
+        return if (remote.isLocalhost()) {
+            if (videoLogFile.exists()) videoLogFile.readText() else "Failed to find ${videoLogFile.name}"
         } else {
-            "Failed to find ${videoLogFile.name}"
+            val logFileResult = remote.shell("find ${'$'}{TMPDIR}${videoLogFile.name}")
+
+            if (logFileResult.isSuccess) {
+                remote.execIgnoringErrors(listOf("cat", logFileResult.stdOut.trim())).stdOut
+            } else {
+                "Failed to find ${videoLogFile.name}"
+            }
         }
     }
 
@@ -111,7 +113,7 @@ class FFMPEGVideoRecorder(
                 val videoFilePath = videoFileResult.stdOut.trim()
                 remote.scpFromRemoteHost(videoFilePath, videoFile.absolutePath, Duration.ofSeconds(60))
             } else {
-                val errorMessage = "Failed to find video recording ${videoFile.name} on remote host. ${videoFileResult.stdErr}"
+                val errorMessage = "Failed to find video recording ${videoFile.name} on remote host. ${videoFileResult.stdErr}. Log contents: ${getLogContents()}"
                 logger.error(errorMessage)
 
                 val videoLogFileResult = remote.shell("find ${'$'}{TMPDIR}${videoLogFile.name}")
@@ -126,7 +128,7 @@ class FFMPEGVideoRecorder(
         return if (videoFile.exists()) {
             videoFile.readBytes()
         } else {
-            val errorMessage = "Failed to find video recording ${videoFile.absolutePath}"
+            val errorMessage = "Failed to find video recording ${videoFile.absolutePath}. Log contents: ${getLogContents()}"
             logger.error(errorMessage)
             throw VideoRecordingException(errorMessage)
         }
