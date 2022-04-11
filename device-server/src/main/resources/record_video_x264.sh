@@ -3,7 +3,7 @@
 # /opt/homebrew/bin — Homebrew PATH on Macs with Apple silicon
 # /usr/local/bin — Homebrew PATH on Macs with Intel CPU
 
-PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:${PATH}"
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:${PATH}"
 
 readonly UDID=${1}
 readonly URL=${2}
@@ -20,6 +20,7 @@ nohup \
             -framerate 4 \
             -i "${URL}" \
             -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' \
+            -vf 'scale=400:-2' \
             -an \
             -threads 1 \
             -t "00:15:00" \
