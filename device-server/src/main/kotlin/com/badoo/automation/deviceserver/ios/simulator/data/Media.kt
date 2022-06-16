@@ -128,7 +128,9 @@ class Media(
             )
         )
 
-        if (!appTerminateResult.isSuccess) {
+        if (appTerminateResult.isSuccess || (appTerminateResult.exitCode == 3 && appTerminateResult.stdErr.contains("app is not currently running"))) {
+            logger.debug("Successfully terminated the Mobile Slideshow app")
+        } else {
             throw RuntimeException("Could not terminate Mobile Slideshow app: $appTerminateResult")
         }
     }
