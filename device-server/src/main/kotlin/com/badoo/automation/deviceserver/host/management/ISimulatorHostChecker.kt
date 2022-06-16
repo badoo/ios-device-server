@@ -133,8 +133,10 @@ class SimulatorHostChecker(
         check(!deviceSetsPath.isBlank()) { "Device sets must not be blank" } // fbsimctl.defaultDeviceSet will throw if empty. but paranoid mode on.
 
         removeOldFiles("/private/var/folders/*/*/*/app_bundle_cache.*", 0) // remove local caches
-        removeOldFiles(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, 0) // remove local caches
-        remote.shell("mkdir -p ${ApplicationConfiguration().appBundleCacheRemotePath.absolutePath}")
+        if (!remote.isLocalhost()) {
+            removeOldFiles(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, 0) // remove local caches
+            remote.shell("mkdir -p ${ApplicationConfiguration().appBundleCacheRemotePath.absolutePath}")
+        }
 
         // TODO: Use $TMPDIR instead of /private/var/folders/*/*/*
         val caches = listOf(
@@ -195,6 +197,7 @@ class SimulatorHostChecker(
     override fun setupHost() {
         // disable node hardware keyboard, i.e. use on-screen one
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false".split(" "))
+        remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator EnableKeyboardSync -bool false".split(" "))
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator PasteboardAutomaticSync -bool false".split(" "))
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator StartLastDeviceOnLaunch -bool false".split(" "))
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator DetachOnWindowClose -bool true".split(" "))
