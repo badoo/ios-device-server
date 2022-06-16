@@ -10,15 +10,16 @@ import com.badoo.automation.deviceserver.host.management.DesiredCapabilitiesMatc
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
+import com.badoo.automation.deviceserver.util.WdaDeviceBundle
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.io.File
+import java.nio.file.Path
 
 class DeviceSlots(
     val remote: IRemote,
-    private val wdaRunnerXctest: File,
+    private val wdaDeviceBundles: List<WdaDeviceBundle>,
     private val portAllocator: PortAllocator,
     private val deviceInfoProvider: DeviceInfoProvider,
     knownDevicesList: List<KnownDevice>
@@ -74,7 +75,6 @@ class DeviceSlots(
             logger.info(logMarker, "Will add ${diff.added} devices")
             knownConnectedDevices.filter { diff.added.contains(it.udid) }.forEach {
                 addSlot(it)
-//                Thread.sleep(30000)
             }
         }
     }
@@ -161,16 +161,23 @@ class DeviceSlots(
         val allocatedPorts = portAllocator.allocateDAP()
 
         val device = Device(
-            remote =remote,
+            remote = remote,
             deviceInfo = deviceInfo,
             userPorts = allocatedPorts,
-            wdaRunnerXctest = wdaRunnerXctest
+            wdaDeviceBundle = getWdaDeviceBundle(deviceInfo.udid)
         )
 
         device.prepareAsync()
 
         val slot = DeviceSlot(device = device)
         activeSlots.add(slot)
+    }
+
+    private fun getWdaDeviceBundle(udid: UDID): WdaDeviceBundle {
+        return wdaDeviceBundles.find { wdaDeviceBundle ->
+            wdaDeviceBundle.provisionedDevices.any { it.equals(udid, ignoreCase = true) }
+        }
+            ?: throw DeviceNotFoundException("Device with $udid does not have any WDA bundle that has it's udid provisioned")
     }
 
     private fun removeSlotBy(udid: UDID) {

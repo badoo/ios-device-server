@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.Simulator
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
 import java.io.File
 import java.util.concurrent.ExecutorService
 
@@ -16,12 +17,12 @@ interface ISimulatorFactory {
             fbdev: FBSimctlDevice,
             ports: DeviceAllocatedPorts,
             deviceSetPath: String,
-            wdaRunnerXctest: File,
+            wdaSimulatorBundle: WdaSimulatorBundle,
             concurrentBoot: ExecutorService,
             headless: Boolean,
             useWda: Boolean
     ): ISimulator {
-        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaRunnerXctest, concurrentBoot,
+        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaSimulatorBundle, concurrentBoot,
                 headless, useWda)
     }
 }

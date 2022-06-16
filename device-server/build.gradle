@@ -33,7 +33,7 @@ dependencies {
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version
     compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-io', version: kotlinx_version
     compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-jdk8', version: kotlinx_version
-
+    compile group: 'org.apache.commons', name: 'commons-configuration2', version: '2.7'
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.2.0'
 
     //region ktor dependencies

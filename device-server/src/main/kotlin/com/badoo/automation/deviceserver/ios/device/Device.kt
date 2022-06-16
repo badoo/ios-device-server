@@ -14,10 +14,7 @@ import com.badoo.automation.deviceserver.ios.proc.XcodeTestRunnerDeviceAgent
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
-import com.badoo.automation.deviceserver.util.AppInstaller
-import com.badoo.automation.deviceserver.util.executeWithTimeout
-import com.badoo.automation.deviceserver.util.deviceRefFromUDID
-import com.badoo.automation.deviceserver.util.pollFor
+import com.badoo.automation.deviceserver.util.*
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.launch
@@ -38,7 +35,7 @@ class Device(
     private val remote: IRemote,
     override val deviceInfo: DeviceInfo,
     override val userPorts: DeviceAllocatedPorts,
-    wdaRunnerXctest: File,
+    private val wdaDeviceBundle: WdaDeviceBundle,
     usbProxy: UsbProxyFactory = UsbProxyFactory(remote)
 ) : IDevice {
     override val udid: String = deviceInfo.udid
@@ -60,7 +57,7 @@ class Device(
     private val wdaProxy = usbProxy.create(
         udid = deviceInfo.udid,
         localPort = userPorts.wdaPort,
-        devicePort = if (wdaRunnerXctest.name.contains("DeviceAgent")) DA_PORT else WDA_PORT
+        devicePort = if (wdaDeviceBundle.bundleId.contains("DeviceAgent")) DA_PORT else WDA_PORT
     )
 
     override val mjpegServerPort = userPorts.mjpegServerPort
@@ -103,7 +100,7 @@ class Device(
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
     private val wdaProc = XcodeTestRunnerDeviceAgent(
         remote = remote,
-        wdaRunnerXctest = wdaRunnerXctest,
+        wdaBundle = wdaDeviceBundle,
         udid = deviceInfo.udid,
         wdaEndpoint = wdaEndpoint,
         mjpegServerPort = mjpegServerPort,

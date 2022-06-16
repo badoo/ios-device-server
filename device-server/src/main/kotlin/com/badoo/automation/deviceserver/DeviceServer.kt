@@ -6,6 +6,10 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.host.management.errors.*
+import com.badoo.automation.deviceserver.util.WdaDeviceBundle
+import com.badoo.automation.deviceserver.util.WdaDeviceBundlesProvider
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundlesProvider
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -35,6 +39,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.lang.IllegalStateException
 import java.net.NetworkInterface
+import java.nio.file.Paths
 import java.util.*
 
 typealias EmptyMap = Map<Unit, Unit>
@@ -97,11 +102,20 @@ private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpl
 @Suppress("unused")
 fun Application.module() {
     val config = serverConfig()
+
+    val wdaDeviceBundles: List<WdaDeviceBundle> = WdaDeviceBundlesProvider(
+        Paths.get(appConfiguration.wdaDeviceBundles),
+        Paths.get(appConfiguration.remoteWdaDeviceBundleRoot)
+    ).getWdaDeviceBundles()
+
+    val wdaSimulatorBundle: WdaSimulatorBundle = WdaSimulatorBundlesProvider(
+        Paths.get(appConfiguration.wdaSimulatorBundles),
+        Paths.get(appConfiguration.remoteWdaSimulatorBundleRoot)
+    ).getWdaSimulatorBundles()
+
     val hostFactory = HostFactory(
-        wdaSimulatorBundle = File(appConfiguration.wdaSimulatorBundlePath).canonicalFile,
-        remoteWdaSimulatorBundleRoot = File(appConfiguration.remoteWdaSimulatorBundleRoot).canonicalFile,
-        wdaDeviceBundle = File(appConfiguration.wdaDeviceBundlePath).canonicalFile,
-        remoteWdaDeviceBundleRoot = File(appConfiguration.remoteWdaDeviceBundleRoot).canonicalFile,
+        wdaSimulatorBundle = wdaSimulatorBundle,
+        wdaDeviceBundles = wdaDeviceBundles,
         fbsimctlVersion = appConfiguration.fbsimctlVersion,
         remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile,
         remoteVideoRecorder = appConfiguration.remoteVideoRecorder

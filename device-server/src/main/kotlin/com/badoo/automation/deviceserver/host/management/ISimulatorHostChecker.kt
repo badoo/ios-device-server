@@ -3,8 +3,8 @@ package com.badoo.automation.deviceserver.host.management
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
 
 interface ISimulatorHostChecker {
     fun checkPrerequisites()
+    fun createDirectories()
     fun cleanup()
     fun setupHost()
     fun killDiskCleanupThread()
@@ -25,8 +26,7 @@ interface ISimulatorHostChecker {
 class SimulatorHostChecker(
         val remote: IRemote,
         private val diskCleanupInterval: Duration = Duration.ofMinutes(15),
-        private val wdaBundle: File,
-        private val remoteWdaBundleRoot: File,
+        private val wdaSimulatorBundle: WdaSimulatorBundle,
         private val remoteTestHelperAppRoot: File,
         private val fbsimctlVersion: String,
         private val shutdownSimulators: Boolean,
@@ -38,12 +38,17 @@ class SimulatorHostChecker(
     ))
 
     private lateinit var cleanUpTask: ScheduledFuture<*>
+    private val applicationConfiguration = ApplicationConfiguration()
 
+    override fun createDirectories() {
+        remote.shell("mkdir -p ${applicationConfiguration.simulatorBackupPath}")
+    }
     override fun copyWdaBundleToHost() {
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
-        remote.rm(remoteWdaBundleRoot.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteWdaBundleRoot.absolutePath))
-        remote.scpToRemoteHost(wdaBundle.absolutePath, remoteWdaBundleRoot.absolutePath)
+        val remoteBundleRoot = wdaSimulatorBundle.bundlePath(remote.isLocalhost()).parent
+        remote.rm(remoteBundleRoot)
+        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteBundleRoot))
+        remote.scpToRemoteHost(wdaSimulatorBundle.bundlePath(true).absolutePath, remoteBundleRoot)
     }
 
     override fun copyTestHelperBundleToHost() {
@@ -105,6 +110,16 @@ class SimulatorHostChecker(
             logger.info(logMarker, "Done shutting down booted simulators")
             logger.info(logMarker, "Will kill abandoned long living fbsimctl processes")
             remote.pkill(remote.fbsimctl.fbsimctlBinary, true)
+        } catch (e: Exception) {
+            logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")
+        }
+
+        try {
+            logger.info(logMarker, "Will shutdown iproxy and socat")
+            remote.pkill("/usl/local/bin/iproxy", true)
+            remote.pkill("/opt/homebrew/bin/iproxy", true)
+            remote.pkill("/usr/local/bin/socat", true)
+            remote.pkill("/opt/homebrew/bin/socat", true)
         } catch (e: Exception) {
             logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")
         }

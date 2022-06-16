@@ -12,6 +12,7 @@ import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import com.badoo.automation.deviceserver.util.AppInstaller
+import com.badoo.automation.deviceserver.util.WdaDeviceBundle
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
@@ -30,12 +31,10 @@ class DevicesNode(
     private val remote: IRemote,
     override val publicHostName: String,
     portAllocator: PortAllocator = PortAllocator(),
-    wdaRunnerXctest: File,
     knownDevices: List<KnownDevice>,
     private val whitelistedApps: Set<String>,
     private val uninstallApps: Boolean,
-    private val wdaBundlePath: File,
-    private val remoteWdaBundleRoot: File,
+    private val wdaDeviceBundles: List<WdaDeviceBundle>,
     private val fbsimctlVersion: String,
     private val appInstallerExecutorService: ExecutorService = Executors.newFixedThreadPool(4)
 ) : ISimulatorsNode {
@@ -207,7 +206,7 @@ class DevicesNode(
 
     private val deviceInfoProvider = DeviceInfoProvider(remote)
     private val slots: DeviceSlots =
-        DeviceSlots(remote, wdaRunnerXctest, portAllocator, deviceInfoProvider, knownDevices)
+        DeviceSlots(remote, wdaDeviceBundles, portAllocator, deviceInfoProvider, knownDevices)
 
     private var deviceRegistrar: Future<Unit>? = null
 
@@ -331,7 +330,7 @@ class DevicesNode(
         logger.info(logMarker, "Preparing node ${remote.hostName}")
         checkPrerequisites()
         if (!remote.isLocalhost()) {
-            copyWdaBundleToHost()
+            copyWdaBundlesToHost()
         }
         cleanup()
 
@@ -498,11 +497,14 @@ class DevicesNode(
         }
     }
 
-    private fun copyWdaBundleToHost() {
+    private fun copyWdaBundlesToHost() {
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
-        remote.rm(remoteWdaBundleRoot.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteWdaBundleRoot.absolutePath))
-        remote.scpToRemoteHost(wdaBundlePath.absolutePath, remoteWdaBundleRoot.absolutePath)
+        val remoteWdaBundleRoot = wdaDeviceBundles.first().bundlePath(remote.isLocalhost()).absolutePath
+        remote.rm(remoteWdaBundleRoot)
+        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteWdaBundleRoot))
+        wdaDeviceBundles.forEach {
+            remote.scpToRemoteHost(it.bundlePath(true).absolutePath, remoteWdaBundleRoot)
+        }
     }
 
     private fun cleanup() {

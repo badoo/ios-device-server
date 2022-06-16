@@ -3,6 +3,8 @@ package com.badoo.automation.deviceserver.host
 import com.badoo.automation.deviceserver.NodeConfig
 import com.badoo.automation.deviceserver.host.management.IHostFactory
 import com.badoo.automation.deviceserver.host.management.SimulatorHostChecker
+import com.badoo.automation.deviceserver.util.WdaDeviceBundle
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -14,19 +16,12 @@ class HostFactory(
             publicHostName
         )
     },
-    private val wdaSimulatorBundle: File,
-    private val remoteWdaSimulatorBundleRoot: File,
-    private val wdaDeviceBundle: File,
-    private val remoteWdaDeviceBundleRoot: File,
+    private val wdaSimulatorBundle: WdaSimulatorBundle,
+    private val wdaDeviceBundles: List<WdaDeviceBundle>,
     private val fbsimctlVersion: String,
     private val remoteTestHelperAppRoot: File,
     private val remoteVideoRecorder: File
 ) : IHostFactory {
-    companion object {
-        val WDA_XCTEST = File("PlugIns/WebDriverAgentRunner.xctest")
-        val DA_XCTEST = File("PlugIns/DeviceAgent.xctest")
-    }
-
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
 
     override fun getHostFromConfig(config: NodeConfig): ISimulatorsNode {
@@ -41,14 +36,20 @@ class HostFactory(
             throw RuntimeException("Config for non-localhost nodes must have non-empty 'user'. Current config: $config")
         }
 
+        val nodeTypeResult = remote.exec(listOf("/usr/bin/arch"), mapOf(),true, 60)
+        if (nodeTypeResult.isSuccess) {
+            logger.info("ARCH: The executor arch is ${nodeTypeResult.stdOut}")
+        } else {
+            logger.error("ARCH: Failed to determine executor type. (maybe it's Linux). ${nodeTypeResult.stdErr}")
+        }
+
         return if (config.type == NodeConfig.NodeType.Simulators) {
             SimulatorsNode(
                 remote = remote,
                 publicHostName = publicHostName,
                 hostChecker = SimulatorHostChecker(
                     remote,
-                    wdaBundle = wdaSimulatorBundle,
-                    remoteWdaBundleRoot = remoteWdaSimulatorBundleRoot,
+                    wdaSimulatorBundle = wdaSimulatorBundle,
                     remoteTestHelperAppRoot = remoteTestHelperAppRoot,
                     remoteVideoRecorder = remoteVideoRecorder,
                     fbsimctlVersion = fbsimctlVersion,
@@ -56,7 +57,7 @@ class HostFactory(
                 ),
                 simulatorLimit = config.simulatorLimit,
                 concurrentBoots = config.concurrentBoots,
-                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaSimulatorBundle, remoteWdaSimulatorBundleRoot)
+                wdaSimulatorBundle = wdaSimulatorBundle
             )
         } else {
             DevicesNode(
@@ -65,24 +66,9 @@ class HostFactory(
                 whitelistedApps = config.whitelistApps,
                 knownDevices = config.knownDevices,
                 uninstallApps = config.uninstallApps,
-                wdaBundlePath = wdaDeviceBundle,
-                remoteWdaBundleRoot = remoteWdaDeviceBundleRoot,
-                wdaRunnerXctest = getWdaRunnerXctest(remote.isLocalhost(), wdaDeviceBundle, remoteWdaDeviceBundleRoot),
+                wdaDeviceBundles = wdaDeviceBundles,
                 fbsimctlVersion = fbsimctlVersion
             )
         }
-    }
-
-    private fun getWdaRunnerXctest(isLocalHost: Boolean, wdaBundle: File, remoteWdaBundleRoot: File): File {
-        val xcTestPath = if (wdaBundle.name.contains("DeviceAgent")) DA_XCTEST.path else WDA_XCTEST.path
-        val wdaRunnerXctest =  File(wdaBundle.name, xcTestPath).path
-
-        val wdaBundleRoot = if (isLocalHost) {
-            wdaBundle.parentFile
-        } else {
-            remoteWdaBundleRoot
-        }
-
-        return File(wdaBundleRoot, wdaRunnerXctest)
     }
 }
