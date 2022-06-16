@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.util.CustomHttpClient
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
 import com.badoo.automation.deviceserver.util.pollFor
 import com.badoo.automation.deviceserver.util.uriWithPath
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -19,7 +20,7 @@ import kotlin.system.measureNanoTime
 
 class SimulatorXcrunWebDriverAgent(
     private val remote: IRemote,
-    wdaRunnerXctest: File,
+    private val wdaSimulatorBundle: WdaSimulatorBundle,
     private val udid: UDID,
     private val wdaEndpoint: URI,
     private val mjpegServerPort: Int,
@@ -36,8 +37,8 @@ class SimulatorXcrunWebDriverAgent(
         LogMarkers.UDID to udid,
         LogMarkers.HOSTNAME to remote.hostName
     )
-    private val hostApp = wdaRunnerXctest.parentFile.parentFile.absolutePath
-    private val wdaBundleId = applicationConfiguration.wdaBundleId
+    private val hostApp = wdaSimulatorBundle.bundlePath(remote.isLocalhost()).absolutePath
+    private val wdaBundleId = wdaSimulatorBundle.bundleId
     private val uri: URI = uriWithPath(wdaEndpoint, "status")
     private val client: CustomHttpClient = CustomHttpClient()
     override val deviceAgentLog: File = File.createTempFile("device_agent_log_", ".txt")

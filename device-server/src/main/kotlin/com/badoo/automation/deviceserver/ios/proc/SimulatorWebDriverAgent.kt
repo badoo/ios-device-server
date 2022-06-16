@@ -7,6 +7,7 @@ import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.util.pollFor
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.ApplicationConfiguration
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import java.io.File
 import java.net.URI
@@ -16,15 +17,15 @@ import kotlin.system.measureNanoTime
 
 class SimulatorWebDriverAgent(
     remote: IRemote,
-    wdaRunnerXctest: File,
+    private val wdaSimulatorBundle: WdaSimulatorBundle,
     udid: UDID,
     wdaEndpoint: URI,
     mjpegServerPort: Int,
     deviceRef: DeviceRef
 ) : WebDriverAgent(
         remote = remote,
-        wdaRunnerXctest = wdaRunnerXctest,
-        hostApp = wdaRunnerXctest.parentFile.parentFile.absolutePath,
+        wdaRunnerXctest = wdaSimulatorBundle.xctestRunnerPath(remote.isLocalhost()),
+        hostApp = wdaSimulatorBundle.bundlePath(remote.isLocalhost()).absolutePath,
         udid = udid,
         wdaEndpoint = wdaEndpoint,
         mjpegServerPort = mjpegServerPort
@@ -80,6 +81,6 @@ class SimulatorWebDriverAgent(
     }
 
     private fun isHostAppInstalled(): Boolean {
-        return appInstaller.isAppInstalledOnSimulator(udid, ApplicationConfiguration().wdaBundleId)
+        return appInstaller.isAppInstalledOnSimulator(udid, wdaSimulatorBundle.bundleId)
     }
 }

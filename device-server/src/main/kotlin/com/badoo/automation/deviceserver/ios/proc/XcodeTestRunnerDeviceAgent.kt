@@ -1,29 +1,26 @@
 package com.badoo.automation.deviceserver.ios.proc
 
-import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.ChildProcess
 import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.XcodeVersion
-import com.badoo.automation.deviceserver.util.ensure
-import com.badoo.automation.deviceserver.util.pollFor
-import com.badoo.automation.deviceserver.util.uriWithPath
+import com.badoo.automation.deviceserver.util.*
 import java.io.File
 import java.net.URI
 import java.time.Duration
 
 class XcodeTestRunnerDeviceAgent(
     private val remote: IRemote,
-    private val wdaRunnerXctest: File,
+    private val wdaBundle: WdaBundle,
     private val udid: UDID,
     private val wdaEndpoint: URI,
     private val mjpegServerPort: Int,
     private val deviceRef: DeviceRef,
     private val isRealDevice: Boolean,
     private val port: Int = wdaEndpoint.port,
-    private val hostApp: String = wdaRunnerXctest.parentFile.parentFile.absolutePath,
+    private val hostApp: String = wdaBundle.bundlePath(remote.isLocalhost()).absolutePath,
     private val childFactory: (
         remoteHost: String,
         userName: String,
@@ -44,6 +41,7 @@ class XcodeTestRunnerDeviceAgent(
         LogMarkers.UDID to udid,
         LogMarkers.HOSTNAME to remote.hostName
     )
+    private val testRunnerBundleId = wdaBundle.bundleId
 
     private val xcodeVersion: XcodeVersion by lazy {
         readXcodeVersion()
@@ -109,7 +107,7 @@ class XcodeTestRunnerDeviceAgent(
 
     override fun start() {
         ensure(childProcess == null) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
-        ensure(remote.isDirectory(wdaRunnerXctest.absolutePath)) { WebDriverAgentError("WebDriverAgent ${wdaRunnerXctest.absolutePath} does not exist or is not a directory") }
+        ensure(remote.isDirectory(wdaBundle.bundlePath(remote.isLocalhost()).absolutePath)) { WebDriverAgentError("WebDriverAgent ${wdaBundle.bundlePath(remote.isLocalhost()).absolutePath} does not exist or is not a directory") }
         logger.debug(logMarker, "$this — Starting child process WebDriverAgent on port: $port with bundle id: $testRunnerBundleId")
 
         cleanupLogs()
@@ -180,7 +178,7 @@ class XcodeTestRunnerDeviceAgent(
         }
 
         return try {
-            val url = if (wdaRunnerXctest.name.contains("DeviceAgent")) daUri.toURL() else uri.toURL()
+            val url = if (wdaBundle.bundleId.contains("DeviceAgent")) daUri.toURL() else uri.toURL()
             logger.debug(logMarker, "Checking health for WebDriverAgent on $udid on url: $url")
             val result = client.get(url)
             logger.debug(logMarker, "WDA on $udid on url: $url returned result - ${result.httpCode} , ${result.responseBody}, Success: ${result.isSuccess}")
@@ -201,6 +199,5 @@ class XcodeTestRunnerDeviceAgent(
         val xctestrunRealDeviceTemplateXcode13: String = XcodeTestRunnerDeviceAgent::class.java.classLoader
             .getResource("DeviceAgent-RealDevice-Xcode13.template.xctestrun")?.readText()
             ?: throw RuntimeException("Failed to read file DeviceAgent-RealDevice-Xcode13.template.xctestrun from resources")
-        val testRunnerBundleId = ApplicationConfiguration().wdaBundleId
     }
 }

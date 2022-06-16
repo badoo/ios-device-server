@@ -5,20 +5,11 @@ import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecor
 import java.io.File
 
 class ApplicationConfiguration {
-    private val wdaSimulatorBundlePathProperty = "wda.bundle.path"
-    val wdaSimulatorBundlePath: String = System.getProperty(wdaSimulatorBundlePathProperty)
-        ?: throw RuntimeException(
-            "Must set system property: -D$wdaSimulatorBundlePathProperty=" +
-                    "/ABSOLUTE/PATH/ios/facebook/simulators/WebDriverAgentRunner-Runner.app"
-        )
-    val wdaBundleId: String = System.getProperty("wda.bundle.id", "com.facebook.WebDriverAgentRunner.xctrunner")
+    val wdaDeviceBundles: String = System.getProperty("wda.device.bundles")
+        ?: throw RuntimeException("Must set system property: -Dwda.device.bundles=/ABSOLUTE/PATH/ios/facebook/devices/,")
 
-    private val wdaDeviceBundlePathProperty = "wda.device.bundle.path"
-    val wdaDeviceBundlePath: String = System.getProperty(wdaDeviceBundlePathProperty)
-        ?: throw RuntimeException(
-            "Must set system property: -D$wdaDeviceBundlePathProperty=" +
-                    "/ABSOLUTE/PATH/ios/facebook/devices/WebDriverAgentRunner-Runner.app"
-        )
+    val wdaSimulatorBundles: String = System.getProperty("wda.simulator.bundles")
+        ?: throw RuntimeException("Must set system property: -Dwda.simulator.bundles=/ABSOLUTE/PATH/ios/facebook/simulator/")
 
     private val deviceServerConfigPathProperty = "device.server.config.path"
     val deviceServerConfigPath: String = System.getProperty(deviceServerConfigPathProperty)

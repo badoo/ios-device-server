@@ -18,10 +18,7 @@ import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
-import com.badoo.automation.deviceserver.util.AppInstaller
-import com.badoo.automation.deviceserver.util.executeWithTimeout
-import com.badoo.automation.deviceserver.util.pollFor
-import com.badoo.automation.deviceserver.util.withDefers
+import com.badoo.automation.deviceserver.util.*
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.Runnable
 import kotlinx.coroutines.experimental.delay
@@ -50,7 +47,7 @@ class Simulator(
         override val deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
-        wdaRunnerXctest: File,
+        private val wdaSimulatorBundle: WdaSimulatorBundle,
         private val concurrentBootsPool: ExecutorService,
         headless: Boolean,
         private val useWda: Boolean,
@@ -126,7 +123,7 @@ class Simulator(
         webDriverAgent = when (wdaClassName) {
             SimulatorWebDriverAgent::class.qualifiedName -> SimulatorWebDriverAgent(
                 remote,
-                wdaRunnerXctest,
+                wdaSimulatorBundle,
                 deviceInfo.udid,
                 wdaEndpoint,
                 mjpegServerPort,
@@ -134,7 +131,7 @@ class Simulator(
             )
             SimulatorXcrunWebDriverAgent::class.qualifiedName -> SimulatorXcrunWebDriverAgent(
                 remote,
-                wdaRunnerXctest,
+                wdaSimulatorBundle,
                 deviceInfo.udid,
                 wdaEndpoint,
                 mjpegServerPort,
@@ -142,7 +139,7 @@ class Simulator(
             )
             XcodeTestRunnerDeviceAgent::class.qualifiedName-> XcodeTestRunnerDeviceAgent(
                 remote,
-                wdaRunnerXctest,
+                wdaSimulatorBundle,
                 deviceInfo.udid,
                 wdaEndpoint,
                 mjpegServerPort,
@@ -1176,8 +1173,8 @@ class Simulator(
     //region release
     override fun release(reason: String) {
         logger.info(logMarker, "Releasing device $this because $reason")
-        shutdown()
-        disposeResources()
+        ignoringErrors({ shutdown() })
+        ignoringErrors({ disposeResources() })
         logger.info(logMarker, "Released device $this")
     }
 
