@@ -629,7 +629,8 @@ class Simulator(
                 }
             }
 
-            val cmd = listOf("/usr/bin/defaults", "write", "com.apple.iphonesimulator", "DevicePreferences", "-dict-add", udid, "'<dict><key>ConnectHardwareKeyboard</key><integer>0</integer></dict>'")
+            val dict = "<dict><key>ConnectHardwareKeyboard</key><integer>0</integer></dict>"
+            val cmd = listOf("/usr/bin/defaults", "write", "com.apple.iphonesimulator", "DevicePreferences", "-dict-add", udid, if (remote.isLocalhost()) dict else "'$dict'")
             val result = remote.execIgnoringErrors(cmd)
 
             val simulatorApp = "/Simulator.app/"
