@@ -147,6 +147,7 @@ class SimulatorHostChecker(
                 "/var/folders/*/*/*/derivedDataDir_*",
                 "/var/folders/*/*/*/xctestRunDir_*",
                 "/var/folders/*/*/*/device_agent_log_*",
+                "/var/folders/*/*/*/appium_tmpdir_*",
                 File(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, "*").absolutePath,
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )

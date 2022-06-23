@@ -21,6 +21,7 @@ inline fun <reified T> mockThis(): T = Mockito.mock(T::class.java)
 inline fun <reified T> mockThis(name: String): T = Mockito.mock(T::class.java, name)
 inline fun <reified T> mockThis(settings: MockSettings): T = Mockito.mock(T::class.java, settings)
 fun <T> anyType(): T = Mockito.any<T>() as T
+
 /**
  * Parse a string of permissive JSON.
  */
@@ -28,11 +29,16 @@ fun json(json: String) = JsonMapper().readTree(json.byteInputStream())
 
 fun deviceDTOStub(ref: DeviceRef): DeviceDTO {
     return DeviceDTO(
-    ref, DeviceState.NONE,
-    URI("http://fbsimctl/endpoint/for/testing"),
-    URI("http://wda/endpoint/for/testing"),
-    0, 1, setOf(0, 1),
-    DeviceInfo("", "", "", "", ""),
-    Exception().toDto(),
-    capabilities = null)
+        ref, DeviceState.NONE,
+        URI("http://fbsimctl/endpoint/for/testing"),
+        URI("http://wda/endpoint/for/testing"),
+        0,
+        URI("http://calabash/endpoint/for/testing"),
+        1,
+        2,
+        URI("http://appium/endpoint/for/testing"),
+        DeviceInfo("", "", "", "", ""),
+        Exception().toDto(),
+        capabilities = null
+    )
 }

@@ -37,7 +37,6 @@ class SimulatorsNodeTest {
 
     private val hostChecker: ISimulatorHostChecker = mockThis()
 
-    private val wdaPath = File("some/file/from/wdaPathProc")
     private val wdaSimulatorBundle = WdaSimulatorBundle(
         "DeviceAgent",
         Paths.get("some/file/from/wdaPathProc"),
@@ -66,7 +65,7 @@ class SimulatorsNodeTest {
             "Udid2",
             "Os")
 
-    private val portAllocator = PortAllocator(1, 10)
+    private val portAllocator = PortAllocator(1, 20)
 
     private val configuredSimulatorLimit = 3
 
@@ -98,8 +97,10 @@ class SimulatorsNodeTest {
             URI("http://fbsimctl"),
             URI("http://wda"),
             4444,
+            URI("http://calabash"),
+            3333,
             5555,
-            setOf(1, 2, 3, 4, 37265),
+            URI("http://appium"),
             DeviceInfo("", "", "", "", ""),
             null,
             ActualCapabilities(true, true, true)
@@ -144,10 +145,11 @@ class SimulatorsNodeTest {
                 eq("Udid1-rem-ote-node"),
                 eq(iRemote),
                 eq(fbsimulatorDevice),
-                eq(DeviceAllocatedPorts(1, 2, 3, 4)),
+                eq(DeviceAllocatedPorts(1, 2, 3, 4,5)),
                 eq("/node/specific/device/set"),
                 eq(wdaSimulatorBundle),
                 any(),
+                eq(false),
                 eq(false),
                 eq(false)
         )
@@ -177,7 +179,7 @@ class SimulatorsNodeTest {
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
 
-        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         simulatorMocks.forEach { pair ->
             simfac = simfac.thenReturn(pair.first)
         }
@@ -187,11 +189,13 @@ class SimulatorsNodeTest {
             whenever(it.ref).thenReturn("someref$index")
             whenever(it.deviceState).thenReturn(DeviceState.CREATING)
             whenever(it.deviceInfo).thenReturn(DeviceInfo("","","","",""))
-            whenever(it.userPorts).thenReturn(DeviceAllocatedPorts(1,2,3, 4))
             whenever(it.fbsimctlEndpoint).thenReturn(URI("http://fbsimctl"))
             whenever(it.wdaEndpoint).thenReturn(URI("http://wda"))
             whenever(it.calabashPort).thenReturn(4444 + index)
-            whenever(it.mjpegServerPort).thenReturn(5555 + index)
+            whenever(it.mjpegServerPort).thenReturn(3333 + index)
+            whenever(it.appiumPort).thenReturn(5555 + index)
+            whenever(it.calabashEndpoint).thenReturn(URI("http://calabash"))
+            whenever(it.appiumEndpoint).thenReturn(URI("http://appium"))
         }
     }
 
@@ -286,8 +290,10 @@ class SimulatorsNodeTest {
                 URI("http://fbsimctl"),
                 URI("http://wda"),
                 4444,
-            5555,
-                setOf(1,2,3,4, 37265),
+                URI("http://calabash"),
+                3333,
+                5555,
+                URI("http://appium"),
                 DeviceInfo("", "", "", "", ""),
                 null,
                 ActualCapabilities(true, true, true)
@@ -323,13 +329,13 @@ class SimulatorsNodeTest {
         assertThat(simulatorsNode.capacityRemaining(desiredCapabilities), equalTo(1F))
         createTwoDevicesForTest()
         assertThat(simulatorsNode.capacityRemaining(desiredCapabilities), equalTo(1F/3))
-        assertThat(portAllocator.available(), equalTo(2))
+        assertThat(portAllocator.available(), equalTo(10))
 
         val actual = simulatorsNode.deleteRelease(ref1, "test")
         assertThat(actual, equalTo(true))
         verify(simulatorMock).release(any())
         assertThat(simulatorsNode.capacityRemaining(desiredCapabilities), equalTo(1F/3*2))
-        assertThat(portAllocator.available(), equalTo(6))
+        assertThat(portAllocator.available(), equalTo(15))
     }
 
     @Test @Ignore
@@ -344,7 +350,7 @@ class SimulatorsNodeTest {
     @Ignore @Test
     fun state() {
         createDeviceForTest()
-        val expected = SimulatorStatusDTO(false, false, false, DeviceState.CREATING.value, null)
+        val expected = SimulatorStatusDTO(false, false, false, false, DeviceState.CREATING.value, null)
 
         whenever(simulatorMock.status()).thenReturn(expected)
 
@@ -396,7 +402,7 @@ class SimulatorsNodeTest {
         var expectedValue = "ENV_VAR1s"
 
         whenever(simulatorMock.getEnvironmentVariable(variableName)).thenReturn(expectedValue)
-        
+
         val actual = simulatorsNode.getEnvironmentVariable(ref1, variableName)
         Assert.assertThat(actual, equalTo(expectedValue))
     }

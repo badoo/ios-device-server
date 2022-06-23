@@ -13,12 +13,14 @@ interface IDevice {
     val calabashPort: Int
     val deviceInfo: DeviceInfo
     val mjpegServerPort: Int
+    val appiumPort: Int
     val wdaEndpoint: URI
     val fbsimctlEndpoint: URI
+    val calabashEndpoint: URI
+    val appiumEndpoint: URI
     val udid: UDID
     val ref: DeviceRef
     val deviceState: DeviceState
-    val userPorts: DeviceAllocatedPorts
     val videoRecorder: VideoRecorder
     fun uninstallApplication(bundleId: String, appInstaller: AppInstaller)
     fun status(): SimulatorStatusDTO

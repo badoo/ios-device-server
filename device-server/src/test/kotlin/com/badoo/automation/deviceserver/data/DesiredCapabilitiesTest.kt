@@ -66,7 +66,7 @@ class DesiredCapabilitiesTest {
         val json = """{"use_wda": false}"""
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(null, null, null, true, true, useWda = false), actual)
+        assertEquals(DesiredCapabilities(null, null, null, true, true, useWda = false, useAppium = false), actual)
     }
 
     @Test
@@ -74,6 +74,6 @@ class DesiredCapabilitiesTest {
         val json = """{"use_wda": "false"}"""
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(null, null, null, true, useWda = false), actual)
+        assertEquals(DesiredCapabilities(null, null, null, true, useWda = false, useAppium = false), actual)
     }
 }

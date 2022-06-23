@@ -11,7 +11,7 @@ import java.io.File
 import java.net.URI
 import java.time.Duration
 
-class XcodeTestRunnerDeviceAgent(
+class XcodeTestRunnerWebDriverAgent(
     private val remote: IRemote,
     private val wdaBundle: WdaBundle,
     private val udid: UDID,
@@ -34,7 +34,7 @@ class XcodeTestRunnerDeviceAgent(
         remote.shell("/usr/bin/mktemp -d -t derivedDataDir_$udid", returnOnFailure = false).stdOut.trim()
     private val xctestrunDir =
         remote.shell("/usr/bin/mktemp -d -t xctestRunDir_$udid", returnOnFailure = false).stdOut.trim()
-    val xctestrunSuffix = "DeviceAgent_$udid.xctestrun"
+    val xctestrunSuffix = "WebDriverAgent_$udid.xctestrun"
     private val xctestrunFile = File(xctestrunDir, xctestrunSuffix)
     private val commonLogMarkerDetails = mapOf(
         LogMarkers.DEVICE_REF to deviceRef,
@@ -88,7 +88,6 @@ class XcodeTestRunnerDeviceAgent(
     }
 
     private val uri: URI = uriWithPath(wdaEndpoint, "status")
-    private val daUri: URI = uriWithPath(wdaEndpoint, "1.0/status")
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
 
@@ -96,7 +95,7 @@ class XcodeTestRunnerDeviceAgent(
         remote.fbsimctl.installApp(udid, File(hostApp))
     }
 
-    override val deviceAgentLog: File = File.createTempFile("device_agent_log_", ".txt")
+    override val deviceAgentLog: File = File.createTempFile("web_driver_agent_log_", ".txt")
 
     @Volatile
     private var wdaRunnerStarted = false
@@ -119,7 +118,7 @@ class XcodeTestRunnerDeviceAgent(
             mapOf(),
             { message ->
                 deviceAgentLog.appendText(message + "\n")
-                if (!wdaRunnerStarted && message.contains("Started HTTP server on port")) {
+                if (!wdaRunnerStarted && message.contains("ServerURLHere")) {
                     wdaRunnerStarted = true
                     logger.debug(logMarker, "$this — WebDriverAgent has reported that it has Started HTTP server on port: $port with bundle id: $testRunnerBundleId . Message: $message")
                 }
@@ -132,7 +131,7 @@ class XcodeTestRunnerDeviceAgent(
         try {
             pollFor(
                 Duration.ofSeconds(45),
-                reasonName = "$this Waiting for DeviceAgent to start serving requests",
+                reasonName = "$this Waiting for WebDriverAgent to start serving requests",
                 retryInterval = Duration.ofSeconds(1),
                 logger = logger,
                 marker = logMarker
@@ -174,11 +173,10 @@ class XcodeTestRunnerDeviceAgent(
         }
 
         return try {
-            val url = if (wdaBundle.bundleId.contains("DeviceAgent")) daUri.toURL() else uri.toURL()
-            logger.debug(logMarker, "Checking health for WebDriverAgent on $udid on url: $url")
-            val result = client.get(url)
-            logger.debug(logMarker, "WDA on $udid on url: $url returned result - ${result.httpCode} , ${result.responseBody}, Success: ${result.isSuccess}")
-            return result.isSuccess
+            val url = uri.toURL()
+            val success = client.get(url).isSuccess
+            logger.debug(logMarker, "Checking health for WebDriverAgent on $udid on url: $url - Result: ${if (success) "Success" else "Failure"}")
+            return success
         } catch (e: RuntimeException) {
             logger.warn(logMarker, "Failed to determine WDA driver state. Exception: $e")
             false
@@ -186,14 +184,14 @@ class XcodeTestRunnerDeviceAgent(
     }
 
     companion object {
-        val xctestrunSimulatorTemplate: String = XcodeTestRunnerDeviceAgent::class.java.classLoader
-            .getResource("DeviceAgent-Simulator.template.xctestrun")?.readText()
-            ?: throw RuntimeException("Failed to read file DeviceAgent-Simulator.template.xctestrun from resources")
-        val xctestrunRealDeviceTemplate: String = XcodeTestRunnerDeviceAgent::class.java.classLoader
-            .getResource("DeviceAgent-RealDevice.template.xctestrun")?.readText()
-            ?: throw RuntimeException("Failed to read file DeviceAgent-RealDevice.template.xctestrun from resources")
-        val xctestrunRealDeviceTemplateXcode13: String = XcodeTestRunnerDeviceAgent::class.java.classLoader
-            .getResource("DeviceAgent-RealDevice-Xcode13.template.xctestrun")?.readText()
-            ?: throw RuntimeException("Failed to read file DeviceAgent-RealDevice-Xcode13.template.xctestrun from resources")
+        val xctestrunSimulatorTemplate: String = XcodeTestRunnerWebDriverAgent::class.java.classLoader
+            .getResource("WebDriverAgent-Simulator.template.xctestrun")?.readText()
+            ?: throw RuntimeException("Failed to read file WebDriverAgent-Simulator.template.xctestrun from resources")
+        val xctestrunRealDeviceTemplate: String = XcodeTestRunnerWebDriverAgent::class.java.classLoader
+            .getResource("WebDriverAgent-RealDevice.template.xctestrun")?.readText()
+            ?: throw RuntimeException("Failed to read file WebDriverAgent-RealDevice.template.xctestrun from resources")
+        val xctestrunRealDeviceTemplateXcode13: String = XcodeTestRunnerWebDriverAgent::class.java.classLoader
+            .getResource("WebDriverAgent-RealDevice-Xcode13.template.xctestrun")?.readText()
+            ?: throw RuntimeException("Failed to read file WebDriverAgent-RealDevice-Xcode13.template.xctestrun from resources")
     }
 }

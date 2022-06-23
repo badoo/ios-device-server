@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.data
 data class SimulatorStatus(
         var wdaStatus: Boolean = false,
         var fbsimctlStatus: Boolean = false,
+        var appiumStatus: Boolean = false,
         @Volatile var wdaStatusRetries: Int = 0,
         @Volatile var fbsimctlStatusRetries: Int = 0
 ) {

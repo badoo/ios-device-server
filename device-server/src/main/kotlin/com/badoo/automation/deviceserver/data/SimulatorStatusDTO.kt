@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.ios.simulator.Simulator
 data class SimulatorStatusDTO (
         val ready: Boolean,
         val wda_status: Boolean,
+        val appium_status: Boolean,
         val fbsimctl_status: Boolean,
         val state: String,
         val last_error: ExceptionDTO?,

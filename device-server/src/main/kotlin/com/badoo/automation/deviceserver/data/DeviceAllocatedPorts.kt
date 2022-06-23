@@ -5,9 +5,9 @@ data class DeviceAllocatedPorts(
     val wdaPort: Int,
     val calabashPort: Int,
     val mjpegServerPort: Int,
-    private val defaultCalabashPort: Int = 37265
+    val appiumPort: Int
 ) {
     fun toSet(): Set<Int> {
-        return setOf(fbsimctlPort, wdaPort, calabashPort, mjpegServerPort, defaultCalabashPort)
+        return setOf(fbsimctlPort, wdaPort, calabashPort, mjpegServerPort, appiumPort)
     }
 }
