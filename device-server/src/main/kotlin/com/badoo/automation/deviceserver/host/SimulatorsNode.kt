@@ -170,7 +170,7 @@ class SimulatorsNode(
             logger.debug(simLogMarker, "Will create simulator $ref")
 
             val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, simulatorProvider.deviceSetPath,
-                    wdaSimulatorBundle, concurrentBoot, desiredCaps.headless, desiredCaps.useWda)
+                    wdaSimulatorBundle, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, desiredCaps.useAppium)
 
             cancelRunningSimulatorTask(ref, "createDeviceAsync")
 
@@ -255,8 +255,10 @@ class SimulatorsNode(
                 fbsimctlEndpoint,
                 wdaEndpoint,
                 calabashPort,
+                calabashEndpoint,
                 mjpegServerPort,
-                device.userPorts.toSet(),
+                appiumPort,
+                appiumEndpoint,
                 device.deviceInfo,
                 device.lastException?.toDto(),
                 capabilities = ActualCapabilities(

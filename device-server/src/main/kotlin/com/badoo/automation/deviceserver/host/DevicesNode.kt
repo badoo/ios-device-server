@@ -267,13 +267,15 @@ class DevicesNode(
         val device = slotByExternalRef(deviceRef).device
         val status = device.status()
 
-        return SimulatorStatusDTO(
-            ready = status.ready,
-            wda_status = status.wda_status,
-            fbsimctl_status = status.fbsimctl_status,
-            state = status.state,
-            last_error = status.last_error
-        )
+        return status
+//        return SimulatorStatusDTO(
+//            ready = status.ready,
+//            wda_status = status.wda_status,
+//            appium_status = status.appium_status,
+//            fbsimctl_status = status.fbsimctl_status,
+//            state = status.state,
+//            last_error = status.last_error
+//        )
     }
 
     override fun isReachable(): Boolean {
@@ -450,8 +452,10 @@ class DevicesNode(
             fbsimctl_endpoint = device.fbsimctlEndpoint,
             wda_endpoint = device.wdaEndpoint,
             calabash_port = device.calabashPort,
+            calabash_endpoint = device.calabashEndpoint,
             mjpeg_server_port = device.mjpegServerPort,
-            user_ports = emptySet(),
+            appium_port = device.appiumPort,
+            appium_endpoint = device.appiumEndpoint,
             info = device.deviceInfo,
             last_error = device.lastException?.toDto(),
             capabilities = ActualCapabilities(

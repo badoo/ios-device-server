@@ -183,7 +183,7 @@ class DevicesControllerTest {
     @Test
     fun getDeviceState() {
         val expectedState = SimulatorStatusDTO(
-                true, true, true, DeviceState.NONE.value, null)
+                true, true, true, true, DeviceState.NONE.value, null)
         whenever(deviceManager.getDeviceState(deviceRef)).thenReturn(expectedState)
         val actualResult = deviceServer.getDeviceState(deviceRef)
         assertThat(actualResult, equalTo(expectedState))

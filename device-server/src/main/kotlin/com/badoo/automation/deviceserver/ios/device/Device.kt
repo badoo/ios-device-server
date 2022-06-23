@@ -9,10 +9,10 @@ import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
+import com.badoo.automation.deviceserver.ios.proc.AppiumServer
 import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
 import com.badoo.automation.deviceserver.ios.proc.XcodeTestRunnerDeviceAgent
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
-import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.*
 import kotlinx.coroutines.experimental.Job
@@ -34,10 +34,11 @@ import kotlin.concurrent.withLock
 class Device(
     private val remote: IRemote,
     override val deviceInfo: DeviceInfo,
-    override val userPorts: DeviceAllocatedPorts,
+    val userPorts: DeviceAllocatedPorts,
     private val wdaDeviceBundle: WdaDeviceBundle,
     usbProxy: UsbProxyFactory = UsbProxyFactory(remote)
 ) : IDevice {
+    override val appiumPort: Int get() = userPorts.appiumPort
     override val udid: String = deviceInfo.udid
     override val ref: DeviceRef by lazy {
         val unsafe = Regex("[^\\-_a-zA-Z\\d]")
@@ -68,6 +69,8 @@ class Device(
     )
 
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}/$udid/")
+    override val calabashEndpoint = URI("http://${remote.publicHostName}:${userPorts.calabashPort}")
+    override val appiumEndpoint = URI("http://${remote.publicHostName}:${userPorts.appiumPort}/${AppiumServer.APPIUM_BASE_PATH}")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     override val calabashPort = calabashProxy.localPort
 //    override val videoRecorder: VideoRecorder = MJPEGVideoRecorder(
@@ -138,6 +141,7 @@ class Device(
             ready = status.isReady,
             state = deviceState.value, // FIXME: why get rid of type here
             wda_status = status.wdaStatus,
+            appium_status = status.appiumStatus,
             fbsimctl_status = status.fbsimctlStatus,
             last_error = lastException?.toDTO()
         )
@@ -148,6 +152,7 @@ class Device(
 
         status.fbsimctlStatus = false
         status.wdaStatus = false
+        status.appiumStatus = false
 
         if (deviceState != DeviceState.CREATED) {
             return
@@ -374,6 +379,7 @@ class Device(
         lastException = null
         status.wdaStatus = false
         status.fbsimctlStatus = false
+        status.appiumStatus = false
 
         logger.info(logMarker, "Starting to prepare $this")
 

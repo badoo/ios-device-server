@@ -51,6 +51,7 @@ class Simulator(
         private val concurrentBootsPool: ExecutorService,
         headless: Boolean,
         private val useWda: Boolean,
+        private val useAppium: Boolean,
         private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
         private val trustStoreFile: String = appConfig.trustStorePath,
         private val assetsPath: String = appConfig.assetsPath
@@ -67,9 +68,11 @@ class Simulator(
     override val udid: UDID = deviceInfo.udid
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.wdaPort}/")
-    override val userPorts = allocatedPorts
+    override val calabashEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.calabashPort}/")
+    override val appiumEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.appiumPort}/${AppiumServer.APPIUM_BASE_PATH}")
     override val calabashPort: Int = allocatedPorts.calabashPort
     override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
+    override val appiumPort: Int = allocatedPorts.appiumPort
 
     private fun createVideoRecorder(): VideoRecorder {
         val recorderClassName = appConfig.videoRecorderClassName
@@ -116,6 +119,12 @@ class Simulator(
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
     private val webDriverAgent: IWebDriverAgent
+    private val appiumServer: AppiumServer = AppiumServer(
+        remote,
+        udid,
+        appiumPort,
+        allocatedPorts.wdaPort
+    )
 
     init {
         val wdaClassName = appConfig.simulatorWdaClassName
@@ -138,6 +147,15 @@ class Simulator(
                 deviceRef
             )
             XcodeTestRunnerDeviceAgent::class.qualifiedName-> XcodeTestRunnerDeviceAgent(
+                remote,
+                wdaSimulatorBundle,
+                deviceInfo.udid,
+                wdaEndpoint,
+                mjpegServerPort,
+                deviceRef,
+                isRealDevice = false
+            )
+            XcodeTestRunnerWebDriverAgent::class.qualifiedName-> XcodeTestRunnerWebDriverAgent(
                 remote,
                 wdaSimulatorBundle,
                 deviceInfo.udid,
@@ -274,6 +292,12 @@ class Simulator(
 
             if (useWda) {
                 logTiming("starting WebDriverAgent") { startWdaWithRetry() }
+            }
+
+            if (useAppium) {
+                logTiming("starting Appium Server") {
+                    appiumServer.start()
+                }
             }
 
             logger.info(logMarker, "Finished preparing $this")
@@ -997,10 +1021,12 @@ class Simulator(
     override fun status(): SimulatorStatusDTO {
         var isFbsimctlReady = false
         var isWdaReady = false
+        var isAppiumReady = false
 
         if (deviceState == DeviceState.CREATED) {
             isFbsimctlReady = fbsimctlProc.isHealthy()
             isWdaReady = (if (useWda) { webDriverAgent.isHealthy() } else true)
+            isAppiumReady = (if (useAppium) { appiumServer.isHealthy() } else true)
         }
 
         val isSimulatorReady = deviceState == DeviceState.CREATED && isFbsimctlReady && isWdaReady
@@ -1008,6 +1034,7 @@ class Simulator(
         return SimulatorStatusDTO(
             ready = isSimulatorReady,
             wda_status = isWdaReady,
+            appium_status = isAppiumReady,
             fbsimctl_status = isFbsimctlReady,
             state = deviceState.value,
             last_error = lastException?.toDTO(),

@@ -9,8 +9,10 @@ data class DeviceDTO(
         val fbsimctl_endpoint: URI,
         val wda_endpoint: URI,
         val calabash_port: Int,
+        val calabash_endpoint: URI,
         val mjpeg_server_port: Int,
-        val user_ports: Set<Int>, // From PortAllocator
+        val appium_port: Int,
+        val appium_endpoint: URI,
         val info: DeviceInfo,
         val last_error: ErrorDto?,
         val capabilities: ActualCapabilities?

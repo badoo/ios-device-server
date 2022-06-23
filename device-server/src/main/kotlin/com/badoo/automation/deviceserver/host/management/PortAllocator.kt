@@ -9,15 +9,17 @@ class PortAllocator(min: Int = PORT_RANGE_START, max: Int = PORT_RANGE_END) {
         const val PORT_RANGE_END = 42507
     }
 
-    private var ports: Set<Int> = IntRange(min, max).toSet()
+    private val ports: MutableSet<Int> = IntRange(min, max).toMutableSet()
 
     fun allocateDAP(): DeviceAllocatedPorts {
-        val take = allocate(4)
-        return DeviceAllocatedPorts(take[0], take[1], take[2], take[3])
+        val take = allocate(5)
+        return DeviceAllocatedPorts(take[0], take[1], take[2], take[3], take[4])
     }
 
-    fun deallocateDAP(dap: DeviceAllocatedPorts) {
-        deallocate(listOf(dap.calabashPort, dap.fbsimctlPort, dap.wdaPort, dap.mjpegServerPort))
+    fun deallocateDAP(allocatedPorts: DeviceAllocatedPorts) {
+        synchronized(this) {
+            ports.addAll(allocatedPorts.toSet())
+        }
     }
 
     fun available(): Int {
@@ -25,19 +27,14 @@ class PortAllocator(min: Int = PORT_RANGE_START, max: Int = PORT_RANGE_END) {
     }
 
     private fun allocate(entries: Int): List<Int> {
+        //TODO: Check with "netstat -nat|grep LISTEN|grep -v tcp6" if ports are already occupied
         synchronized(this) {
             if (ports.size < entries) {
                 throw RuntimeException("No more ports to allocate")
             }
-            val take = ports.take(entries)
-            ports = ports.subtract(take)
-            return take
-        }
-    }
-
-    private fun deallocate(entries: List<Int>) {
-        synchronized(this) {
-            ports = ports.plus(entries)
+            val takenPorts = ports.take(entries)
+            ports.removeAll(takenPorts)
+            return takenPorts
         }
     }
 }
