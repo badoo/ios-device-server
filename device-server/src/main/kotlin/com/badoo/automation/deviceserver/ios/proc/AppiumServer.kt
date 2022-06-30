@@ -85,13 +85,17 @@ class AppiumServer(
         val outWriter: (String) -> Unit = { message -> logger.info("[Appium Server INFO] $message") }
         val errWriter: (String) -> Unit = { message -> logger.error("[Appium Server ERROR] $message") }
 
+        val path = if (remote.isLocalhost()) {
+            "${System.getenv("PATH")}:${DEFAULT_PATH}"
+        } else {
+            DEFAULT_PATH
+        }
+
         val process = childFactory(
             remote.hostName,
             remote.userName,
             getAppiumServerStartCommand(),
-            mapOf(
-                "PATH" to "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
-            ),
+            mapOf("PATH" to path),
             outWriter,
             errWriter
         )
@@ -159,5 +163,6 @@ class AppiumServer(
     }
     companion object {
         const val APPIUM_BASE_PATH = "wd/hub"
+        const val DEFAULT_PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
     }
 }
