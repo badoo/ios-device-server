@@ -118,7 +118,28 @@ class Simulator(
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
-    private val webDriverAgent: IWebDriverAgent
+    private val webDriverAgent: IWebDriverAgent = if (useAppium) {
+        XcodeTestRunnerWebDriverAgent(
+            remote,
+            wdaSimulatorBundle,
+            deviceInfo.udid,
+            wdaEndpoint,
+            mjpegServerPort,
+            deviceRef,
+            isRealDevice = false
+        )
+    } else {
+        XcodeTestRunnerDeviceAgent(
+            remote,
+            wdaSimulatorBundle,
+            deviceInfo.udid,
+            wdaEndpoint,
+            mjpegServerPort,
+            deviceRef,
+            isRealDevice = false
+        )
+    }
+
     private val appiumServer: AppiumServer = AppiumServer(
         remote,
         udid,
@@ -126,50 +147,6 @@ class Simulator(
         allocatedPorts.wdaPort
     )
 
-    init {
-        val wdaClassName = appConfig.simulatorWdaClassName
-
-        webDriverAgent = when (wdaClassName) {
-            SimulatorWebDriverAgent::class.qualifiedName -> SimulatorWebDriverAgent(
-                remote,
-                wdaSimulatorBundle,
-                deviceInfo.udid,
-                wdaEndpoint,
-                mjpegServerPort,
-                deviceRef
-            )
-            SimulatorXcrunWebDriverAgent::class.qualifiedName -> SimulatorXcrunWebDriverAgent(
-                remote,
-                wdaSimulatorBundle,
-                deviceInfo.udid,
-                wdaEndpoint,
-                mjpegServerPort,
-                deviceRef
-            )
-            XcodeTestRunnerDeviceAgent::class.qualifiedName-> XcodeTestRunnerDeviceAgent(
-                remote,
-                wdaSimulatorBundle,
-                deviceInfo.udid,
-                wdaEndpoint,
-                mjpegServerPort,
-                deviceRef,
-                isRealDevice = false
-            )
-            XcodeTestRunnerWebDriverAgent::class.qualifiedName-> XcodeTestRunnerWebDriverAgent(
-                remote,
-                wdaSimulatorBundle,
-                deviceInfo.udid,
-                wdaEndpoint,
-                mjpegServerPort,
-                deviceRef,
-                isRealDevice = false
-            )
-            else -> throw IllegalArgumentException(
-                "Wrong class specified as WDA for Simulator: $wdaClassName. " +
-                        "Available are: [${SimulatorWebDriverAgent::class.qualifiedName}, ${SimulatorXcrunWebDriverAgent::class.qualifiedName}]"
-            )
-        }
-    }
     override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
 
     private val simulatorDirectory = File(deviceSetPath, udid)
