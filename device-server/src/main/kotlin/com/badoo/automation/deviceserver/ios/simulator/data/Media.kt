@@ -121,7 +121,13 @@ class Media(
         }
     }
 
-    private val notRunningMessage = "app is not currently running"
+    private val notRunningPattern = Regex(".*app is not currently running.*|.*found nothing to terminate.*",
+        setOf(
+            RegexOption.MULTILINE,
+            RegexOption.IGNORE_CASE,
+            RegexOption.DOT_MATCHES_ALL
+        )
+    )
 
     private fun terminateMobileSlideshowApp() {
         val appTerminateResult = remote.execIgnoringErrors(
@@ -130,8 +136,8 @@ class Media(
             )
         )
 
-        // The 'notRunningMessage' can be in stdOut when over SSH and in stdErr when local run
-        if (appTerminateResult.isSuccess || appTerminateResult.stdOut.contains(notRunningMessage) || appTerminateResult.stdErr.contains(notRunningMessage)) {
+        // The 'notRunningPattern' can be in stdOut when over SSH and in stdErr when local run
+        if (appTerminateResult.isSuccess || notRunningPattern.matches(appTerminateResult.stdOut) || notRunningPattern.matches(appTerminateResult.stdErr)) {
             logger.debug("Successfully terminated the Mobile Slideshow app")
         } else {
             throw RuntimeException("Could not terminate Mobile Slideshow app: $appTerminateResult")
