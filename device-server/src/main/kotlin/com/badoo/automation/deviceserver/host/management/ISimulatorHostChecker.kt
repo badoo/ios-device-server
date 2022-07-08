@@ -4,7 +4,7 @@ import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
-import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -26,7 +26,7 @@ interface ISimulatorHostChecker {
 class SimulatorHostChecker(
         val remote: IRemote,
         private val diskCleanupInterval: Duration = Duration.ofMinutes(15),
-        private val wdaSimulatorBundle: WdaSimulatorBundle,
+        private val wdaSimulatorBundles: WdaSimulatorBundles,
         private val remoteTestHelperAppRoot: File,
         private val fbsimctlVersion: String,
         private val shutdownSimulators: Boolean,
@@ -45,10 +45,13 @@ class SimulatorHostChecker(
     }
     override fun copyWdaBundleToHost() {
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
-        val remoteBundleRoot = wdaSimulatorBundle.bundlePath(remote.isLocalhost()).parent
+
+        val remoteBundleRoot = wdaSimulatorBundles.webDriverAgentBundle.bundlePath(remote.isLocalhost()).parent
         remote.rm(remoteBundleRoot)
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteBundleRoot))
-        remote.scpToRemoteHost(wdaSimulatorBundle.bundlePath(true).absolutePath, remoteBundleRoot)
+
+        remote.scpToRemoteHost(wdaSimulatorBundles.deviceAgentBundle.bundlePath(true).absolutePath, remoteBundleRoot)
+        remote.scpToRemoteHost(wdaSimulatorBundles.webDriverAgentBundle.bundlePath(true).absolutePath, remoteBundleRoot)
     }
 
     override fun copyTestHelperBundleToHost() {
@@ -148,6 +151,7 @@ class SimulatorHostChecker(
                 "/var/folders/*/*/*/xctestRunDir_*",
                 "/var/folders/*/*/*/device_agent_log_*",
                 "/var/folders/*/*/*/appium_tmpdir_*",
+                "/private/var/tmp/test-session-systemlogs-*.logarchive",
                 File(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, "*").absolutePath,
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )

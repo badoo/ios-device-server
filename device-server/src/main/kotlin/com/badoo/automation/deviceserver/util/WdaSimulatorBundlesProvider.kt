@@ -24,13 +24,30 @@ data class WdaSimulatorBundle(
         if (isLocalhost) bundlePath.toFile() else remoteBundlePath.toFile()
 }
 
+data class WdaSimulatorBundles(
+    val deviceAgentBundle: WdaSimulatorBundle,
+    val webDriverAgentBundle: WdaSimulatorBundle
+)
+
 class WdaSimulatorBundlesProvider(
     private val wdaSimulatorBundlesBase: Path, private val remoteBundleRoot: Path
 ) {
-    fun getWdaSimulatorBundles(): WdaSimulatorBundle {
-        val bundlePath: Path = Files.list(wdaSimulatorBundlesBase)
-            .filter { Files.isDirectory(it) && it.fileName.toString().endsWith(".app") }.collect(Collectors.toSet())
-            .first()
+    fun getWdaSimulatorBundles(): WdaSimulatorBundles {
+        val bundlePaths: Set<Path> = Files.list(wdaSimulatorBundlesBase)
+            .filter { Files.isDirectory(it) && it.fileName.toString().endsWith(".app") }
+            .collect(Collectors.toSet())
+        val deviceAgentBundlePath = bundlePaths.find { it.toString().contains("DeviceAgent-Runner") }
+            ?: throw RuntimeException("Unable to find DeviceAgent-Runner at path $wdaSimulatorBundlesBase")
+        val webDriverAgentBundlePath = bundlePaths.find { it.toString().contains("WebDriverAgentRunner-Runner") }
+            ?: throw RuntimeException("Unable to find WebDriverAgentRunner-Runner at path $wdaSimulatorBundlesBase")
+
+        return WdaSimulatorBundles(
+            deviceAgentBundle = createWdaSimulatorBundle(deviceAgentBundlePath),
+            webDriverAgentBundle = createWdaSimulatorBundle(webDriverAgentBundlePath)
+        )
+    }
+
+    private fun createWdaSimulatorBundle(bundlePath: Path): WdaSimulatorBundle {
         val infoPlist = InfoPlist(bundlePath.resolve("Info.plist").toFile())
         val bundleId = infoPlist.bundleIdentifier()
         val remoteBundlePath = remoteBundleRoot.resolve(bundlePath.fileName)
@@ -38,9 +55,7 @@ class WdaSimulatorBundlesProvider(
         val xctestRunnerPath: Path = bundlePath.resolve(xcTestPath)
         val remoteXctestRunnerPath: Path = remoteBundlePath.resolve(xcTestPath)
 
-        return WdaSimulatorBundle(
-            bundleId, bundlePath, xctestRunnerPath, remoteBundlePath, remoteXctestRunnerPath
-        )
+        return WdaSimulatorBundle(bundleId, bundlePath, xctestRunnerPath, remoteBundlePath, remoteXctestRunnerPath)
     }
 
     companion object {

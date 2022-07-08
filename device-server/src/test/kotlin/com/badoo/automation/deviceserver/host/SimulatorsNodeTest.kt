@@ -11,6 +11,7 @@ import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import com.badoo.automation.deviceserver.mockThis
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import com.nhaarman.mockito_kotlin.*
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
@@ -37,6 +38,13 @@ class SimulatorsNodeTest {
 
     private val hostChecker: ISimulatorHostChecker = mockThis()
 
+    private val daSimulatorBundle = WdaSimulatorBundle(
+        "DeviceAgent",
+        Paths.get("some/file/from/wdaPathProc"),
+        Paths.get("some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
+        Paths.get("/remote/some/file/from/wdaPathProc"),
+        Paths.get("/remote/some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest")
+    )
     private val wdaSimulatorBundle = WdaSimulatorBundle(
         "DeviceAgent",
         Paths.get("some/file/from/wdaPathProc"),
@@ -44,6 +52,8 @@ class SimulatorsNodeTest {
         Paths.get("/remote/some/file/from/wdaPathProc"),
         Paths.get("/remote/some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest")
     )
+
+    private val wdaSimulatorBundles = WdaSimulatorBundles(daSimulatorBundle, wdaSimulatorBundle)
 
     private val iSimulatorProvider: SimulatorProvider = mockThis()
 
@@ -78,7 +88,7 @@ class SimulatorsNodeTest {
             hostChecker,
             configuredSimulatorLimit,
             2,
-            wdaSimulatorBundle,
+            wdaSimulatorBundles,
             applicationConfiguration,
             iSimulatorProvider,
             portAllocator,
@@ -147,7 +157,7 @@ class SimulatorsNodeTest {
                 eq(fbsimulatorDevice),
                 eq(DeviceAllocatedPorts(1, 2, 3, 4,5)),
                 eq("/node/specific/device/set"),
-                eq(wdaSimulatorBundle),
+                eq(wdaSimulatorBundles),
                 any(),
                 eq(false),
                 eq(false),
