@@ -47,7 +47,7 @@ class Simulator(
         override val deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
-        private val wdaSimulatorBundle: WdaSimulatorBundle,
+        private val wdaSimulatorBundles: WdaSimulatorBundles,
         private val concurrentBootsPool: ExecutorService,
         headless: Boolean,
         private val useWda: Boolean,
@@ -121,7 +121,7 @@ class Simulator(
     private val webDriverAgent: IWebDriverAgent = if (useAppium) {
         XcodeTestRunnerWebDriverAgent(
             remote,
-            wdaSimulatorBundle,
+            wdaSimulatorBundles.webDriverAgentBundle,
             deviceInfo.udid,
             wdaEndpoint,
             mjpegServerPort,
@@ -131,7 +131,7 @@ class Simulator(
     } else {
         XcodeTestRunnerDeviceAgent(
             remote,
-            wdaSimulatorBundle,
+            wdaSimulatorBundles.deviceAgentBundle,
             deviceInfo.udid,
             wdaEndpoint,
             mjpegServerPort,
@@ -497,16 +497,12 @@ class Simulator(
             copyMediaAssetsWithRetry()
         }
 
-        if (useWda && !remote.isLocalhost()) {
-            webDriverAgent.installHostApp()
-        }
-
         if (appConfig.useTestHelperApp) {
             installTestHelperApp()
         }
 
         launchMobileSafari("https://localhost")
-        Thread.sleep(3000)
+        Thread.sleep(5000)
 
         logger.info(logMarker, "Shutting down ${this@Simulator} before creating a backup")
         shutdown()

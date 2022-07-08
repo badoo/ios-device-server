@@ -6,10 +6,7 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.host.management.errors.*
-import com.badoo.automation.deviceserver.util.WdaDeviceBundle
-import com.badoo.automation.deviceserver.util.WdaDeviceBundlesProvider
-import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
-import com.badoo.automation.deviceserver.util.WdaSimulatorBundlesProvider
+import com.badoo.automation.deviceserver.util.*
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -108,13 +105,13 @@ fun Application.module() {
         Paths.get(appConfiguration.remoteWdaDeviceBundleRoot)
     ).getWdaDeviceBundles()
 
-    val wdaSimulatorBundle: WdaSimulatorBundle = WdaSimulatorBundlesProvider(
+    val wdaSimulatorBundles: WdaSimulatorBundles = WdaSimulatorBundlesProvider(
         Paths.get(appConfiguration.wdaSimulatorBundles),
         Paths.get(appConfiguration.remoteWdaSimulatorBundleRoot)
     ).getWdaSimulatorBundles()
 
     val hostFactory = HostFactory(
-        wdaSimulatorBundle = wdaSimulatorBundle,
+        wdaSimulatorBundles = wdaSimulatorBundles,
         wdaDeviceBundles = wdaDeviceBundles,
         fbsimctlVersion = appConfiguration.fbsimctlVersion,
         remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile,

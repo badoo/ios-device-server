@@ -4,7 +4,7 @@ import com.badoo.automation.deviceserver.NodeConfig
 import com.badoo.automation.deviceserver.host.management.IHostFactory
 import com.badoo.automation.deviceserver.host.management.SimulatorHostChecker
 import com.badoo.automation.deviceserver.util.WdaDeviceBundle
-import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -16,7 +16,7 @@ class HostFactory(
             publicHostName
         )
     },
-    private val wdaSimulatorBundle: WdaSimulatorBundle,
+    private val wdaSimulatorBundles: WdaSimulatorBundles,
     private val wdaDeviceBundles: List<WdaDeviceBundle>,
     private val fbsimctlVersion: String,
     private val remoteTestHelperAppRoot: File,
@@ -44,20 +44,21 @@ class HostFactory(
         }
 
         return if (config.type == NodeConfig.NodeType.Simulators) {
+            val hostChecker = SimulatorHostChecker(
+                remote,
+                wdaSimulatorBundles = wdaSimulatorBundles,
+                remoteTestHelperAppRoot = remoteTestHelperAppRoot,
+                remoteVideoRecorder = remoteVideoRecorder,
+                fbsimctlVersion = fbsimctlVersion,
+                shutdownSimulators = config.shutdownSimulators
+            )
             SimulatorsNode(
                 remote = remote,
                 publicHostName = publicHostName,
-                hostChecker = SimulatorHostChecker(
-                    remote,
-                    wdaSimulatorBundle = wdaSimulatorBundle,
-                    remoteTestHelperAppRoot = remoteTestHelperAppRoot,
-                    remoteVideoRecorder = remoteVideoRecorder,
-                    fbsimctlVersion = fbsimctlVersion,
-                    shutdownSimulators = config.shutdownSimulators
-                ),
+                hostChecker = hostChecker,
                 simulatorLimit = config.simulatorLimit,
                 concurrentBoots = config.concurrentBoots,
-                wdaSimulatorBundle = wdaSimulatorBundle
+                wdaSimulatorBundles = wdaSimulatorBundles
             )
         } else {
             DevicesNode(

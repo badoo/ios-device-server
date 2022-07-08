@@ -13,7 +13,7 @@ import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import com.badoo.automation.deviceserver.util.AppInstaller
-import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
+import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
@@ -35,7 +35,7 @@ class SimulatorsNode(
         private val hostChecker: ISimulatorHostChecker,
         private val simulatorLimit: Int,
         concurrentBoots: Int,
-        private val wdaSimulatorBundle: WdaSimulatorBundle,
+        private val wdaSimulatorBundles: WdaSimulatorBundles,
         private val applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration(),
         private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, applicationConfiguration.simulatorBackupPath),
         private val portAllocator: PortAllocator = PortAllocator(),
@@ -170,7 +170,7 @@ class SimulatorsNode(
             logger.debug(simLogMarker, "Will create simulator $ref")
 
             val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, simulatorProvider.deviceSetPath,
-                    wdaSimulatorBundle, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, desiredCaps.useAppium)
+                    wdaSimulatorBundles, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, desiredCaps.useAppium)
 
             cancelRunningSimulatorTask(ref, "createDeviceAsync")
 
