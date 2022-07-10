@@ -196,7 +196,7 @@ fun Application.module() {
             delete {
                 val user = call.principal<UserIdPrincipal>()
                 if (user == null) {
-                    call.respond(UnauthorizedResponse())
+                    call.respond(devicesController.releaseAllDevices())
                 } else {
                     call.respond(devicesController.releaseDevices(user))
                 }

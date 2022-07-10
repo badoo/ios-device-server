@@ -47,6 +47,10 @@ class DevicesController(private val deviceManager: DeviceManager) {
         deviceManager.releaseUserDevices(user.name, "httpRequest")
     }
 
+    fun releaseAllDevices() {
+        deviceManager.releaseAllDevices("httpRequest")
+    }
+
     fun sendPushNotification(ref: DeviceRef, bundleId: String, notificationContent: ByteArray): EmptyMap {
         deviceManager.sendPushNotification(ref, bundleId, notificationContent)
         return happy
