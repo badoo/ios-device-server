@@ -14,4 +14,15 @@ data class DeviceInfo (
 ) {
     constructor(device: FBSimctlDevice):
             this(device.udid, device.model, device.os, device.arch, device.name)
+
+        override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (javaClass != other?.javaClass) return false
+
+                other as DeviceInfo
+
+                if (udid != other.udid) return false
+
+                return true
+        }
 }

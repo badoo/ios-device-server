@@ -31,7 +31,7 @@ class DevicesNode(
     private val remote: IRemote,
     override val publicHostName: String,
     portAllocator: PortAllocator = PortAllocator(),
-    knownDevices: List<KnownDevice>,
+    configuredDevices: Set<ConfiguredDevice>,
     private val whitelistedApps: Set<String>,
     private val uninstallApps: Boolean,
     private val wdaDeviceBundles: List<WdaDeviceBundle>,
@@ -205,8 +205,7 @@ class DevicesNode(
     override val remoteAddress: String get() = remote.hostName
 
     private val deviceInfoProvider = DeviceInfoProvider(remote)
-    private val slots: DeviceSlots =
-        DeviceSlots(remote, wdaDeviceBundles, portAllocator, deviceInfoProvider, knownDevices)
+    private val slots: DeviceSlots = DeviceSlots(remote, wdaDeviceBundles, portAllocator, deviceInfoProvider, configuredDevices)
 
     private var deviceRegistrar: Future<Unit>? = null
 

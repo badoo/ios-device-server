@@ -1,6 +1,6 @@
 package com.badoo.automation.deviceserver
 
-import com.badoo.automation.deviceserver.ios.device.KnownDevice
+import com.badoo.automation.deviceserver.ios.device.ConfiguredDevice
 import org.junit.Assert
 import org.junit.Test
 
@@ -34,8 +34,8 @@ class NodeConfigTest {
             concurrentBoots = 1,
             whitelistApps = setOf("bundle.id"),
             uninstallApps = true,
-            knownDevices = listOf(
-                KnownDevice(
+            configuredDevices = setOf(
+                ConfiguredDevice(
                     "c865bdbe652d17cbe2c79566fb046b73fed66a38"
                 )
             )
@@ -56,7 +56,7 @@ class NodeConfigTest {
             concurrentBoots = 3,
             whitelistApps = emptySet(),
             uninstallApps = false,
-            knownDevices = emptyList()
+            configuredDevices = emptySet()
         )
 
         Assert.assertEquals(expected, config)

@@ -15,23 +15,17 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.nio.file.Path
 
 class DeviceSlots(
     val remote: IRemote,
     private val wdaDeviceBundles: List<WdaDeviceBundle>,
     private val portAllocator: PortAllocator,
     private val deviceInfoProvider: DeviceInfoProvider,
-    knownDevicesList: List<KnownDevice>
+    private val configuredDevices: Set<ConfiguredDevice>
 ) {
     private val activeSlots = mutableListOf<DeviceSlot>()
-
     private val dcMatcher = DesiredCapabilitiesMatcher()
-
     private val removedSlots = ConcurrentLinkedQueue<RemovedSlot>()
-
-    private val knownDevices = knownDevicesList.map { it.udid to it }.toMap()
-
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker: Marker = MapEntriesAppendingMarker(
         mapOf(
@@ -39,18 +33,19 @@ class DeviceSlots(
         )
     )
 
-    private fun getDevicesWithRetry(): List<DeviceInfo> {
+    private fun getDevicesWithRetry(): Set<DeviceInfo> {
         val maxAttempts = 3
-        var connectedDevices = emptyList<DeviceInfo>()
+        val connectedDevices = mutableSetOf<DeviceInfo>()
 
         for (attempt in 1..maxAttempts) {
-            connectedDevices = deviceInfoProvider.list()
+            val devices = deviceInfoProvider.list()
 
-            if (connectedDevices.isEmpty()) {
+            if (devices.isEmpty()) {
                 logger.warn("fbsimctl returned an empty list of devices on attempt $attempt/$maxAttempts")
                 Thread.sleep(500)
                 continue
             } else {
+                connectedDevices.addAll(devices)
                 break
             }
         }
@@ -60,9 +55,14 @@ class DeviceSlots(
 
     fun registerDevices() {
         val connectedDevices = getDevicesWithRetry()
-        val knownConnectedDevices = connectedDevices.filter { isWhitelisted(it.udid) }
+        val allowedConnectedDevices = if (configuredDevices.isEmpty()) {
+            connectedDevices
+        } else {
+            val connectedDeviceUdids = configuredDevices.map { it.udid }
+            connectedDevices.filter { connectedDeviceUdids.contains(it.udid) }.toSet()
+        }
 
-        val diff = diff(knownConnectedDevices)
+        val diff = diff(allowedConnectedDevices)
 
         if (diff.removed.isNotEmpty()) {
             logger.info(logMarker, "Will remove ${diff.removed} devices")
@@ -73,7 +73,7 @@ class DeviceSlots(
 
         if (diff.added.isNotEmpty()) {
             logger.info(logMarker, "Will add ${diff.added} devices")
-            knownConnectedDevices.filter { diff.added.contains(it.udid) }.forEach {
+            allowedConnectedDevices.filter { diff.added.contains(it.udid) }.forEach {
                 addSlot(it)
             }
         }
@@ -129,10 +129,6 @@ class DeviceSlots(
         activeSlots.clear()
     }
 
-    private fun isWhitelisted(udid: UDID): Boolean {
-        return knownDevices.isEmpty() || knownDevices.containsKey((udid))
-    }
-
     private fun availableSlots(desiredCapabilities: DesiredCapabilities): List<DeviceSlot> {
         return activeSlots.filter {
             !it.isReserved() && dcMatcher.isMatch(it.device.deviceInfo, desiredCapabilities)
@@ -141,9 +137,9 @@ class DeviceSlots(
 
     private data class Diff(val added: Set<UDID>, val removed: Set<UDID>)
 
-    private fun diff(deviceInfos: List<DeviceInfo>): Diff {
+    private fun diff(allowedConnectedDevices: Set<DeviceInfo>): Diff {
         val current = activeSlots.filter { it.device.deviceState != DeviceState.FAILED }.map { it.device.udid }.toSet()
-        val new = deviceInfos.map { it.udid }.toSet()
+        val new = allowedConnectedDevices.map { it.udid }.toSet()
 
         val added = new - current
         val removed = current - new
