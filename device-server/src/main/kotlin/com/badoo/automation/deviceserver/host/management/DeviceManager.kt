@@ -313,6 +313,10 @@ class DeviceManager(
         val devices = nodeRegistry.activeDevices.getUserDeviceRefs(userId)
         nodeRegistry.activeDevices.releaseDevices(devices, reason)
     }
+    fun releaseAllDevices(reason: String) {
+        val devices = nodeRegistry.activeDevices.deviceRefs().toList()
+        nodeRegistry.activeDevices.releaseDevices(devices, reason)
+    }
 
     fun isReady(): Boolean {
         return nodeRegistry.getInitialRegistrationComplete()
