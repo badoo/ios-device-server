@@ -1,6 +1,6 @@
 package com.badoo.automation.deviceserver
 
-import com.badoo.automation.deviceserver.ios.device.KnownDevice
+import com.badoo.automation.deviceserver.ios.device.ConfiguredDevice
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
@@ -31,7 +31,7 @@ data class NodeConfig(
     val uninstallApps: Boolean = false,
 
     @JsonProperty("devices")
-    val knownDevices: List<KnownDevice> = emptyList(),
+    val configuredDevices: Set<ConfiguredDevice> = emptySet(),
 
     @JsonProperty("shutdown_simulators")
     val shutdownSimulators: Boolean = false

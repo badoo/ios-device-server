@@ -65,7 +65,7 @@ class HostFactory(
                 remote = remote,
                 publicHostName = publicHostName,
                 whitelistedApps = config.whitelistApps,
-                knownDevices = config.knownDevices,
+                configuredDevices = config.configuredDevices,
                 uninstallApps = config.uninstallApps,
                 wdaDeviceBundles = wdaDeviceBundles,
                 fbsimctlVersion = fbsimctlVersion
