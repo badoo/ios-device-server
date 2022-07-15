@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.host.management.errors.*
-import com.badoo.automation.deviceserver.util.*
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -14,7 +13,6 @@ import io.ktor.application.Application
 import io.ktor.application.ApplicationCall
 import io.ktor.application.call
 import io.ktor.application.install
-import io.ktor.auth.UnauthorizedResponse
 import io.ktor.auth.UserIdPrincipal
 import io.ktor.auth.authentication
 import io.ktor.auth.principal
@@ -36,7 +34,6 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.lang.IllegalStateException
 import java.net.NetworkInterface
-import java.nio.file.Paths
 import java.util.*
 
 typealias EmptyMap = Map<Unit, Unit>
@@ -100,22 +97,11 @@ private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpl
 fun Application.module() {
     val config = serverConfig()
 
-    val wdaDeviceBundles: List<WdaDeviceBundle> = WdaDeviceBundlesProvider(
-        Paths.get(appConfiguration.wdaDeviceBundles),
-        Paths.get(appConfiguration.remoteWdaDeviceBundleRoot)
-    ).getWdaDeviceBundles()
-
-    val wdaSimulatorBundles: WdaSimulatorBundles = WdaSimulatorBundlesProvider(
-        Paths.get(appConfiguration.wdaSimulatorBundles),
-        Paths.get(appConfiguration.remoteWdaSimulatorBundleRoot)
-    ).getWdaSimulatorBundles()
-
     val hostFactory = HostFactory(
-        wdaSimulatorBundles = wdaSimulatorBundles,
-        wdaDeviceBundles = wdaDeviceBundles,
         fbsimctlVersion = appConfiguration.fbsimctlVersion,
         remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile,
-        remoteVideoRecorder = appConfiguration.remoteVideoRecorder
+        remoteVideoRecorder = appConfiguration.remoteVideoRecorder,
+        appConfiguration = ApplicationConfiguration()
     )
     val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.cleanupTemporaryFiles()
