@@ -14,6 +14,10 @@ class ProvisioningProfile(file: File) {
 
     init {
         val result = ShellCommand().exec(listOf("/usr/bin/security", "cms", "-D", "-i", file.absolutePath))
+        check(result.isSuccess) {
+            "Failed to read Provisioning Profile. ${result.stdOut}, ${result.stdErr}"
+        }
+
         val input = BufferedReader(StringReader(result.stdOut))
         config = XMLPropertyListConfiguration()
         config.read(input)
