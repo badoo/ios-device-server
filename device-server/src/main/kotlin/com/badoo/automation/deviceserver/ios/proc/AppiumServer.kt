@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.ios.proc
 
 import com.badoo.automation.deviceserver.command.ChildProcess
 import com.badoo.automation.deviceserver.host.IRemote
+import com.badoo.automation.deviceserver.host.IRemote.Companion.DEFAULT_PATH
 import com.badoo.automation.deviceserver.util.ensure
 import com.badoo.automation.deviceserver.util.pollFor
 import com.badoo.automation.deviceserver.util.uriWithPath
@@ -38,7 +39,7 @@ class AppiumServer(
         return File(tmpPath)
     }
 
-    private val statusUrl: URL = uriWithPath(URI("http://127.0.0.1:$appiumServerPort"), "wd/hub/status").toURL()
+    private val statusUrl: URL = uriWithPath(URI("http://${remote.publicHostName}:$appiumServerPort"), "wd/hub/status").toURL()
 
     private fun getLogContents(): String {
         return if (remote.isLocalhost()) {
@@ -103,6 +104,8 @@ class AppiumServer(
         childProcess = process
 
         try {
+            Thread.sleep(1000) // initial Appium timeout to get process started
+
             pollFor(
                 Duration.ofSeconds(45),
                 reasonName = "Waiting for Appium Server to start serving requests",
@@ -141,7 +144,7 @@ class AppiumServer(
     }
 
     private fun getAppiumServerStartCommand(): List<String> {
-        return listOf(
+        val command = listOf(
             "appium",
             "--port",
             appiumServerPort.toString(),
@@ -159,9 +162,18 @@ class AppiumServer(
             "--tmp",
             appiumTmpDir.absolutePath
         )
+
+        return if (remote.isLocalhost()) {
+            command
+        } else {
+            listOf(
+                "/bin/bash",
+                "-c",
+                "'/usr/bin/env PATH=${DEFAULT_PATH} ${command.joinToString(" ")}'" // important to send PATH in order to launch Appium correctly
+            )
+        }
     }
     companion object {
         const val APPIUM_BASE_PATH = "wd/hub"
-        const val DEFAULT_PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
     }
 }

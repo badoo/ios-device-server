@@ -4,6 +4,7 @@ import XCRunSimctl
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.*
+import com.badoo.automation.deviceserver.host.IRemote.Companion.SSH_AUTH_SOCK
 import com.badoo.automation.deviceserver.host.IRemote.Companion.isLocalhost
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlResponseParser
@@ -24,8 +25,6 @@ class Remote(
     override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor)
 ) : IRemote {
     companion object {
-        const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
-
         fun getRemoteCommandExecutor(hostName: String, userName: String): IShellCommand {
             return if (isLocalhost(hostName, userName)) {
                 ShellCommand()

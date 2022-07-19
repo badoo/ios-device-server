@@ -59,6 +59,7 @@ class SimulatorsNode(
             applicationContainer.addPlistValue(path, key, value, type)
         }
     }
+
     private val appInstaller: AppInstaller = AppInstaller(remote)
 
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
