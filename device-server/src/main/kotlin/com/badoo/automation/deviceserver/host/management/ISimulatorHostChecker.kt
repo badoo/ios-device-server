@@ -127,6 +127,8 @@ class SimulatorHostChecker(
             logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")
         }
 
+        remote.pkill("appium_tmpdir_", true)
+
         if (shutdownSimulators) {
             cleanupSimulators()
             cleanupSimulatorServices()

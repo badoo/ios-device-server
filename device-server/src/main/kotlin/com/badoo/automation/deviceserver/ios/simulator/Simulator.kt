@@ -612,6 +612,7 @@ class Simulator(
         bootTask?.cancel(true)
         installTask?.cancel(true)
         ignoringErrors({ videoRecorder.dispose() })
+        ignoringErrors({ appiumServer.kill() })
         ignoringErrors({ webDriverAgent.kill() })
         ignoringErrors({ fbsimctlProc.kill() })
 

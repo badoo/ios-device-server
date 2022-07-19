@@ -18,6 +18,9 @@ interface IRemote {
 
             return hostName == LOCALHOST || hostName.startsWith(LOCALHOST_NET_PREFIX)
         }
+
+        const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
+        const val DEFAULT_PATH = "/usr/local/opt/appium/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
     }
 
     val homeBrewPath: File
