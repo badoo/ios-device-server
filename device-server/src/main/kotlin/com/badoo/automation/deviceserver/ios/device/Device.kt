@@ -101,7 +101,7 @@ class Device(
         }
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
-    private val wdaProc = XcodeTestRunnerDeviceAgent(
+    private val webDriverAgent = XcodeTestRunnerDeviceAgent(
         remote = remote,
         wdaBundle = wdaDeviceBundle,
         udid = deviceInfo.udid,
@@ -111,7 +111,7 @@ class Device(
         isRealDevice = true,
         port = wdaProxy.devicePort
     )
-    override val deviceAgentLog get() = wdaProc.deviceAgentLog
+    override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
 
     private val status = SimulatorStatus()
 
@@ -165,7 +165,7 @@ class Device(
             return
         }
 
-        val isWdaHealty = wdaProc.isHealthy()
+        val isWdaHealty = webDriverAgent.isHealthy()
         val fbsimctlStatus = if (useFbsimctlProc) fbsimctlProc.isHealthy() else true
 
         // check if WDA or fbsimctl crashed after being ok for some time
@@ -246,7 +246,7 @@ class Device(
         if (useFbsimctlProc) {
             ignoringDisposeErrors { fbsimctlProc.kill() }
         }
-        ignoringDisposeErrors { wdaProc.kill() }
+        ignoringDisposeErrors { webDriverAgent.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
         ignoringDisposeErrors { mjpegProxy.stop() }
@@ -386,7 +386,7 @@ class Device(
         if (useFbsimctlProc) {
             fbsimctlProc.kill()
         }
-        wdaProc.kill()
+        webDriverAgent.kill()
 
         wdaProxy.stop()
         mjpegProxy.stop()
@@ -440,9 +440,9 @@ class Device(
 
     private suspend fun performWebDriverAgentHealthCheck(maxWDAFailCount: Int) {
         var wdaFailCount = 0
-        if (!wdaProc.isHealthy()) {
+        if (!webDriverAgent.isHealthy()) {
             for (i in 0 until maxWDAFailCount) {
-                if (wdaProc.isHealthy()) {
+                if (webDriverAgent.isHealthy()) {
                     wdaFailCount = 0
                     break
                 } else {
@@ -460,13 +460,13 @@ class Device(
                 )
 
                 try {
-                    wdaProc.kill()
+                    webDriverAgent.kill()
                 } catch (e: RuntimeException) {
                     logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
                 }
 
                 try {
-                    wdaProc.start()
+                    webDriverAgent.start()
                 } catch (e: RuntimeException) {
                     logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
                     deviceState = DeviceState.FAILED
@@ -507,8 +507,8 @@ class Device(
 
 
     private fun startWda() {
-        wdaProc.kill()
-        wdaProc.start()
+        webDriverAgent.kill()
+        webDriverAgent.start()
 
         Thread.sleep(DEVICE_AGENT_START_TIME)
 
@@ -519,8 +519,8 @@ class Device(
             logger = logger,
             marker = logMarker
         ) {
-            if (wdaProc.isProcessAlive) {
-                wdaProc.isHealthy()
+            if (webDriverAgent.isProcessAlive) {
+                webDriverAgent.isHealthy()
             } else {
                 throw WaitTimeoutError("WebDriverAgent process is not alive")
             }
