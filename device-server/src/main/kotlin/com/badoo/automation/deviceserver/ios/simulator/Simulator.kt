@@ -439,7 +439,7 @@ class Simulator(
         }
     }
 
-    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(30), retryInterval: Duration = Duration.ofSeconds(2)) {
+    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(60), retryInterval: Duration = Duration.ofSeconds(2)) {
         val maxRetries = 7
 
         for (attempt in 1..maxRetries) {
