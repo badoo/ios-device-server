@@ -33,7 +33,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.NANOSECONDS
@@ -638,9 +637,6 @@ class Simulator(
 
     private fun disabledServices(): List<String> {
         val cmdLine = listOf(
-            "Spotlight",
-            "Spotlight.app",
-            "UIKitApplication:com.apple.Spotlight",
             "com.apple.Maps.mapspushd",
             "com.apple.Maps",
             "com.apple.MapsUI",
@@ -651,7 +647,7 @@ class Simulator(
             "com.apple.GameController.gamecontrollerd",
             "com.apple.ScreenTimeWidgetApplication",
             "com.apple.ScreenTimeWidgetApplication.ScreenTimeWidgetExtension",
-
+            "com.apple.UsageTrackingAgent",
             "com.apple.nanonewscd",
 //            "com.apple.nanoregistryd",
 //            "com.apple.nanoregistrylaunchd",
@@ -661,16 +657,14 @@ class Simulator(
 //            "com.apple.nanobackupd",
 //            "com.apple.nanoappregistryd",
 //            "com.apple.nanotimekitcompaniond",
-
-
             "com.apple.MapKit.SnapshotService",
-            "com.apple.Spotlight",
             "com.apple.WallpaperKit",
             "com.apple.WallpaperKit.WallpaperMigrator",
             "com.apple.WebBookmarks.webbookmarksd",
             "com.apple.accessibility.AccessibilityUIServer",
             "com.apple.addressbooksyncd",
             "com.apple.ap.adprivacyd",
+            "com.apple.ap.promotedcontentd",
             "com.apple.assistant_service",
             "com.apple.assistantd",
             "com.apple.avatarsd",
@@ -683,24 +677,46 @@ class Simulator(
             "com.apple.corespeechd",
             "com.apple.corespotlightservice",
             "com.apple.dataaccess.dataaccessd",
+            "com.apple.diagnosticd",
+            "com.apple.diagnosticextensionsd",
+            "com.apple.donotdisturbd",
             "com.apple.email.maild",
+            "com.apple.familycircled",
             "com.apple.familynotification",
+            "com.apple.fitnesscoachingd",
+            "com.apple.GameController.gamecontrollerd",
             "com.apple.healthappd",
             "com.apple.healthd",
             "com.apple.homed",
-//            "com.apple.mobileassetd","com.apple.MobileAsset",
             "com.apple.mobilecal",
             "com.apple.mobilecal.CalendarWidgetExtension",
             "com.apple.mobileslideshow.PhotosReliveWidget",
             "com.apple.mobiletimerd",
             "com.apple.navd",
             "com.apple.news",
+            "com.apple.newsd",
+            "com.apple.nanonewscd",
+            "com.apple.newscore",
+            "com.apple.newscore2",
             "NewsToday2",
             "com.apple.news.widget",
             "com.apple.news.articlenotificationextension",
             "com.apple.news.NewsArticleQuickLook",
             "com.apple.news.openinnews",
             "com.apple.news.tag",
+
+            "com.apple.chronod", // it launches all the following services for the widgets
+            "com.apple.Batteries.BatteriesWidget",
+            "com.apple.reminders.WidgetExtension",
+            "com.apple.mobilecal.CalendarWidgetExtension",
+            "com.apple.mobileslideshow.PhotosReliveWidget",
+            "com.apple.PassbookStub.PassbookWidgets",
+            "com.apple.Maps.GeneralMapsWidget",
+            "com.apple.Health.Sleep.SleepWidgetExtension",
+            "com.apple.Passbook.PassbookWidgets",
+            "com.apple.PeopleViewService.PeopleWidget-iOS",
+            "com.apple.ScreenTimeWidgetApplication.ScreenTimeWidgetExtension",
+
             "com.apple.news.engagementExtension",
             "com.apple.news.articlenotificationserviceextension",
             "com.apple.news.marketingnotificationextension",
@@ -711,19 +727,20 @@ class Simulator(
             "com.apple.pairedsyncd",
             "com.apple.parsecd", // https://jira.badoojira.com/browse/IOS-33218
             "com.apple.photoanalysisd",
+            "com.apple.PosterBoard", // iOS 16
+            "com.apple.posterboardservices", // iOS 16
             "com.apple.purplebuddy.budd",
             "com.apple.remindd",
             "com.apple.searchd",
+            "com.apple.siriinferenced",
+            "com.apple.siriknowledged",
             "com.apple.siri.ClientFlow.ClientScripter",
             "com.apple.siri.context.service",
             "com.apple.siriactionsd",
             "com.apple.suggestd",
             "com.apple.telephonyutilities.callservicesd",
             "com.apple.voiced",
-            "spotlight"
-//            "com.apple.appstored",
-//            "com.apple.itunesstored",
-//            "com.apple.passd",
+            "com.apple.weatherd"
         ).map {
             "--disabledJob=$it"
         }
@@ -744,13 +761,15 @@ class Simulator(
                     useSoftwareKeyboard()
                 }
 
+                val bootTime = remote.exec(listOf("date", "+%s"), mapOf(), false, 30L).stdOut.trim().toLong()
+
                 bootSimulator()
 
                 if (remote.isLocalhost()) {
                     openSimulatorApp()
                 }
 
-                waitUntilSimulatorBooted()
+                waitUntilSimulatorBooted(bootTime)
             }
             bootTask = task
             task.get()
@@ -764,7 +783,6 @@ class Simulator(
         class TextInput() : RequiredService("com.apple.TextInput.kbd")
         class AccessibilityUIServer() : RequiredService("com.apple.accessibility.AccessibilityUIServer")
         class Spotlight() : RequiredService("com.apple.Spotlight")
-        class SpotlightIos12() : RequiredService("SpotlightIndex")
         class Locationd() : RequiredService("com.apple.locationd")
 
         override fun toString(): String {
@@ -772,106 +790,46 @@ class Simulator(
         }
     }
 
-    val failedExitCodes = listOf(
-        // 143 - terminated
-        164, // Invalid device (not existing)
-        165 // Invalid device state (not Booted)
-    )
-
     val simulatorServices = mutableSetOf<RequiredService>()
 
-    private fun waitUntilSimulatorBooted() {
-        val predicate = if (remote.isLocalhost()) {
-            "eventMessage contains 'Bootstrap success' OR (eventMessage contains 'LaunchServices' AND eventMessage contains 'registering extension')"
+    private fun waitUntilSimulatorBooted(bootTime: Long) {
+        Thread.sleep(5000L) // make sure enough time for initial boot before any other actions
+
+        val escapedCommand = if (remote.isLocalhost()) {
+            "/usr/bin/xcrun simctl spawn $udid log show --color none --start @${bootTime} --predicate \"process == 'SpringBoard' AND composedMessage CONTAINS 'Bootstrap success'\""
         } else {
-            "\"eventMessage contains 'Bootstrap success' OR (eventMessage contains 'LaunchServices' AND eventMessage contains 'registering extension')\""
+            "\"/usr/bin/xcrun simctl spawn $udid log show --color none --start @${bootTime} --predicate \\\"process == 'SpringBoard' AND composedMessage CONTAINS 'Bootstrap success'\\\"\""
         }
 
-        val simulatorBootTimeOutMinutes = 2
-        val cmd = mutableListOf(
-            "/usr/bin/xcrun", "simctl", "spawn", udid, "log", "stream",
-            "--timeout", "${simulatorBootTimeOutMinutes}m",
-            "--color", "none",
-            "--level", "info")
+        val logsCommand = listOf("/bin/bash", "-c", escapedCommand)
 
-        if (deviceInfo.os.contains("iOS 13") || deviceInfo.os.contains("iOS 14") || deviceInfo.os.contains("iOS 15")) {
-            cmd.add("--process")
-            cmd.add("SpringBoard")
-        }
-
-        cmd.add("--predicate")
-        cmd.add(predicate)
-
-        val requiredServices = mutableSetOf<RequiredService>()
-
-        if (deviceInfo.os.contains("iOS 12")) {
-            requiredServices.add(RequiredService.SpotlightIos12())
-        } else {
-            requiredServices.add(RequiredService.Spotlight())
-        }
-
-        val longWaitedServices = mutableSetOf<RequiredService>()
-        longWaitedServices.add(RequiredService.Locationd())
-
-        simulatorServices.clear()
-        simulatorServices.addAll(requiredServices)
-        simulatorServices.addAll(longWaitedServices)
-
-//        remote.localExecutor.exec(listOf("/Users/vfrolov/GitHub/ios-device-server-badoo/device-server/simulator_logs_record.sh", udid))
-
-        val process = remote.remoteExecutor.startProcess(cmd, mapOf(), logMarker)
-
-        val stdOut = StringBuilder()
-        val stdErr = StringBuilder()
-
-        val outReader: ((line: String) -> Unit) = { line: String ->
-            stdOut.append(line)
-            stdOut.append("\n")
-
-            requiredServices.forEach { service ->
-                if (line.contains(service.identifier)) {
-                    service.booted = true
-                }
-            }
-
-            longWaitedServices.forEach { service ->
-                if (line.contains(service.identifier)) {
-                    service.booted = true
-                }
-            }
-
-            if (requiredServices.all { it.booted } && longWaitedServices.all { it.booted }) {
-                process.destroy()
-            }
-        }
-
-        val errReader: ((line: String) -> Unit) = { line: String ->
-            stdErr.append(line)
-            stdErr.append("\n")
-        }
-
-        val executor = Executors.newFixedThreadPool(2)
-        executor.submit(lineReader(process.inputStream, outReader))
-        executor.submit(lineReader(process.errorStream, errReader))
-        executor.shutdown()
+        val requiredService = RequiredService.Spotlight()
+        val serviceBundleId = requiredService.identifier
+        var stdOut = ""
+        var stdErr = ""
 
         pollFor(
             timeOut = Duration.ofMinutes(3),
             reasonName = "Simulator boot process",
             shouldReturnOnTimeout = true,
-            retryInterval = Duration.ofMillis(250L),
+            retryInterval = Duration.ofSeconds(10),
             logger = logger,
             marker = logMarker
         ) {
-            requiredServices.all { it.booted }
+            val logsResult = remote.execIgnoringErrors(logsCommand, timeOutSeconds = 120L)
+            stdOut = logsResult.stdOut
+            stdErr = logsResult.stdErr
+
+            if (stdOut.contains(serviceBundleId)) {
+                requiredService.booted = true
+            }
+
+            requiredService.booted
         }
 
-        process.destroy()
-
-        if (requiredServices.any { !it.booted }) {
-            val failedServices = requiredServices.filter { !it.booted }
-            val failedServicesMessage = if (failedServices.isNotEmpty()) "Failed services [${failedServices.joinToString(", ")}]" else ""
-            val errorMessage = "Simulator $udid failed to successfully boot to sufficient state. $failedServicesMessage. StdErr: $stdErr. StdOut: $stdOut"
+        if (!requiredService.booted) {
+            val failedServicesMessage = "Failed services [${requiredService}]"
+            val errorMessage = "Simulator $udid failed to successfully boot to sufficient state. $failedServicesMessage. StdErr: \n$stdErr\n. StdOut: \n$stdOut"
             logger.error(logMarker, "Simulator $udid log has not exited in time. Possible errors. StdErr: $stdErr. StdOut: $stdOut")
             logger.error(logMarker, errorMessage)
             throw DeviceCreationException(errorMessage)
