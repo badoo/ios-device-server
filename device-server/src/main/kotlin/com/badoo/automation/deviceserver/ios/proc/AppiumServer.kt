@@ -146,6 +146,7 @@ class AppiumServer(
     private fun getAppiumServerStartCommand(): List<String> {
         val command = listOf(
             "appium",
+            "--allow-cors",
             "--port",
             appiumServerPort.toString(),
             "--webdriveragent-port",
