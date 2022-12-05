@@ -349,7 +349,11 @@ class Simulator(
         healthChecker = launch {
             while (isActive) {
                 performFBSimctlHealthCheck(fbsimctlFailCount, maxFailCount)
-                performWebDriverAgentHealthCheck(wdaFailCount, maxFailCount)
+
+                if (useWda) {
+                    performWebDriverAgentHealthCheck(wdaFailCount, maxFailCount)
+                }
+
                 delay(healthCheckInterval)
             }
         }
