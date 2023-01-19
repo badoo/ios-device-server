@@ -9,8 +9,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.auth.UserIdPrincipal
 import java.io.File
 import java.nio.file.Path
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 class DevicesController(private val deviceManager: DeviceManager) {
     private val happy = emptyMap<Unit, Unit>()
@@ -49,6 +47,41 @@ class DevicesController(private val deviceManager: DeviceManager) {
 
     fun releaseAllDevices() {
         deviceManager.releaseAllDevices("httpRequest")
+    }
+
+    /**
+     * List available simulation scenarios
+     */
+    fun locationListScenarios(ref: DeviceRef): List<String> {
+        return deviceManager.locationListScenarios(ref)
+    }
+
+    /**
+     * Stop any running scenario and clear any simulated location
+     */
+    fun locationClear(ref: DeviceRef) {
+        deviceManager.locationClear(ref)
+    }
+
+    /**
+     * Set the location to a specific latitude and longitude
+     */
+    fun locationSet(ref: DeviceRef, latitude: Double, longitude: Double) {
+        deviceManager.locationSet(ref, latitude, longitude)
+    }
+
+    /**
+     * Run a simulated location scenario (use the list action to get a list of scenarios)
+     */
+    fun locationRunScenario(ref: DeviceRef, scenarioName: String) {
+        deviceManager.locationRunScenario(ref, scenarioName)
+    }
+
+    /**
+     * Run a custom location scenario
+     */
+    fun locationStartLocationSequence(ref: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>) {
+        deviceManager.locationStartLocationSequence(ref, speed, distance, interval, waypoints)
     }
 
     fun sendPushNotification(ref: DeviceRef, bundleId: String, notificationContent: ByteArray): EmptyMap {

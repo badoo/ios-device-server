@@ -397,6 +397,31 @@ class DevicesNode(
 
     override fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo> = slotByExternalRef(deviceRef).device.listApps()
 
+    override fun locationListScenarios(deviceRef: DeviceRef): List<String> {
+        throw(NotImplementedError("Location commands are not supported by physical devices"))
+    }
+
+    override fun locationClear(deviceRef: DeviceRef) {
+        throw(NotImplementedError("Location commands are not supported by physical devices"))
+    }
+
+    override fun locationSet(deviceRef: DeviceRef, latitude: Double, longitude: Double) {
+        throw(NotImplementedError("Location commands are not supported by physical devices"))
+    }
+
+    override fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String) {
+        throw(NotImplementedError("Location commands are not supported by physical devices"))
+    }
+
+    override fun locationStartLocationSequence(
+        deviceRef: DeviceRef,
+        speed: Int,
+        distance: Int,
+        interval: Int,
+        waypoints: List<LocationDto>
+    ) {
+        throw(NotImplementedError("Location commands are not supported by physical devices"))
+    }
 
     override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
         throw NotImplementedError()

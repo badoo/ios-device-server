@@ -13,6 +13,7 @@ import java.util.concurrent.locks.ReentrantLock
 interface ISimulator: IDevice {
     val systemLog: SystemLog
     val media: Media
+    val locationManager: LocationManager
 
     fun resetAsync(): Runnable
     fun sendPushNotification(bundleId: String, notificationContent: ByteArray)

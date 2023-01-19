@@ -318,6 +318,26 @@ class DeviceManager(
         nodeRegistry.activeDevices.releaseDevices(devices, reason)
     }
 
+    fun locationListScenarios(ref: DeviceRef): List<String> {
+        return nodeRegistry.activeDevices.getNodeFor(ref).locationListScenarios(ref)
+    }
+
+    fun locationClear(ref: DeviceRef) {
+        nodeRegistry.activeDevices.getNodeFor(ref).locationClear(ref)
+    }
+
+    fun locationSet(ref: DeviceRef, latitude: Double, longitude: Double) {
+        nodeRegistry.activeDevices.getNodeFor(ref).locationSet(ref, latitude, longitude)
+    }
+
+    fun locationRunScenario(ref: DeviceRef, scenarioName: String) {
+        nodeRegistry.activeDevices.getNodeFor(ref).locationRunScenario(ref, scenarioName)
+    }
+
+    fun locationStartLocationSequence(ref: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>) {
+        nodeRegistry.activeDevices.getNodeFor(ref).locationStartLocationSequence(ref, speed, distance, interval, waypoints)
+    }
+
     fun isReady(): Boolean {
         return nodeRegistry.getInitialRegistrationComplete()
     }
