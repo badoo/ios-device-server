@@ -72,6 +72,7 @@ class Simulator(
     override val calabashPort: Int = allocatedPorts.calabashPort
     override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
     override val appiumPort: Int = allocatedPorts.appiumPort
+    override val locationManager: LocationManager = LocationManager(remote, udid)
 
     private fun createVideoRecorder(): VideoRecorder {
         val recorderClassName = appConfig.videoRecorderClassName

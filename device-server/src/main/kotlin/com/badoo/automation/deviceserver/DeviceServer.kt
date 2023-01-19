@@ -396,6 +396,26 @@ fun Application.module() {
                         call.respond(devicesController.deleteVideo(param(call, "ref")))
                     }
                 }
+                route("location") {
+                    get("scenarios") {
+                        call.respond(devicesController.locationListScenarios(param(call, "ref")))
+                    }
+                    delete {
+                        call.respond(devicesController.locationClear(param(call, "ref")))
+                    }
+                    post("set") {
+                        val location = jsonContent<LocationDto>(call)
+                        call.respond(devicesController.locationSet(param(call, "ref"), location.latitude, location.longitude))
+                    }
+                    post("run") {
+                        val scenario = jsonContent<LocationScenarioDto>(call)
+                        call.respond(devicesController.locationRunScenario(param(call, "ref"), scenario.scenarioName))
+                    }
+                    post("start") {
+                        val waypoints = jsonContent<LocationWaypointsDto>(call)
+                        call.respond(devicesController.locationStartLocationSequence(param(call, "ref"), waypoints.speed, waypoints.distance, waypoints.interval, waypoints.waypoints))
+                    }
+                }
                 get("state") {
                     call.respond(devicesController.getDeviceState(param(call, "ref")))
                 }

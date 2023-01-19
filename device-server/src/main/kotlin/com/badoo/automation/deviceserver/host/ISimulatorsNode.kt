@@ -71,4 +71,9 @@ interface ISimulatorsNode {
     val publicHostName: String
     fun deployApplication(appBundle: ApplicationBundle)
     fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo>
+    fun locationListScenarios(deviceRef: DeviceRef): List<String>
+    fun locationClear(deviceRef: DeviceRef)
+    fun locationSet(deviceRef: DeviceRef, latitude: Double, longitude: Double)
+    fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String)
+    fun locationStartLocationSequence(deviceRef: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>)
 }

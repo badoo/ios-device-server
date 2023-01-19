@@ -333,6 +333,32 @@ class SimulatorsNode(
 
     override fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo> = getDeviceFor(deviceRef).listApps()
 
+    override fun locationListScenarios(deviceRef: DeviceRef): List<String> {
+        return getDeviceFor(deviceRef).locationManager.listScenarios()
+    }
+
+    override fun locationClear(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).locationManager.clear()
+    }
+
+    override fun locationSet(deviceRef: DeviceRef, latitude: Double, longitude: Double) {
+        getDeviceFor(deviceRef).locationManager.setLocation(latitude, longitude)
+    }
+
+    override fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String) {
+        getDeviceFor(deviceRef).locationManager.runScenario(scenarioName)
+    }
+
+    override fun locationStartLocationSequence(
+        deviceRef: DeviceRef,
+        speed: Int,
+        distance: Int,
+        interval: Int,
+        waypoints: List<LocationDto>
+    ) {
+        getDeviceFor(deviceRef).locationManager.startLocationSequence(speed, distance, interval, waypoints)
+    }
+
     override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
         return getDeviceFor(deviceRef).crashLogs(pastMinutes)
     }
