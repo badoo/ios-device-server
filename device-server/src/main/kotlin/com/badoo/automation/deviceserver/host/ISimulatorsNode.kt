@@ -38,6 +38,8 @@ interface ISimulatorsNode {
     fun syslog(deviceRef: DeviceRef): File
     fun deviceAgentLog(deviceRef: DeviceRef): File
     fun deviceAgentLogDelete(deviceRef: DeviceRef)
+    fun appiumServerLog(deviceRef: DeviceRef): File
+    fun appiumServerLogDelete(deviceRef: DeviceRef)
     fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions)
     fun syslogStop(deviceRef: DeviceRef)
     fun syslogDelete(deviceRef: DeviceRef)

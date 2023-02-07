@@ -149,6 +149,10 @@ class Simulator(
 
     override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
 
+    override val appiumServerLog get() = appiumServer.appiumServerLog
+
+    override fun appiumServerLogDelete() = appiumServer.appiumServerLogDelete()
+
     private val simulatorDirectory = File(deviceSetPath, udid)
     private val simulatorDataDirectory = File(simulatorDirectory, "data")
 

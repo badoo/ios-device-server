@@ -402,6 +402,14 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).deviceAgentLogDelete(ref)
     }
 
+    fun appiumServerLog(ref: DeviceRef): File {
+        return nodeRegistry.activeDevices.getNodeFor(ref).appiumServerLog(ref)
+    }
+
+    fun appiumServerLogDelete(ref: DeviceRef) {
+        nodeRegistry.activeDevices.getNodeFor(ref).appiumServerLogDelete(ref)
+    }
+
     fun syslogDelete(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).syslogDelete(ref)
     }

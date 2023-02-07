@@ -161,6 +161,14 @@ class DevicesNode(
         Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
     }
 
+    override fun appiumServerLog(deviceRef: DeviceRef): File {
+        throw(NotImplementedError("AppiumServer log is not supported by physical devices"))
+    }
+
+    override fun appiumServerLogDelete(deviceRef: DeviceRef) {
+        throw(NotImplementedError("AppiumServer log is not supported by physical devices"))
+    }
+
     override fun syslog(deviceRef: DeviceRef): File {
         val device = slotByExternalRef(deviceRef).device
         val osLog: RealDeviceSysLog = device.osLog
