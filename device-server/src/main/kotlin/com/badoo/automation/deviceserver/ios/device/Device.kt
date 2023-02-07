@@ -113,6 +113,11 @@ class Device(
     )
     override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
 
+    override val appiumServerLog get() = File("TODO: Fix")
+    override fun appiumServerLogDelete() {
+        TODO("Not yet implemented")
+    }
+
     private val status = SimulatorStatus()
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)

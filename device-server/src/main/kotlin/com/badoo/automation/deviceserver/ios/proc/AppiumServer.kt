@@ -9,6 +9,8 @@ import com.badoo.automation.deviceserver.util.uriWithPath
 import java.io.File
 import java.net.URI
 import java.net.URL
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.time.Duration
 
 
@@ -26,27 +28,54 @@ class AppiumServer(
         err_reader: ((line: String) -> Unit)?
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
-    private val appiumTmpDirPrefix = "appium_tmpdir_${udid}_"
-    private val appiumTmpDir = createAppiumTmpDir()
-    private val appiumLog: File = File(appiumTmpDir, "appium_log_${udid}.txt")
+    private val remoteAppiumTmpDirPrefix = "appium_tmpdir_${udid}_"
+    private val remoteAppiumTmpDir = createRemoteAppiumTmpDir()
+    private val remoteAppiumServerLog: File = File(remoteAppiumTmpDir, "remote_appium_server_log_${udid}.txt")
+    private val localAppiumServerLog: File = File.createTempFile("appium_server_log_${udid}", ".txt")
 
-    private fun createAppiumTmpDir(): File {
-        val tmpPath = remote.shell(
-            "/usr/bin/mktemp -d -t $appiumTmpDirPrefix",
-            returnOnFailure = false
-        ).stdOut.trim()
+    val appiumServerLog get(): File {
+        Files.write(localAppiumServerLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
 
-        return File(tmpPath)
+        if (remote.isLocalhost()) {
+            localAppiumServerLog.writeBytes(remoteAppiumServerLog.readBytes())
+        } else {
+            remote.scpFromRemoteHost(remoteAppiumServerLog.absolutePath, localAppiumServerLog.absolutePath, Duration.ofSeconds(60))
+        }
+
+        return localAppiumServerLog
+    }
+
+    fun appiumServerLogDelete() {
+        Files.write(localAppiumServerLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+
+        if (remote.isLocalhost()) {
+            Files.write(remoteAppiumServerLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+        } else {
+            remote.shell("cat /dev/null > ${remoteAppiumServerLog.absolutePath}")
+        }
+    }
+
+    private fun createRemoteAppiumTmpDir(): File {
+        return if (remote.isLocalhost()) {
+            createTempDir(remoteAppiumTmpDirPrefix)
+        } else {
+            val tmpPath = remote.shell(
+                "/usr/bin/mktemp -d -t $remoteAppiumTmpDirPrefix",
+                returnOnFailure = false
+            ).stdOut.trim()
+
+            File(tmpPath)
+        }
     }
 
     private val statusUrl: URL = uriWithPath(URI("http://${remote.publicHostName}:$appiumServerPort"), "wd/hub/status").toURL()
 
     private fun getLogContents(): String {
         return if (remote.isLocalhost()) {
-            appiumLog.readText()
+            remoteAppiumServerLog.readText()
         } else {
-            val localLogFile = File.createTempFile("appium_log_${udid}.txt", ".txt")
-            remote.scpFromRemoteHost(appiumLog.absolutePath, localLogFile.absolutePath, Duration.ofSeconds(60))
+            val localLogFile = File.createTempFile("tmp_appium_log_${udid}.txt", ".txt")
+            remote.scpFromRemoteHost(remoteAppiumServerLog.absolutePath, localLogFile.absolutePath, Duration.ofSeconds(60))
             val log = localLogFile.readText()
             localLogFile.delete()
             log
@@ -54,7 +83,7 @@ class AppiumServer(
     }
 
     fun truncateAppiumLog() {
-        remote.shell(":> $appiumLog", returnOnFailure = false)
+        remote.shell(":> $remoteAppiumServerLog", returnOnFailure = false)
     }
 
     override fun checkHealth(): Boolean {
@@ -128,18 +157,18 @@ class AppiumServer(
     }
 
     override fun kill() {
-        remote.pkill(appiumTmpDirPrefix, false)
+        remote.pkill(remoteAppiumTmpDirPrefix, false)
         super.kill()
     }
 
     private fun cleanupLogs() {
-        remote.shell("rm -rf $appiumTmpDir", false)
+        remote.shell("rm -rf $remoteAppiumTmpDir", false)
 
         if (!remote.isLocalhost()) {
-            appiumTmpDir.deleteRecursively()
+            remoteAppiumTmpDir.deleteRecursively()
         }
 
-        remote.shell("mkdir -p $appiumTmpDir", false)
+        remote.shell("mkdir -p $remoteAppiumTmpDir", false)
         truncateAppiumLog()
     }
 
@@ -159,9 +188,9 @@ class AppiumServer(
             "--log-no-colors",
             "--local-timezone",
             "--log",
-            appiumLog.absolutePath,
+            remoteAppiumServerLog.absolutePath,
             "--tmp",
-            appiumTmpDir.absolutePath
+            remoteAppiumTmpDir.absolutePath
         )
 
         return if (remote.isLocalhost()) {

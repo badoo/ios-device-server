@@ -358,6 +358,17 @@ fun Application.module() {
                         call.respond(devicesController.deviceAgentLogDelete(ref))
                     }
                 }
+                route("appium_server_log") {
+                    get {
+                        val ref = param(call, "ref")
+                        val logFile = devicesController.appiumServerLog(ref)
+                        call.respondFile(logFile)
+                    }
+                    delete {
+                        val ref = param(call, "ref")
+                        call.respond(devicesController.appiumServerLogDelete(ref))
+                    }
+                }
                 route("diagnose/{type}") {
                     get {
                         val ref = param(call, "ref")

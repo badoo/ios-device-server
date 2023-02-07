@@ -213,7 +213,15 @@ class SimulatorsNode(
 
     override fun deviceAgentLogDelete(deviceRef: DeviceRef) {
         val logFile = getDeviceFor(deviceRef).deviceAgentLog
-        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
+        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+    }
+
+    override fun appiumServerLog(deviceRef: DeviceRef): File {
+        return getDeviceFor(deviceRef).appiumServerLog
+    }
+
+    override fun appiumServerLogDelete(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).appiumServerLogDelete()
     }
 
     override fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
