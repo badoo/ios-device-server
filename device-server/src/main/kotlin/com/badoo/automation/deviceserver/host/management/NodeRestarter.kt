@@ -13,7 +13,8 @@ class NodeRestarter(
 
     fun restartNodeWrappers(
         nodes: Set<NodeWrapper>,
-        isParallel: Boolean
+        isParallel: Boolean,
+        shouldReboot: Boolean
     ) {
         val nodesToRestart = if (isParallel) {
             logger.info("Going to restart nodes in parallel.")
@@ -33,6 +34,10 @@ class NodeRestarter(
             }
 
             nodeWrapper.stop()
+
+            if (shouldReboot) {
+                nodeWrapper.reboot()
+            }
 
             if (nodeWrapper.start()) {
                 nodeWrapper.startPeriodicHealthCheck()

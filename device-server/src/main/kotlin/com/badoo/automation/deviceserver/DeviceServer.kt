@@ -160,7 +160,8 @@ fun Application.module() {
             post("restart_gracefully") {
                 val params = jsonContent(call)
                 val isParallelRestart = params["parallel"]?.asBoolean() ?: false
-                val restartScheduled = deviceManager.restartNodesGracefully(isParallelRestart)
+                val shouldReboot = params["reboot"]?.asBoolean() ?: false
+                val restartScheduled = deviceManager.restartNodesGracefully(isParallelRestart, shouldReboot)
 
                 if (restartScheduled) {
                     call.respond(HttpStatusCode.Accepted, mapOf("status" to "Scheduled graceful restart of nodes"))
