@@ -60,6 +60,7 @@ interface ISimulatorsNode {
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
     fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
+    fun reboot(): Boolean
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)
     fun deleteAppData(deviceRef: DeviceRef, bundleId: String)
     fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>)

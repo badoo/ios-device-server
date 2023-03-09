@@ -375,6 +375,10 @@ class DevicesNode(
         logger.info(logMarker, "Finalized node $this")
     }
 
+    override fun reboot(): Boolean {
+        return true // Not intended to reboot Real Device nodes
+    }
+
     override fun list(): List<DeviceDTO> {
         synchronized(this) {
             val disconnected = mutableListOf<DeviceRef>()

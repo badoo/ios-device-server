@@ -84,6 +84,10 @@ class NodeWrapper(
         }
     }
 
+    fun reboot() {
+        node.reboot()
+    }
+
     fun disable() {
         isEnabled = false
         logger.info(logMarker, "Disabled $this")

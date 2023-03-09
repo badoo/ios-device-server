@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
+import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
@@ -15,6 +16,7 @@ import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
+import com.badoo.automation.deviceserver.util.pollFor
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -24,6 +26,7 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.*
 import kotlin.collections.HashMap
@@ -325,6 +328,48 @@ class SimulatorsNode(
         hostChecker.killDiskCleanupThread()
 
         logger.info(logMarker, "Finalised simulator pool for ${remote.hostName}")
+    }
+
+    private fun logUptimeInfo() {
+        val date = remote.shell("/bin/date").stdOut.trim()
+        val uptime = remote.shell("/usr/bin/uptime").stdOut.trim()
+        val lastReboot = remote.shell("/usr/bin/last reboot").stdOut.lines().first().trim()
+
+        logger.info(logMarker, "Simulator node uptime info for $publicHostName : Current date: [$date] ;  Current uptime: [$uptime] ; Last reboot: [$lastReboot]")
+    }
+
+    override fun reboot(): Boolean {
+        logUptimeInfo()
+        logger.warn(logMarker, "Scheduling node for reboot $publicHostName")
+
+        try {
+            remote.shell("sudo /sbin/reboot")
+        } catch (e: SshConnectionException) {
+            // ignore
+        }
+
+        Thread.sleep(Duration.ofSeconds(60).toMillis())
+
+        var reachable: Boolean = false
+
+        pollFor(
+            Duration.ofSeconds(300),
+            "Waiting to be reachable after reboot",
+            true,
+            Duration.ofSeconds(10),
+            logger,
+            logMarker
+        ) {
+            reachable = isReachable()
+            logger.debug(logMarker, "Checking if node is reachable after reboot for $publicHostName with result isReachable: $reachable")
+            reachable
+        }
+
+        logUptimeInfo()
+
+        logger.warn(logMarker, "Node reboot operation is finished for $publicHostName with result isReachable: $reachable")
+
+        return reachable
     }
 
     override fun endpointFor(deviceRef: DeviceRef, port: Int): URL {

@@ -187,8 +187,8 @@ class DeviceManager(
         autoRegistrar.startAutoRegistering()
     }
 
-    fun restartNodesGracefully(isParallelRestart: Boolean): Boolean {
-        return autoRegistrar.restartNodesGracefully(isParallelRestart)
+    fun restartNodesGracefully(isParallelRestart: Boolean, shouldReboot: Boolean): Boolean {
+        return autoRegistrar.restartNodesGracefully(isParallelRestart, shouldReboot)
     }
 
     private val zombieReaper = ZombieReaper()
