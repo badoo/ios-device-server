@@ -96,6 +96,7 @@ private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpl
 @Suppress("unused")
 fun Application.module() {
     val config = serverConfig()
+    val startTime = System.nanoTime()
 
     val hostFactory = HostFactory(
         fbsimctlVersion = appConfiguration.fbsimctlVersion,
@@ -149,7 +150,7 @@ fun Application.module() {
         route("status") {
             get {
               val code = if (deviceManager.isReady()) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
-              call.respond(code, statusController.getServerStatus())
+              call.respond(code, statusController.getServerStatus(startTime))
             }
             get("config") {
                 call.respond(config)

@@ -425,6 +425,10 @@ class DevicesNode(
         throw(NotImplementedError("Location commands are not supported by physical devices"))
     }
 
+    override fun getNodeUptimeInfo(): NodeInfo {
+        return NodeInfo.getNodeInfo(remote)
+    }
+
     override fun locationStartLocationSequence(
         deviceRef: DeviceRef,
         speed: Int,

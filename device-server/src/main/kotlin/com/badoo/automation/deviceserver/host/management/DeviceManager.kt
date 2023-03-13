@@ -19,6 +19,7 @@ import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
 import kotlin.system.measureNanoTime
 
 private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
@@ -198,8 +199,16 @@ class DeviceManager(
     }
 
     fun getStatus(): Map<String, Any> {
+        val aliveNodes = nodeRegistry.getAlive().parallelStream()
+            .map { Pair(it.node.publicHostName, it.node.getNodeUptimeInfo()) }
+            .collect(Collectors.toList())
+
+        val allNodes = nodeRegistry.getAll().map { it.node.publicHostName }.sorted()
+
         return mapOf(
             "initialized" to nodeRegistry.getInitialRegistrationComplete(),
+            "alive_nodes" to aliveNodes,
+            "all_nodes" to allNodes,
             "sessions" to listOf(nodeRegistry.activeDevices.getStatus()).toString()
         )
     }

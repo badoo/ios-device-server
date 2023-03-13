@@ -330,12 +330,13 @@ class SimulatorsNode(
         logger.info(logMarker, "Finalised simulator pool for ${remote.hostName}")
     }
 
-    private fun logUptimeInfo() {
-        val date = remote.shell("/bin/date").stdOut.trim()
-        val uptime = remote.shell("/usr/bin/uptime").stdOut.trim()
-        val lastReboot = remote.shell("/usr/bin/last reboot").stdOut.lines().first().trim()
+    override fun getNodeUptimeInfo(): NodeInfo {
+        return NodeInfo.getNodeInfo(remote)
+    }
 
-        logger.info(logMarker, "Simulator node uptime info for $publicHostName : Current date: [$date] ;  Current uptime: [$uptime] ; Last reboot: [$lastReboot]")
+    private fun logUptimeInfo() {
+        val nodeInfo = getNodeUptimeInfo()
+        logger.info(logMarker, "Simulator node uptime info for $publicHostName : Current date: [${nodeInfo.currentDate}] ;  Current uptime: [${nodeInfo.uptime}]")
     }
 
     override fun reboot(): Boolean {

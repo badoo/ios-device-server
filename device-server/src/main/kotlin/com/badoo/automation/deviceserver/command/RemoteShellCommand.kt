@@ -50,22 +50,19 @@ class RemoteShellCommand(
                       returnFailure: Boolean, logMarker: Marker?, processBuilder: ProcessBuilder): CommandResult {
         val cmd = getCommandWithSSHPrefix(command, environment.keys)
         val startTime = System.nanoTime()
-        val result = super.exec(cmd, getEnvironmentForSSH(environment), timeOut, returnFailure, logMarker, processBuilder)
+        val remoteShellLogMarker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
+        logMarker?.let { remoteShellLogMarker.add(it) }
+        val result = super.exec(cmd, getEnvironmentForSSH(environment), timeOut, returnFailure, remoteShellLogMarker, processBuilder)
         val elapsedTime = System.nanoTime() - startTime
         val elapsedMillis = TimeUnit.NANOSECONDS.toMillis(elapsedTime)
-        val marker = MapEntriesAppendingMarker(
-            mapOf(
-                LogMarkers.HOSTNAME to remoteHost,
-                LogMarkers.SSH_PROFILING_MS to elapsedMillis
-            )
-        )
-        logger.debug(
-            marker, "Execution of SSH command took $elapsedMillis ms. Command: ${cmd.joinToString(" ")}, PID: ${result.pid}")
+        remoteShellLogMarker.add(MapEntriesAppendingMarker(mapOf(LogMarkers.SSH_PROFILING_MS to elapsedMillis)))
+        logger.debug(remoteShellLogMarker,
+            "Execution of SSH command took $elapsedMillis ms. Command: ${cmd.joinToString(" ")}, PID: ${result.pid}")
 
         if (result.exitCode == SSH_ERROR) {
             // FIXME: Check stdout and stderr, if they are empty – ssh timeout, otherwise, it is likely to be command error
             val message = "Probably SSH could not connect to node $remoteHost. Result: $result"
-            logger.error(logMarker, message)
+            logger.error(remoteShellLogMarker, message)
             throw SshConnectionException(message)
         }
 
@@ -73,7 +70,9 @@ class RemoteShellCommand(
     }
 
     override fun startProcess(command: List<String>, environment: Map<String, String>, logMarker: Marker?, processBuilder: ProcessBuilder): Process {
-        return super.startProcess(getCommandWithSSHPrefix(command, environment.keys), getEnvironmentForSSH(environment), logMarker, processBuilder)
+        val remoteShellLogMarker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
+        logMarker?.let { remoteShellLogMarker.add(it) }
+        return super.startProcess(getCommandWithSSHPrefix(command, environment.keys), getEnvironmentForSSH(environment), remoteShellLogMarker, processBuilder)
     }
 
     override fun escape(value: String): String {
