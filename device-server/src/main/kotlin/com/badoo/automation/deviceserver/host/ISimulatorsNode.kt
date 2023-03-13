@@ -79,4 +79,26 @@ interface ISimulatorsNode {
     fun locationSet(deviceRef: DeviceRef, latitude: Double, longitude: Double)
     fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String)
     fun locationStartLocationSequence(deviceRef: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>)
+    fun getNodeUptimeInfo(): NodeInfo
+}
+
+data class NodeInfo(
+    val currentDate: String,
+    val uptime: String,
+    val info: List<String>
+) {
+    companion object {
+        fun getNodeInfo(remote: IRemote): NodeInfo {
+            val uptimeInfo = remote.shell("/bin/date ; /usr/bin/uptime")
+                .stdOut.trim().lines()
+
+            val nodeInfo = remote.shell("/usr/sbin/system_profiler SPHardwareDataType").stdOut.trim().lines()
+
+            return NodeInfo(
+                currentDate = uptimeInfo[0],
+                uptime = uptimeInfo[1],
+                info = nodeInfo
+            )
+        }
+    }
 }

@@ -35,7 +35,9 @@ open class ShellCommand(
         try {
             val process: Process = processBuilder.start()
             val pid = process.pid()
-            logger.debug(MapEntriesAppendingMarker(mapOf("PID" to pid)), "Executing command: $commandString, PID: $pid")
+            val pidLogMarker = MapEntriesAppendingMarker(mapOf("PID" to pid))
+            logMarker?.let { pidLogMarker.add(it) }
+            logger.debug(pidLogMarker, "Executing command: $commandString, PID: $pid")
             val stdOut = executor.submit(lineReader(process.inputStream))
             val stdErr = executor.submit(lineReader(process.errorStream))
 
@@ -48,9 +50,9 @@ open class ShellCommand(
             }
 
             if (!hasExited) {
-                logger.error(logMarker, "Command has failed to complete in time. Timeout: ${timeOut.toSeconds()} seconds. Command: $commandString, PID: $pid")
+                logger.error(pidLogMarker, "Command has failed to complete in time. Timeout: ${timeOut.toSeconds()} seconds. Command: $commandString, PID: $pid")
                 executor.submit {
-                    waitForProcessToComplete(process, logMarker, commandString, pid.toInt(), timeOut)
+                    waitForProcessToComplete(process, pidLogMarker, commandString, pid.toInt(), timeOut)
                 }
             }
 
@@ -63,7 +65,7 @@ open class ShellCommand(
             )
             ensure(exitCode == 0 || returnFailure) {
                 val errorMessage = "Error while running command: $commandString Result=$result"
-                logger.error(logMarker, errorMessage)
+                logger.error(pidLogMarker, errorMessage)
                 ShellCommandException(errorMessage)
             }
             return result
