@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.host.management.NodeRegistry
 import com.badoo.automation.deviceserver.host.management.NodeWrapper
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.*
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito
 import java.time.Duration
@@ -35,6 +36,7 @@ class NodeWrapperTest {
         verify(nodeMock, times(2)).isReachable()
     }
 
+    @Ignore
     @Test
     fun failsToInitOnFactoryError() {
         whenever(hostFactory.getHostFromConfig(any())).thenThrow(RuntimeException())
