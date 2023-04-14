@@ -30,7 +30,7 @@ class NodeWrapper(
     private val lock = ReentrantLock(true)
     @Volatile private var isStarted = false
     private var healthCheckPeriodicTask: Future<*>? = null
-    val node: ISimulatorsNode = hostFactory.getHostFromConfig(config)
+    val node: ISimulatorsNode by lazy { hostFactory.getHostFromConfig(config) } // workaround for SSH connection issues
 
     var lastError: Exception? = null
     @Volatile var isEnabled: Boolean = true
