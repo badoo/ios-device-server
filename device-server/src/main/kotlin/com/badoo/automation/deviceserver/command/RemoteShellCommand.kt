@@ -11,7 +11,7 @@ class RemoteShellCommand(
     userName: String,
     commonEnvironment: Map<String, String> = mapOf(),
     private val isVerboseMode: Boolean = false,
-    private val connectionTimeout: Int = 15
+    private val connectionTimeout: Int = 60
 ) : ShellCommand(commonEnvironment) {
     private val userAtHost: String = if (userName.isBlank()) { remoteHost } else { "$userName@$remoteHost" }
     override val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
@@ -24,6 +24,7 @@ class RemoteShellCommand(
                 SSH_COMMAND,
                 "-o", "ConnectTimeout=$connectionTimeout",
                 "-o", "PreferredAuthentications=publickey",
+                "-o", "VerifyHostKeyDNS=no",
                 QUIET_MODE
         ))
 
