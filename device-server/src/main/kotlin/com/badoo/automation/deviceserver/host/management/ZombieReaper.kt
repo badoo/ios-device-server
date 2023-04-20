@@ -7,6 +7,7 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.streams.toList
 
@@ -25,19 +26,39 @@ class ZombieReaper {
     }
 
     private fun reapZombies(pids: List<Int>) {
-        pids.parallelStream().forEach { pid ->
-            reapZombie(pid)
+        if (pids.isEmpty()) {
+            logger.debug("No zombies to reap")
+            return
+        }
+
+        val executor = Executors.newFixedThreadPool(pids.size)
+        val tasks = mutableListOf<Future<*>>()
+        pids.forEach { pid ->
+            val task: Future<*> = executor.submit {
+                reapZombie(pid)
+            }
+            tasks.add(task)
+        }
+        executor.shutdown()
+
+        tasks.forEach { it.get() }
+
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (e: InterruptedException) {
+            println("Failed to awaitTermination while reaping zombiez due to issue. ${e.javaClass.name}, ${e.message}")
         }
     }
 
     private fun reapZombie(pid: Int) {
+        logger.debug("Reaping zombie process $pid.")
         try {
             val exitCode = IntByReference()
             val waitpidRC = LibC.waitpid(pid, exitCode, 0)
             val status = exitCode.value
             val wExitStatus = LibC.WEXITSTATUS(status)
             val cleanExit = waitpidRC == pid && LibC.WIFEXITED(status) && wExitStatus == 0
-            logger.trace(MapEntriesAppendingMarker(mapOf("zombiePID" to pid)), "Reaped zombie process $pid. Exit status: $wExitStatus. Exit status is clean: $cleanExit.")
+            logger.debug(MapEntriesAppendingMarker(mapOf("zombiePID" to pid)), "Reaped zombie process $pid. Exit status: $wExitStatus. Exit status is clean: $cleanExit.")
         } catch (t: Throwable) {
             logger.error("Failed to reap zombie process $pid. Error: ${t.javaClass}, ${t.message}", t)
         }
@@ -54,7 +75,7 @@ class ZombieReaper {
             val childrenPids = ProcessHandle.current().children().map { it.pid().toInt() }
             val childrenZombiesPids = childrenPids.filter { zombiesPids.contains(it) }.toList()
 
-            logger.trace(MapEntriesAppendingMarker(mapOf("zombies" to childrenZombiesPids.size)), "Found ${childrenZombiesPids.size} zombie processes: ${childrenZombiesPids.joinToString(",")}")
+            logger.debug(MapEntriesAppendingMarker(mapOf("zombies" to childrenZombiesPids.size)), "Found ${childrenZombiesPids.size} zombie processes: ${childrenZombiesPids.joinToString(",")}")
             childrenZombiesPids
         } catch (t: Throwable) {
             logger.error("Failed to find zombie processes. Error: ${t.javaClass}, ${t.message}", t)
