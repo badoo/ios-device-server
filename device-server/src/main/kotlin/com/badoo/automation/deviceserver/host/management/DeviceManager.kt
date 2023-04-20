@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.command.ShellCommand
 import com.badoo.automation.deviceserver.data.*
+import com.badoo.automation.deviceserver.host.NodeInfo
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
@@ -16,9 +17,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
 import java.time.Duration
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.stream.Collectors
 import kotlin.system.measureNanoTime
 
@@ -188,8 +187,8 @@ class DeviceManager(
         autoRegistrar.startAutoRegistering()
     }
 
-    fun restartNodesGracefully(isParallelRestart: Boolean, shouldReboot: Boolean): Boolean {
-        return autoRegistrar.restartNodesGracefully(isParallelRestart, shouldReboot)
+    fun restartNodesGracefully(isParallelRestart: Boolean, shouldReboot: Boolean, forceReboot: Boolean): Boolean {
+        return autoRegistrar.restartNodesGracefully(isParallelRestart, shouldReboot, forceReboot)
     }
 
     private val zombieReaper = ZombieReaper()
@@ -199,18 +198,46 @@ class DeviceManager(
     }
 
     fun getStatus(): Map<String, Any> {
-        val aliveNodes = nodeRegistry.getAlive().parallelStream()
-            .map { Pair(it.node.publicHostName, it.node.getNodeUptimeInfo()) }
-            .collect(Collectors.toList())
+        val nodeWrappers = nodeRegistry.getAlive()
+
+        val aliveNodesInfo: List<Pair<String, NodeInfo>> = getNodesInfo(nodeWrappers)
 
         val allNodes = nodeRegistry.getAll().map { it.node.publicHostName }.sorted()
 
         return mapOf(
             "initialized" to nodeRegistry.getInitialRegistrationComplete(),
-            "alive_nodes" to aliveNodes,
+            "alive_nodes" to aliveNodesInfo,
             "all_nodes" to allNodes,
             "sessions" to listOf(nodeRegistry.activeDevices.getStatus()).toString()
         )
+    }
+
+    private fun getNodesInfo(nodeWrappers: Set<NodeWrapper>): List<Pair<String, NodeInfo>> {
+        if (nodeWrappers.isEmpty()) {
+            logger.debug("Unable to get NodeInfo for empty list of nodes")
+            return listOf()
+        }
+
+        val executor = Executors.newFixedThreadPool(nodeWrappers.size)
+        val tasks = mutableListOf<Future<Pair<String, NodeInfo>>>()
+
+        nodeWrappers.forEach { nodeWrapper ->
+            val task: Future<Pair<String, NodeInfo>> = executor.submit(Callable<Pair<String, NodeInfo>> {
+                return@Callable Pair(nodeWrapper.node.publicHostName, nodeWrapper.node.getNodeUptimeInfo())
+            })
+            tasks.add(task)
+        }
+
+        executor.shutdown()
+
+        val aliveNodesInfo: List<Pair<String, NodeInfo>> = tasks.map { it.get() }
+
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (e: InterruptedException) {
+            println("Failed to awaitTermination while retrieving NodeInfo due to issue. ${e.javaClass.name}, ${e.message}")
+        }
+        return aliveNodesInfo
     }
 
     fun getTotalCapacity(desiredCaps: DesiredCapabilities): Map<String, Int> {
@@ -455,8 +482,23 @@ class DeviceManager(
 
         logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
 
-        nodeRegistry.getAll().parallelStream().forEach { nodeWrapper ->
-            nodeWrapper.node.deployApplication(appBundle)
+        val nodeWrappers = nodeRegistry.getAll()
+        val executor = Executors.newFixedThreadPool(nodeWrappers.size)
+        val tasks = mutableListOf<Future<*>>()
+        nodeWrappers.forEach { nodeWrapper ->
+            val task: Future<*> = executor.submit {
+                nodeWrapper.node.deployApplication(appBundle)
+            }
+            tasks.add(task)
+        }
+        executor.shutdown()
+
+        tasks.forEach { it.get() }
+
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (e: InterruptedException) {
+            println("Failed to awaitTermination while deploying application binary simulator hosts due to issue. ${e.javaClass.name}, ${e.message}")
         }
 
         logger.debug(marker, "Successfully deployed application ${dto.appUrl}")

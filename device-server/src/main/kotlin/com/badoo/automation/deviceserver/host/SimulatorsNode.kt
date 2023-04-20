@@ -331,6 +331,7 @@ class SimulatorsNode(
     }
 
     override fun getNodeUptimeInfo(): NodeInfo {
+        logger.error("Getting node status info for ${remote.publicHostName}")
         return NodeInfo.getNodeInfo(remote)
     }
 
@@ -344,7 +345,7 @@ class SimulatorsNode(
         logger.warn(logMarker, "Scheduling node for reboot $publicHostName")
 
         try {
-            remote.shell("sudo /sbin/reboot")
+            remote.shell("sudo /sbin/reboot", returnOnFailure = true)
         } catch (e: SshConnectionException) {
             // ignore
         }

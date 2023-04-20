@@ -74,17 +74,22 @@ class NodeRegistrar(
     }
 
     @Synchronized
-    fun restartNodesGracefully(isParallel: Boolean, shouldReboot: Boolean): Boolean {
+    fun restartNodesGracefully(isParallel: Boolean, shouldReboot: Boolean, forceReboot: Boolean): Boolean {
         val job = restartingJob
 
         if (job == null || job.isDone) {
             val executor = Executors.newSingleThreadExecutor()
             restartingJob = executor.submit {
-                nodeRestarter.restartNodeWrappers(
-                    nodeRegistry.getAll(),
-                    isParallel,
-                    shouldReboot
-                )
+                try {
+                    nodeRestarter.restartNodeWrappers(
+                            nodeRegistry.getAll(),
+                            isParallel,
+                            shouldReboot,
+                            forceReboot
+                    )
+                } catch (t: Throwable) {
+                    logger.error("Failed to reboot all simulator hosts due to issue. ${t.javaClass.name}, ${t.message}", t)
+                }
             }
             executor.shutdown()
 
