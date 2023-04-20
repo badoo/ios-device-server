@@ -8,6 +8,8 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 data class SessionEntry(
@@ -88,18 +90,41 @@ class ActiveDevices(
     }
 
     fun releaseDevice(ref: DeviceRef, reason: String) {
+        logger.debug("Releasing a device due to reason: ${reason}")
         val session = sessionByRef(ref)
         session.node.deleteRelease(session.ref, reason)
         unregisterDeleteDevice(session.ref)
     }
 
     fun releaseDevices(entries: List<DeviceRef>, reason: String) {
-        entries.parallelStream().forEach {
-            try {
-                releaseDevice(it, reason)
-            } catch (e: RuntimeException) {
-                logger.warn("Failed to release device $it", e)
+        logger.debug("Releasing active devices: ${entries.joinToString(", ")}")
+        if (entries == null || entries.isEmpty()) {
+            logger.debug("Nothing to release as active devices list is empty")
+            return
+        }
+
+        val size: Int = entries.size
+        val executor = Executors.newFixedThreadPool(size)
+        val tasks = mutableListOf<Future<*>>()
+        entries.forEach {
+            val task: Future<*> = executor.submit {
+                try {
+                    releaseDevice(it, reason)
+                } catch (e: RuntimeException) {
+                    logger.warn("Failed to release device $it", e)
+                }
             }
+            tasks.add(task)
+        }
+
+        executor.shutdown()
+
+        tasks.forEach { it.get() }
+
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (e: InterruptedException) {
+            println("Failed to awaitTermination while releasing devices due to issue. ${e.javaClass.name}, ${e.message}")
         }
     }
 
