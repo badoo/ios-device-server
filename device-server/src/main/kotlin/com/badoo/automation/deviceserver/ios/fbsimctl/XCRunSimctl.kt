@@ -149,6 +149,8 @@ class XCRunSimctl(
     companion object {
         val quirkyDeviceTypes: Map<String, String> = mapOf(
             "iPhone SE (1st generation)" to "com.apple.CoreSimulator.SimDeviceType.iPhone-SE",
+            "iPhone SE (2nd generation)" to "com.apple.CoreSimulator.SimDeviceType.iPhone-SE--2nd-generation-",
+            "iPhone SE (3rd generation)" to "com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation",
             "iPhone Xs" to "com.apple.CoreSimulator.SimDeviceType.iPhone-XS",
             "iPhone Xs Max" to "com.apple.CoreSimulator.SimDeviceType.iPhone-XS-Max",
             "iPhone Xʀ" to "com.apple.CoreSimulator.SimDeviceType.iPhone-XR",
@@ -158,8 +160,13 @@ class XCRunSimctl(
             "iPad (9th generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-9th-generation",
             "iPad Pro (11-inch) (3rd generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-3rd-generation",
             "iPad Pro (12.9-inch) (5th generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-5th-generation",
-            "iPad mini (6th generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-mini-6th-generation"
+            "iPad mini (6th generation)" to "com.apple.CoreSimulator.SimDeviceType.iPad-mini-6th-generation",
+            "iPhone 14" to "com.apple.CoreSimulator.SimDeviceType.iPhone-14",
+            "iPhone 14 Plus" to "com.apple.CoreSimulator.SimDeviceType.iPhone-14-Plus",
+            "iPhone 14 Pro" to "com.apple.CoreSimulator.SimDeviceType.iPhone-14-Pro",
+            "iPhone 14 Pro Max" to "com.apple.CoreSimulator.SimDeviceType.iPhone-14-Pro-Max"
         )
+
         private val simDeviceTypeRegex = Regex("[ ().]")
         private val runtimeRegex = Regex("[ .]")
 
@@ -172,13 +179,5 @@ class XCRunSimctl(
                 }
             }"
         }
-
-        val runtimes: Map<String, String> = mapOf(
-            "iOS 12.4" to "com.apple.CoreSimulator.SimRuntime.iOS-12-4",
-            "iOS 13.7" to "com.apple.CoreSimulator.SimRuntime.iOS-13-7",
-            "iOS 14.5" to "com.apple.CoreSimulator.SimRuntime.iOS-14-5",
-            "iOS 15.0" to "com.apple.CoreSimulator.SimRuntime.iOS-15-0"
-        )
     }
-
 }
