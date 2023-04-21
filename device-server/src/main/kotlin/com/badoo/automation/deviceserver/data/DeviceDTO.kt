@@ -25,6 +25,9 @@ data class ActualCapabilities(
         @JsonProperty("terminate_app")
         val terminateApp: Boolean,
 
+        @JsonProperty("remote_notifications")
+        val remoteNotifications: Boolean,
+
         @JsonProperty("video_capture")
         val videoCapture: Boolean
 )
