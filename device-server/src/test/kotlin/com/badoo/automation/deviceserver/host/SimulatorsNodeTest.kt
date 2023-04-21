@@ -113,7 +113,7 @@ class SimulatorsNodeTest {
             URI("http://appium"),
             DeviceInfo("", "", "", "", ""),
             null,
-            ActualCapabilities(true, true, true)
+            ActualCapabilities(true, true, true, true)
     )
     private val expectedDeviceDTOJson = JsonMapper().toJson(expectedDeviceDTO)
 
@@ -306,7 +306,7 @@ class SimulatorsNodeTest {
                 URI("http://appium"),
                 DeviceInfo("", "", "", "", ""),
                 null,
-                ActualCapabilities(true, true, true)
+                ActualCapabilities(true, true, true, true)
         )))
     }
 

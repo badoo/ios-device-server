@@ -501,6 +501,7 @@ class DevicesNode(
             capabilities = ActualCapabilities(
                 setLocation = false,
                 terminateApp = false,
+                remoteNotifications = true,
                 videoCapture = true
             )
         )

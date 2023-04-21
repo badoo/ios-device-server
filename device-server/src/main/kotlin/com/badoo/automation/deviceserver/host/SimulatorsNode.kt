@@ -117,6 +117,8 @@ class SimulatorsNode(
             HOSTNAME to remote.publicHostName
     ))
 
+    private var macOSVersion: String = "unknown"
+
     override fun prepareNode() {
         logger.info(logMarker, "Preparing node ${remote.hostName}")
         hostChecker.checkPrerequisites()
@@ -132,6 +134,8 @@ class SimulatorsNode(
 
         hostChecker.cleanup()
         hostChecker.setupHost()
+
+        macOSVersion = getMacOSVersion()
         logger.info(logMarker, "Prepared node ${remote.hostName}")
     }
 
@@ -259,6 +263,14 @@ class SimulatorsNode(
         }
     }
 
+    private fun remoteNotificationsSupported(): Boolean {
+        return macOSVersion.split(".").first().toInt() >= 13
+    }
+
+    private fun getMacOSVersion(): String {
+        return remote.shell("/usr/bin/sw_vers --productVersion", returnOnFailure = false).stdOut.trim()
+    }
+
     private fun simulatorToDTO(device: ISimulator): DeviceDTO {
         with(device) {
             return DeviceDTO(
@@ -276,6 +288,7 @@ class SimulatorsNode(
                 capabilities = ActualCapabilities(
                     setLocation = true,
                     terminateApp = true,
+                    remoteNotifications = remoteNotificationsSupported(),
                     videoCapture = true
                 )
             )
