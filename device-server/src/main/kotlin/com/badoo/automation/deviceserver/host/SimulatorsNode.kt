@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
+import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
@@ -117,7 +118,7 @@ class SimulatorsNode(
             HOSTNAME to remote.publicHostName
     ))
 
-    private var macOSVersion: String = "unknown"
+    private var macOSVersion: String = "0"
 
     override fun prepareNode() {
         logger.info(logMarker, "Preparing node ${remote.hostName}")
@@ -268,7 +269,8 @@ class SimulatorsNode(
     }
 
     private fun getMacOSVersion(): String {
-        return remote.shell("/usr/bin/sw_vers --productVersion", returnOnFailure = false).stdOut.trim()
+        val commandResult: CommandResult = remote.shell("/usr/bin/sw_vers -productVersion", returnOnFailure = false)
+        return commandResult.stdOut.trim()
     }
 
     private fun simulatorToDTO(device: ISimulator): DeviceDTO {

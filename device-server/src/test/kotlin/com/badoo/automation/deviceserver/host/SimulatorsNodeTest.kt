@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.JsonMapper
+import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
@@ -113,7 +114,7 @@ class SimulatorsNodeTest {
             URI("http://appium"),
             DeviceInfo("", "", "", "", ""),
             null,
-            ActualCapabilities(true, true, true, true)
+            ActualCapabilities(true, true, false, true)
     )
     private val expectedDeviceDTOJson = JsonMapper().toJson(expectedDeviceDTO)
 
@@ -125,6 +126,7 @@ class SimulatorsNodeTest {
 
     @Test
     fun shouldPrepareNodeOnlyOnce() {
+        whenever(simulatorsNode1.remote.shell("/usr/bin/sw_vers -productVersion", returnOnFailure = false)).thenReturn(CommandResult("13.3.1", "", 0, true, ArrayList<String>(), 0L))
         simulatorsNode1.prepareNode()
 
         val inOrder = inOrder(hostChecker)
@@ -306,7 +308,7 @@ class SimulatorsNodeTest {
                 URI("http://appium"),
                 DeviceInfo("", "", "", "", ""),
                 null,
-                ActualCapabilities(true, true, true, true)
+                ActualCapabilities(true, true, false, true)
         )))
     }
 
