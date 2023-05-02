@@ -112,7 +112,7 @@ class SimulatorsNodeTest {
             3333,
             5555,
             URI("http://appium"),
-            DeviceInfo("", "", "", "", ""),
+            DeviceInfo("", "", "iOS 16.4.1", "", ""),
             null,
             ActualCapabilities(true, true, false, true)
     )
@@ -200,7 +200,7 @@ class SimulatorsNodeTest {
             val it = pair.first
             whenever(it.ref).thenReturn("someref$index")
             whenever(it.deviceState).thenReturn(DeviceState.CREATING)
-            whenever(it.deviceInfo).thenReturn(DeviceInfo("","","","",""))
+            whenever(it.deviceInfo).thenReturn(DeviceInfo("","","iOS 16.4.1","",""))
             whenever(it.fbsimctlEndpoint).thenReturn(URI("http://fbsimctl"))
             whenever(it.wdaEndpoint).thenReturn(URI("http://wda"))
             whenever(it.calabashPort).thenReturn(4444 + index)
@@ -306,7 +306,7 @@ class SimulatorsNodeTest {
                 3333,
                 5555,
                 URI("http://appium"),
-                DeviceInfo("", "", "", "", ""),
+                DeviceInfo("", "", "iOS 16.4.1", "", ""),
                 null,
                 ActualCapabilities(true, true, false, true)
         )))

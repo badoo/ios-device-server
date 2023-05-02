@@ -264,8 +264,8 @@ class SimulatorsNode(
         }
     }
 
-    private fun remoteNotificationsSupported(): Boolean {
-        return macOSVersion.split(".").first().toInt() >= 13
+    private fun remoteNotificationsSupported(simulatorOSVersion: Int): Boolean {
+        return simulatorOSVersion >= 16 && macOSVersion.split(".").first().toInt() >= 13
     }
 
     private fun getMacOSVersion(): String {
@@ -290,7 +290,7 @@ class SimulatorsNode(
                 capabilities = ActualCapabilities(
                     setLocation = true,
                     terminateApp = true,
-                    remoteNotifications = remoteNotificationsSupported(),
+                    remoteNotifications = remoteNotificationsSupported(device.deviceInfo.osMajorVersion()),
                     videoCapture = true
                 )
             )

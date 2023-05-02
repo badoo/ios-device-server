@@ -25,4 +25,8 @@ data class DeviceInfo (
 
                 return true
         }
+
+    fun osMajorVersion(): Int {
+        return os.substringAfter("iOS").trim().split(".").first().toInt()
+    }
 }
