@@ -49,7 +49,7 @@
 						<key>TestHostBundleIdentifier</key>
 						<string>__DEVICE_AGENT_BUNDLE_ID__</string>
 						<key>TestBundleDestinationRelativePath</key>
-						<string>__TESTHOST__/PlugIns/DeviceAgent.xctest</string>
+						<string>PlugIns/DeviceAgent.xctest</string>
 						<key>TestLanguage</key>
 						<string></string>
 						<key>TestRegion</key>
