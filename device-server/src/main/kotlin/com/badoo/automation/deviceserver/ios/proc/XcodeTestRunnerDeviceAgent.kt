@@ -94,6 +94,9 @@ class XcodeTestRunnerDeviceAgent(
 
     override fun installHostApp() {
         remote.fbsimctl.installApp(udid, File(hostApp))
+        val timeout = 3000L
+        logger.debug("Waiting $timeout ms after install")
+        Thread.sleep(timeout)
     }
 
     override val deviceAgentLog: File = File.createTempFile("device_agent_log_", ".txt")
