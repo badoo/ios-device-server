@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import java.io.File
 import java.net.URL
 import java.nio.file.Path
+import java.util.regex.Pattern
 
 interface ISimulatorsNode {
     fun supports(desiredCaps: DesiredCapabilities): Boolean
@@ -85,18 +86,26 @@ interface ISimulatorsNode {
 data class NodeInfo(
     val currentDate: String,
     val uptime: String,
+    val bootTime: Long,
     val info: List<String>
 ) {
     companion object {
+        private val bootTimeSplitPattern = Pattern.compile("[ ,]")
+        val numberRegex = Regex("\\d+")
+
         fun getNodeInfo(remote: IRemote): NodeInfo {
-            val uptimeInfo = remote.shell("/bin/date ; /usr/bin/uptime")
+            val uptimeInfo = remote.shell("/bin/date ; /usr/bin/uptime ; /usr/sbin/sysctl -n kern.boottime")
                 .stdOut.trim().lines()
+            val currentDate = uptimeInfo[0]
+            val uptime = uptimeInfo[1]
+            val bootTime = uptimeInfo[2].split(bootTimeSplitPattern).first { it.matches(numberRegex) }.toLong()
 
             val nodeInfo = remote.shell("/usr/sbin/system_profiler SPHardwareDataType").stdOut.trim().lines()
 
             return NodeInfo(
-                currentDate = uptimeInfo[0],
-                uptime = uptimeInfo[1],
+                currentDate = currentDate,
+                uptime = uptime,
+                bootTime = bootTime,
                 info = nodeInfo
             )
         }
