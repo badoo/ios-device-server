@@ -68,7 +68,7 @@ class AppiumServer(
         }
     }
 
-    private val statusUrl: URL = uriWithPath(URI("http://${remote.publicHostName}:$appiumServerPort"), "wd/hub/status").toURL()
+    private val statusUrl: URL = uriWithPath(URI("http://${remote.publicHostName}:$appiumServerPort"), "status").toURL()
 
     private fun getLogContents(): String {
         return if (remote.isLocalhost()) {

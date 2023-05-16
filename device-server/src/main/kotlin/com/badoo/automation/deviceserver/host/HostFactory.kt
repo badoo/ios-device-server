@@ -59,9 +59,9 @@ class HostFactory(
 
         val nodeTypeResult = remote.exec(listOf("/usr/bin/arch"), mapOf(),true, 60)
         if (nodeTypeResult.isSuccess) {
-            logger.info("ARCH: The executor arch is ${nodeTypeResult.stdOut}")
+            logger.info("ARCH: The executor arch is ${nodeTypeResult.stdOut} for node $publicHostName")
         } else {
-            logger.error("ARCH: Failed to determine executor type. (maybe it's Linux). ${nodeTypeResult.stdErr}")
+            logger.error("ARCH: Failed to determine executor type for node $publicHostName. (maybe it's Linux). ${nodeTypeResult.stdErr}")
         }
 
         return if (config.type == NodeConfig.NodeType.Simulators) {
