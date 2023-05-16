@@ -18,7 +18,6 @@ import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
 import java.time.Duration
 import java.util.concurrent.*
-import java.util.stream.Collectors
 import kotlin.system.measureNanoTime
 
 private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
@@ -223,7 +222,7 @@ class DeviceManager(
 
         nodeWrappers.forEach { nodeWrapper ->
             val task: Future<Pair<String, NodeInfo>> = executor.submit(Callable<Pair<String, NodeInfo>> {
-                return@Callable Pair(nodeWrapper.node.publicHostName, nodeWrapper.node.getNodeUptimeInfo())
+                return@Callable Pair(nodeWrapper.node.publicHostName, nodeWrapper.node.getNodeInfo())
             })
             tasks.add(task)
         }

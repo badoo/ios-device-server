@@ -376,8 +376,8 @@ class DevicesNode(
         logger.info(logMarker, "Finalized node $this")
     }
 
-    override fun reboot(): Boolean {
-        return true // Not intended to reboot Real Device nodes
+    override fun reboot() {
+        return // Not intended to reboot Real Device nodes
     }
 
     override fun list(): List<DeviceDTO> {
@@ -426,7 +426,7 @@ class DevicesNode(
         throw(NotImplementedError("Location commands are not supported by physical devices"))
     }
 
-    override fun getNodeUptimeInfo(): NodeInfo {
+    override fun getNodeInfo(): NodeInfo {
         return NodeInfo.getNodeInfo(remote)
     }
 

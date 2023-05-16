@@ -137,7 +137,7 @@ class SimulatorsNode(
         hostChecker.setupHost()
 
         macOSVersion = getMacOSVersion()
-        logger.info(logMarker, "Prepared node ${remote.hostName}")
+        logger.info(logMarker, "Prepared node ${remote.hostName}. macOS version $macOSVersion")
     }
 
     private val supportedArchitectures = listOf("x86_64")
@@ -345,19 +345,13 @@ class SimulatorsNode(
         logger.info(logMarker, "Finalised simulator pool for ${remote.hostName}")
     }
 
-    override fun getNodeUptimeInfo(): NodeInfo {
-        logger.error("Getting node status info for ${remote.publicHostName}")
+    override fun getNodeInfo(): NodeInfo {
         return NodeInfo.getNodeInfo(remote)
     }
 
-    private fun logUptimeInfo() {
-        val nodeInfo = getNodeUptimeInfo()
-        logger.info(logMarker, "Simulator node uptime info for $publicHostName : Current date: [${nodeInfo.currentDate}] ;  Current uptime: [${nodeInfo.uptime}]")
-    }
-
-    override fun reboot(): Boolean {
-        logUptimeInfo()
-        logger.warn(logMarker, "Scheduling node for reboot $publicHostName")
+    override fun reboot() {
+        val uptimeInfoBeforeReboot = getNodeInfo()
+        logger.info(logMarker, "Scheduling node for reboot $publicHostName. Current uptime: [${uptimeInfoBeforeReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
 
         try {
             remote.shell("sudo /sbin/reboot", returnOnFailure = true)
@@ -367,7 +361,7 @@ class SimulatorsNode(
 
         Thread.sleep(Duration.ofSeconds(60).toMillis())
 
-        var reachable: Boolean = false
+        var isReachable: Boolean = false
 
         pollFor(
             Duration.ofSeconds(300),
@@ -377,16 +371,23 @@ class SimulatorsNode(
             logger,
             logMarker
         ) {
-            reachable = isReachable()
-            logger.debug(logMarker, "Checking if node is reachable after reboot for $publicHostName with result isReachable: $reachable")
-            reachable
+            isReachable = isReachable()
+            isReachable
         }
 
-        logUptimeInfo()
+        if (!isReachable) {
+            logger.error(logMarker, "Node $publicHostName node is not reachable after reboot")
+            return
+        }
 
-        logger.warn(logMarker, "Node reboot operation is finished for $publicHostName with result isReachable: $reachable")
+        val uptimeInfoAfterReboot = getNodeInfo()
+        val wasRebooted = uptimeInfoAfterReboot.bootTime > uptimeInfoBeforeReboot.bootTime
 
-        return reachable
+        if (wasRebooted) {
+            logger.info(logMarker, "Node $publicHostName was rebooted successfully. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
+        } else {
+            logger.error(logMarker, "Node $publicHostName was not rebooted. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
+        }
     }
 
     override fun endpointFor(deviceRef: DeviceRef, port: Int): URL {
