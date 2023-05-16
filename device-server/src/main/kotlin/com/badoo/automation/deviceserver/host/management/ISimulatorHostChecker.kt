@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.host.management
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.host.IRemote
+import com.badoo.automation.deviceserver.host.management.XcodeVersion.Companion.REQUIRED_XCODE_VERSION
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -90,10 +91,11 @@ class SimulatorHostChecker(
 
     override fun checkPrerequisites() {
         val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
+        logger.info(logMarker, "Using default Xcode version: ${xcodeOutput.stdOut.trim().replace("\n", " ")}")
         val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
 
-        if (xcodeVersion < XcodeVersion(12, 1)) {
-            throw RuntimeException("Expecting Xcode 12.1 or higher, but received $xcodeVersion. $xcodeOutput")
+        if (xcodeVersion < REQUIRED_XCODE_VERSION) {
+            logger.error(logMarker, "Expecting Xcode $REQUIRED_XCODE_VERSION or higher, but it is $xcodeVersion")
         }
 
 

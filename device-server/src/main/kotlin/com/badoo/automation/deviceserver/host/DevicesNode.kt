@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.XcodeVersion
+import com.badoo.automation.deviceserver.host.management.XcodeVersion.Companion.REQUIRED_XCODE_VERSION
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
@@ -515,11 +516,11 @@ class DevicesNode(
 
     private fun checkPrerequisites() {
         val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
+        logger.info(logMarker, "Using default Xcode version: ${xcodeOutput.stdOut.trim().replace("\n", " ")}")
         val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
 
-        if (xcodeVersion < XcodeVersion(12, 1)) {
-//            throw RuntimeException("Expecting Xcode 12.1 or higher, but it is $xcodeVersion")
-            logger.error(logMarker, "Expecting Xcode 12.1 or higher, but it is $xcodeVersion")
+        if (xcodeVersion < REQUIRED_XCODE_VERSION) {
+            logger.error(logMarker, "Expecting Xcode $REQUIRED_XCODE_VERSION or higher, but it is $xcodeVersion")
         }
 
         val fbsimctlPath = remote.execIgnoringErrors(listOf("readlink", remote.fbsimctl.fbsimctlBinary)).stdOut
