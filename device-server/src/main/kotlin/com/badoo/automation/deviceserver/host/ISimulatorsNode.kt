@@ -61,7 +61,7 @@ interface ISimulatorsNode {
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
     fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
-    fun reboot(): Boolean
+    fun reboot()
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)
     fun deleteAppData(deviceRef: DeviceRef, bundleId: String)
     fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>)
@@ -80,7 +80,7 @@ interface ISimulatorsNode {
     fun locationSet(deviceRef: DeviceRef, latitude: Double, longitude: Double)
     fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String)
     fun locationStartLocationSequence(deviceRef: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>)
-    fun getNodeUptimeInfo(): NodeInfo
+    fun getNodeInfo(): NodeInfo
 }
 
 data class NodeInfo(
