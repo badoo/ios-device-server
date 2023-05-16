@@ -346,8 +346,8 @@ class Simulator(
     private fun startPeriodicHealthCheck() {
         stopPeriodicHealthCheck()
 
-        var fbsimctlFailCount = 0
-        var wdaFailCount = 0
+        val fbsimctlFailCount = 0
+        val wdaFailCount = 0
         val maxFailCount = 3
         val healthCheckInterval = Duration.ofSeconds(15).toMillis()
 
@@ -357,6 +357,10 @@ class Simulator(
 
                 if (useWda) {
                     performWebDriverAgentHealthCheck(wdaFailCount, maxFailCount)
+                }
+
+                if (useAppium) {
+                    performAppiumServerHealthCheck()
                 }
 
                 delay(healthCheckInterval)
@@ -397,6 +401,35 @@ class Simulator(
                     deviceState = DeviceState.FAILED
                     throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
                 }
+            }
+        }
+    }
+
+    private suspend fun performAppiumServerHealthCheck() {
+        val maxFailCount = 5
+        var appiumFailCount = 0
+
+        while (!appiumServer.isHealthy() && appiumFailCount < maxFailCount) {
+            logger.error(logMarker, "Appium health check failed $appiumFailCount times.")
+            appiumFailCount += 1
+            delay(Duration.ofSeconds(2).toMillis())
+        }
+
+        if (appiumFailCount >= maxFailCount) {
+            logger.error(logMarker, "Appium health check failed $appiumFailCount times. Restarting Appium")
+
+            try {
+                appiumServer.kill()
+            } catch (e: RuntimeException) {
+                logger.error(logMarker, "Failed to kill Appium. ${e.message}", e)
+            }
+
+            try {
+                appiumServer.start()
+            } catch (e: RuntimeException) {
+                logger.error(logMarker, "Failed to restart Appium. ${e.message}", e)
+                deviceState = DeviceState.FAILED
+                throw RuntimeException("${this@Simulator} Failed to restart Appium. Stopping health check")
             }
         }
     }
