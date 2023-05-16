@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.host.management
 
 data class XcodeVersion(val major: Int, val minor: Int):Comparable<XcodeVersion> {
     companion object {
+        val REQUIRED_XCODE_VERSION = XcodeVersion(14, 2)
         fun fromXcodeBuildOutput(output: String): XcodeVersion {
             val regex = Regex("Xcode (\\d+)\\.(\\d+)(\\.(\\d+))?")
             val versionLine = output.lines().first { it.startsWith("Xcode ") }
