@@ -73,13 +73,6 @@ class Device(
     override val appiumEndpoint = URI("http://${remote.publicHostName}:${userPorts.appiumPort}/${AppiumServer.APPIUM_BASE_PATH}")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     override val calabashPort = calabashProxy.localPort
-//    override val videoRecorder: VideoRecorder = MJPEGVideoRecorder(
-//        deviceInfo,
-//        remote,
-//        mjpegServerPort,
-//        deviceRefFromUDID(deviceInfo.udid, remote.publicHostName),
-//        deviceInfo.udid
-//    )
 
     override val videoRecorder: VideoRecorder = FFMPEGVideoRecorder(
         remote,
