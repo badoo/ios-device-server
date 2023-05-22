@@ -6,7 +6,7 @@ import com.badoo.automation.deviceserver.host.IRemote
 class UsbProxyFactory(
     private val remote: IRemote
 ) {
-    fun create(udid: UDID, localPort: Int, devicePort: Int): UsbProxy {
-        return UsbProxy(udid, remote, localPort, devicePort)
+    fun create(udid: UDID, localPort: Int): UsbProxy {
+        return UsbProxy(udid, remote, localPort)
     }
 }

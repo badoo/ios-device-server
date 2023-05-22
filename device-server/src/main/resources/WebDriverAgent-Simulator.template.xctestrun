@@ -2,16 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>WebDriverAgentRunner-Runner</key>
+	<key>__BLUEPRINT_NAME__</key>
 	<dict>
 		<key>BlueprintName</key>
-		<string>WebDriverAgentRunner-Runner</string>
+		<string>__BLUEPRINT_NAME__</string>
 		<key>BundleIdentifiersForCrashReportEmphasis</key>
 		<array>
-			<string>com.facebook.WebDriverAgentRunner.dev</string>
-			<string>com.facebook.WebDriverAgentRunner.dev.xctrunner</string>
-			<string>com.facebook.WebDriverAgentRunner</string>
-			<string>com.facebook.WebDriverAgentRunner.xctrunner</string>
+			<string>__DEVICE_AGENT_BUNDLE_ID__</string>
 		</array>
 		<key>CommandLineArguments</key>
 		<array>
@@ -31,16 +28,20 @@
 		<true/>
 		<key>IsXCTRunnerHostedTestBundle</key>
 		<true/>
+        <key>OnlyTestIdentifiers</key>
+        <array>
+            <string>__TEST_IDENTIFIER__</string>
+        </array>
 		<key>ProductModuleName</key>
-		<string>WebDriverAgentRunner-Runner</string>
+		<string>__PRODUCT_MODULE_NAME__</string>
 		<key>RunOrder</key>
 		<integer>0</integer>
 		<key>SystemAttachmentLifetime</key>
 		<string>keepNever</string>
 		<key>TestBundlePath</key>
-		<string>__TESTHOST__/PlugIns/WebDriverAgentRunner.xctest</string>
+		<string>__TESTHOST__/__TESTBUNDLE_DESTINATION_RELATIVE_PATH__</string>
 		<key>TestHostBundleIdentifier</key>
-		<string>com.facebook.WebDriverAgentRunner.dev.xctrunner</string>
+		<string>__DEVICE_AGENT_BUNDLE_ID__</string>
 		<key>TestHostPath</key>
 		<string>__DEVICE_AGENT_BINARY_PATH__</string>
 		<key>TestLanguage</key>

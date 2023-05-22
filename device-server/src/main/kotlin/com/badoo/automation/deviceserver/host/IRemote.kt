@@ -20,7 +20,8 @@ interface IRemote {
         }
 
         const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
-        const val DEFAULT_PATH = "/usr/local/opt/appium/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
+        private val asdfUserPath = File(System.getProperty("user.home"), ".asdf/shims").absolutePath
+        val DEFAULT_PATH = "$asdfUserPath:/Users/qa/.asdf/shims:/usr/local/opt/appium/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
     }
 
     val homeBrewPath: File

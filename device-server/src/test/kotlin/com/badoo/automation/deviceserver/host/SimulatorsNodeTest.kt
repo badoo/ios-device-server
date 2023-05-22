@@ -41,17 +41,25 @@ class SimulatorsNodeTest {
 
     private val daSimulatorBundle = WdaSimulatorBundle(
         "DeviceAgent",
-        Paths.get("some/file/from/wdaPathProc"),
-        Paths.get("some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
-        Paths.get("/remote/some/file/from/wdaPathProc"),
-        Paths.get("/remote/some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest")
-    )
-    private val wdaSimulatorBundle = WdaSimulatorBundle(
         "DeviceAgent",
         Paths.get("some/file/from/wdaPathProc"),
         Paths.get("some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
         Paths.get("/remote/some/file/from/wdaPathProc"),
-        Paths.get("/remote/some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest")
+        Paths.get("/remote/some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
+        listOf(),
+        123,
+        "DeviceAgent"
+    )
+    private val wdaSimulatorBundle = WdaSimulatorBundle(
+        "DeviceAgent",
+        "DeviceAgent",
+        Paths.get("some/file/from/wdaPathProc"),
+        Paths.get("some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
+        Paths.get("/remote/some/file/from/wdaPathProc"),
+        Paths.get("/remote/some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
+        listOf(),
+        123,
+        "DeviceAgent"
     )
 
     private val wdaSimulatorBundles = WdaSimulatorBundles(daSimulatorBundle, wdaSimulatorBundle)

@@ -6,4 +6,8 @@ interface WdaBundle {
     val bundleId: String
     fun xctestRunnerPath(isLocalhost: Boolean): File
     fun bundlePath(isLocalhost: Boolean): File
+    val provisionedDevices: List<String>
+    val deviceInstrumentationPort: Int
+    val testIdentifier: String
+    val bundleName: String
 }

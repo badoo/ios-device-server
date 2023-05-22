@@ -13,11 +13,14 @@ import java.util.stream.Collectors
  */
 data class WdaDeviceBundle(
     override val bundleId: String,
+    override val bundleName: String,
     private val bundlePath: Path, // /app/wda/DeviceAgent.app
     private val xctestRunnerPath: Path, // /app/wda/DeviceAgent.app/PlugIns/WebDriverAgentRunner.xctest
     private val remoteBundlePath: Path, // /opt/wda/DeviceAgent.app
     private val remoteXctestRunnerPath: Path, // /opt/wda/DeviceAgent.app/PlugIns/WebDriverAgentRunner.xctest
-    val provisionedDevices: List<String>
+    override val provisionedDevices: List<String>,
+    override val deviceInstrumentationPort: Int,
+    override val testIdentifier: String
 ) : WdaBundle {
     override fun xctestRunnerPath(isLocalhost: Boolean): File =
         if (isLocalhost) xctestRunnerPath.toFile() else remoteXctestRunnerPath.toFile()
@@ -37,18 +40,24 @@ class WdaDeviceBundlesProvider(private val wdaDeviceBundlesBase: Path, private v
             val provisioningProfile = ProvisioningProfile(bundlePath.resolve("embedded.mobileprovision").toFile())
             val provisionedDevices = provisioningProfile.provisionedDevices()
             val bundleId = infoPlist.bundleIdentifier()
+            val bundleName = infoPlist.bundleName()
             val remoteBundlePath = remoteWdaDeviceBundleRoot.resolve(bundlePath.fileName)
-            val xcTestPath: Path = if (bundlePath.toString().contains("DeviceAgent")) DA_XCTEST else WDA_XCTEST
+            val xcTestPath: Path = if (bundleId.contains("DeviceAgent")) DA_XCTEST else WDA_XCTEST
+            val deviceInstrumentationPort: Int = if (bundleId.contains("DeviceAgent")) DA_PORT else WDA_PORT
             val xctestRunnerPath: Path = bundlePath.resolve(xcTestPath)
             val remoteXctestRunnerPath: Path = remoteBundlePath.resolve(xcTestPath)
+            val testIdentifier: String = if (bundleId.contains("DeviceAgent")) "TestRunner/testRunner" else "UITestingUITests/testRunner"
 
             WdaDeviceBundle(
                 bundleId,
+                bundleName,
                 bundlePath,
                 xctestRunnerPath,
                 remoteBundlePath,
                 remoteXctestRunnerPath,
-                provisionedDevices
+                provisionedDevices,
+                deviceInstrumentationPort,
+                testIdentifier
             )
         }
 
@@ -56,7 +65,9 @@ class WdaDeviceBundlesProvider(private val wdaDeviceBundlesBase: Path, private v
     }
 
     companion object {
-        val WDA_XCTEST = Paths.get("PlugIns/WebDriverAgentRunner.xctest")
-        val DA_XCTEST = Paths.get("PlugIns/DeviceAgent.xctest")
+        private val WDA_XCTEST = Paths.get("PlugIns/WebDriverAgentRunner.xctest")
+        private val DA_XCTEST = Paths.get("PlugIns/DeviceAgent.xctest")
+        private const val WDA_PORT = 8100
+        private const val DA_PORT = 27753
     }
 }
