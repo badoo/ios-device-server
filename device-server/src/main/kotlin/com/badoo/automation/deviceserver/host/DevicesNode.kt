@@ -332,7 +332,7 @@ class DevicesNode(
             activeRefs[slot.device.ref] = slot.device.udid
         }
 
-        slot.device.renewAsync(whitelistedApps = whitelistedApps, uninstallApps = uninstallApps)
+        slot.device.renewAsync(whitelistedApps = whitelistedApps, uninstallApps = uninstallApps, desiredCaps = desiredCaps)
         return deviceToDto(slot.device)
     }
 

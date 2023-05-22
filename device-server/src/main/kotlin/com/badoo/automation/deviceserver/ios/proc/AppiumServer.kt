@@ -93,12 +93,9 @@ class AppiumServer(
         }
 
         return try {
-            logger.debug(logMarker, "Checking health for Appium Server on $udid on url: $statusUrl")
+            logger.trace(logMarker, "Checking health for Appium Server on $udid on url: $statusUrl")
             val result = client.get(statusUrl)
-            logger.debug(
-                logMarker,
-                "Appium Server on $udid on url: $statusUrl returned result - ${result.httpCode} , ${result.responseBody}, Success: ${result.isSuccess}"
-            )
+            logger.trace(logMarker, "Appium Server on $udid on url: $statusUrl returned result - ${result.httpCode} , ${result.responseBody}, Success: ${result.isSuccess}")
             return result.isSuccess
         } catch (e: RuntimeException) {
             logger.warn(logMarker, "Failed to determine Appium Server state. Exception: $e")
@@ -112,7 +109,7 @@ class AppiumServer(
         kill() // cleanup old processes in case there are
         cleanupLogs()
 
-        val outWriter: (String) -> Unit = { message -> logger.info("[Appium Server INFO] $message") }
+        val outWriter: ((String) -> Unit)? = null // { message -> logger.info("[Appium Server INFO] $message") }
         val errWriter: (String) -> Unit = { message -> logger.error("[Appium Server ERROR] $message") }
 
         val path = if (remote.isLocalhost()) {
@@ -133,7 +130,7 @@ class AppiumServer(
         childProcess = process
 
         try {
-            Thread.sleep(1000) // initial Appium timeout to get process started
+            Thread.sleep(3000) // initial Appium timeout to get process started
 
             pollFor(
                 Duration.ofSeconds(45),

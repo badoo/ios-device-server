@@ -11,10 +11,11 @@
 				<array>
 					<dict>
 						<key>BlueprintName</key>
-						<string>WebDriverAgentRunner-Runner</string>
+						<string>__BLUEPRINT_NAME__</string>
 						<key>BundleIdentifiersForCrashReportEmphasis</key>
 						<array>
 							<string>__DEVICE_AGENT_BUNDLE_ID__</string>
+							<string>__DEVICE_AGENT_BUNDLE_ID__.xctrunner</string>
 						</array>
 						<key>CommandLineArguments</key>
 						<array>
@@ -36,10 +37,10 @@
 						<true/>
 						<key>OnlyTestIdentifiers</key>
 						<array>
-							<string>TestRunner/testRunner</string>
+							<string>__TEST_IDENTIFIER__</string>
 						</array>
 						<key>ProductModuleName</key>
-						<string>DeviceAgent</string>
+						<string>__PRODUCT_MODULE_NAME__</string>
 						<key>RunOrder</key>
 						<integer>0</integer>
 						<key>SystemAttachmentLifetime</key>
@@ -49,7 +50,7 @@
 						<key>TestHostBundleIdentifier</key>
 						<string>__DEVICE_AGENT_BUNDLE_ID__</string>
 						<key>TestBundleDestinationRelativePath</key>
-						<string>PlugIns/DeviceAgent.xctest</string>
+						<string>__TESTBUNDLE_DESTINATION_RELATIVE_PATH__</string>
 						<key>TestLanguage</key>
 						<string></string>
 						<key>TestRegion</key>

@@ -9,9 +9,7 @@ import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
-import com.badoo.automation.deviceserver.ios.proc.AppiumServer
-import com.badoo.automation.deviceserver.ios.proc.WebDriverAgentError
-import com.badoo.automation.deviceserver.ios.proc.XcodeTestRunnerDeviceAgent
+import com.badoo.automation.deviceserver.ios.proc.*
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.*
@@ -35,8 +33,8 @@ class Device(
     private val remote: IRemote,
     override val deviceInfo: DeviceInfo,
     val userPorts: DeviceAllocatedPorts,
-    private val wdaDeviceBundle: WdaDeviceBundle,
-    usbProxy: UsbProxyFactory = UsbProxyFactory(remote)
+    private val wdaDeviceBundles: List<WdaDeviceBundle>,
+    usbProxyFactory: UsbProxyFactory = UsbProxyFactory(remote)
 ) : IDevice {
     override val appiumPort: Int get() = userPorts.appiumPort
     override val udid: String = deviceInfo.udid
@@ -49,23 +47,23 @@ class Device(
 
     private val useFbsimctlProc = ApplicationConfiguration().useFbsimctlProc
 
-    private val calabashProxy = usbProxy.create(
+    @Volatile
+    private var useAppium: Boolean = false
+
+    private val calabashProxy = usbProxyFactory.create(
         udid = deviceInfo.udid,
-        localPort = userPorts.calabashPort,
-        devicePort = CALABASH_PORT
+        localPort = userPorts.calabashPort
     )
 
-    private val wdaProxy = usbProxy.create(
+    private val wdaProxy = usbProxyFactory.create(
         udid = deviceInfo.udid,
-        localPort = userPorts.wdaPort,
-        devicePort = if (wdaDeviceBundle.bundleId.contains("DeviceAgent")) DA_PORT else WDA_PORT
+        localPort = userPorts.wdaPort
     )
 
     override val mjpegServerPort = userPorts.mjpegServerPort
-    private val mjpegProxy = usbProxy.create(
+    private val mjpegProxy = usbProxyFactory.create(
         udid = deviceInfo.udid,
-        localPort = mjpegServerPort,
-        devicePort = mjpegServerPort
+        localPort = mjpegServerPort
     )
 
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}/$udid/")
@@ -96,20 +94,24 @@ class Device(
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
     private val webDriverAgent = XcodeTestRunnerDeviceAgent(
         remote = remote,
-        wdaBundle = wdaDeviceBundle,
+        wdaBundles = wdaDeviceBundles,
         udid = deviceInfo.udid,
         wdaEndpoint = wdaEndpoint,
         mjpegServerPort = mjpegServerPort,
         deviceRef = ref,
-        isRealDevice = true,
-        port = wdaProxy.devicePort
+        isRealDevice = true
     )
-    override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
 
-    override val appiumServerLog get() = File("TODO: Fix")
-    override fun appiumServerLogDelete() {
-        TODO("Not yet implemented")
-    }
+    private val appiumServer: AppiumServer = AppiumServer(
+        remote,
+        udid,
+        appiumPort,
+        userPorts.wdaPort
+    )
+
+    override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
+    override val appiumServerLog get() = appiumServer.appiumServerLog
+    override fun appiumServerLogDelete() = appiumServer.appiumServerLogDelete()
 
     private val status = SimulatorStatus()
 
@@ -188,6 +190,7 @@ class Device(
             lastException = RuntimeException(message)
         }
 
+        status.appiumStatus = (if (useAppium) { appiumServer.isHealthy() } else true)
         status.fbsimctlStatus = fbsimctlStatus
         status.wdaStatus = isWdaHealty
     }
@@ -244,6 +247,7 @@ class Device(
         if (useFbsimctlProc) {
             ignoringDisposeErrors { fbsimctlProc.kill() }
         }
+        ignoringDisposeErrors { appiumServer.kill() }
         ignoringDisposeErrors { webDriverAgent.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
@@ -323,12 +327,15 @@ class Device(
         }
     }
 
-    fun renewAsync(whitelistedApps: Set<String>, uninstallApps: Boolean) {
-        stopPeriodicHealthCheck()
-        val currentStatus = status()
+    fun renewAsync(whitelistedApps: Set<String>, uninstallApps: Boolean, desiredCaps: DesiredCapabilities) {
         var prepareRequired = false
 
-        if (currentStatus.state == DeviceState.FAILED.value) {
+        if (useAppium != desiredCaps.useAppium) {
+            useAppium = desiredCaps.useAppium
+            prepareRequired = true
+        }
+
+        if (status().state == DeviceState.FAILED.value) {
             prepareRequired = true
             deviceState = DeviceState.REVIVING
             logger.warn(logMarker, "$this failed, will try to revive")
@@ -384,6 +391,7 @@ class Device(
         if (useFbsimctlProc) {
             fbsimctlProc.kill()
         }
+        appiumServer.kill()
         webDriverAgent.kill()
 
         wdaProxy.stop()
@@ -391,19 +399,19 @@ class Device(
         calabashProxy.stop()
 
         executeWithTimeout(timeout, name = "Preparing devices") {
-            wdaProxy.start()
+            wdaProxy.start(if (useAppium) WDA_PORT else DA_PORT)
 
             if (!wdaProxy.isHealthy()) {
                 throw DeviceException("Failed to start $wdaProxy")
             }
 
-            mjpegProxy.start()
+            mjpegProxy.start(mjpegServerPort)
 
             if (!mjpegProxy.isHealthy()) {
                 throw DeviceException("Failed to start $mjpegProxy")
             }
 
-            calabashProxy.start()
+            calabashProxy.start(CALABASH_PORT)
 
             if (!calabashProxy.isHealthy()) {
                 throw DeviceException("Failed to start $calabashProxy")
@@ -414,6 +422,11 @@ class Device(
             }
 
             startWdaWithRetry()
+
+            if (useAppium) {
+                appiumServer.start()
+            }
+
             startPeriodicHealthCheck()
             logger.info(logMarker, "Finished preparing $this")
             deviceState = DeviceState.CREATED
@@ -431,6 +444,11 @@ class Device(
         healthChecker = launch {
             while (isActive) {
                 performWebDriverAgentHealthCheck(10)
+
+                if (useAppium) {
+                    performAppiumServerHealthCheck()
+                }
+
                 delay(healthCheckInterval)
             }
         }
@@ -438,38 +456,58 @@ class Device(
 
     private suspend fun performWebDriverAgentHealthCheck(maxWDAFailCount: Int) {
         var wdaFailCount = 0
-        if (!webDriverAgent.isHealthy()) {
-            for (i in 0 until maxWDAFailCount) {
-                if (webDriverAgent.isHealthy()) {
-                    wdaFailCount = 0
-                    break
-                } else {
-                    val message = "WebDriverAgent health check failed $wdaFailCount times."
-                    logger.error(logMarker, message)
-                    wdaFailCount += 1
-                    delay(Duration.ofSeconds(3).toMillis())
-                }
+
+        while (!webDriverAgent.isHealthy() && wdaFailCount < maxWDAFailCount) {
+            val message = "WebDriverAgent health check failed $wdaFailCount times."
+            logger.error(logMarker, message)
+            wdaFailCount += 1
+            delay(Duration.ofSeconds(3).toMillis())
+        }
+
+        if (wdaFailCount >= maxWDAFailCount) {
+            logger.error(logMarker, "WebDriverAgent health check failed $wdaFailCount times. Restarting WebDriverAgent")
+
+            try {
+                webDriverAgent.kill()
+            } catch (e: RuntimeException) {
+                logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
             }
 
-            if (wdaFailCount >= maxWDAFailCount) {
-                logger.error(
-                    logMarker,
-                    "WebDriverAgent health check failed $wdaFailCount times. Restarting WebDriverAgent"
-                )
+            try {
+                webDriverAgent.start()
+            } catch (e: RuntimeException) {
+                logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
+                deviceState = DeviceState.FAILED
+                throw RuntimeException("$this Failed to restart WebDriverAgent. Stopping health check")
+            }
+        }
+    }
 
-                try {
-                    webDriverAgent.kill()
-                } catch (e: RuntimeException) {
-                    logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
-                }
+    private suspend fun performAppiumServerHealthCheck() {
+        val maxFailCount = 5
+        var appiumFailCount = 0
 
-                try {
-                    webDriverAgent.start()
-                } catch (e: RuntimeException) {
-                    logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
-                    deviceState = DeviceState.FAILED
-                    throw RuntimeException("$this Failed to restart WebDriverAgent. Stopping health check")
-                }
+        while (!appiumServer.isHealthy() && appiumFailCount < maxFailCount) {
+            logger.error(logMarker, "Appium health check failed $appiumFailCount times.")
+            appiumFailCount += 1
+            delay(Duration.ofSeconds(2).toMillis())
+        }
+
+        if (appiumFailCount >= maxFailCount) {
+            logger.error(logMarker, "Appium health check failed $appiumFailCount times. Restarting Appium")
+
+            try {
+                appiumServer.kill()
+            } catch (e: RuntimeException) {
+                logger.error(logMarker, "Failed to kill Appium. ${e.message}", e)
+            }
+
+            try {
+                appiumServer.start()
+            } catch (e: RuntimeException) {
+                logger.error(logMarker, "Failed to restart Appium. ${e.message}", e)
+                deviceState = DeviceState.FAILED
+                throw RuntimeException("${this@Device} Failed to restart Appium. Stopping health check")
             }
         }
     }
@@ -506,6 +544,7 @@ class Device(
 
     private fun startWda() {
         webDriverAgent.kill()
+        webDriverAgent.useAppium = useAppium
         webDriverAgent.start()
 
         Thread.sleep(DEVICE_AGENT_START_TIME)

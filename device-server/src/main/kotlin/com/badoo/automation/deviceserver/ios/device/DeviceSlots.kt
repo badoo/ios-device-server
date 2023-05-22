@@ -160,20 +160,13 @@ class DeviceSlots(
             remote = remote,
             deviceInfo = deviceInfo,
             userPorts = allocatedPorts,
-            wdaDeviceBundle = getWdaDeviceBundle(deviceInfo.udid)
+            wdaDeviceBundles = wdaDeviceBundles
         )
 
         device.prepareAsync()
 
         val slot = DeviceSlot(device = device)
         activeSlots.add(slot)
-    }
-
-    private fun getWdaDeviceBundle(udid: UDID): WdaDeviceBundle {
-        return wdaDeviceBundles.find { wdaDeviceBundle ->
-            wdaDeviceBundle.provisionedDevices.any { it.equals(udid, ignoreCase = true) }
-        }
-            ?: throw DeviceNotFoundException("Device with $udid does not have any WDA bundle that has it's udid provisioned")
     }
 
     private fun removeSlotBy(udid: UDID) {

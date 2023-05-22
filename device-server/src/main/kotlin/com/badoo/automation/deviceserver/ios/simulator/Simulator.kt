@@ -118,27 +118,15 @@ class Simulator(
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
-    private val webDriverAgent: IWebDriverAgent = if (useAppium) {
-        XcodeTestRunnerWebDriverAgent(
+    private val webDriverAgent = XcodeTestRunnerDeviceAgent(
             remote,
-            wdaSimulatorBundles.webDriverAgentBundle,
+            listOf(wdaSimulatorBundles.deviceAgentBundle, wdaSimulatorBundles.webDriverAgentBundle),
             deviceInfo.udid,
             wdaEndpoint,
             mjpegServerPort,
             deviceRef,
             isRealDevice = false
         )
-    } else {
-        XcodeTestRunnerDeviceAgent(
-            remote,
-            wdaSimulatorBundles.deviceAgentBundle,
-            deviceInfo.udid,
-            wdaEndpoint,
-            mjpegServerPort,
-            deviceRef,
-            isRealDevice = false
-        )
-    }
 
     private val appiumServer: AppiumServer = AppiumServer(
         remote,
@@ -245,6 +233,7 @@ class Simulator(
         executeWithTimeout(timeout, "Preparing simulator") {
             // erase simulator if there is no existing backup, this is to ensure backup is created from a clean state
             logger.info(logMarker, "Launch prepare sequence for ${this@Simulator} asynchronously")
+            appiumServer.kill()
 
             if (backup.isExist()) {
                 if (clean) {
@@ -395,6 +384,7 @@ class Simulator(
                 }
 
                 try {
+                    webDriverAgent.useAppium = this.useAppium
                     webDriverAgent.start()
                 } catch (e: RuntimeException) {
                     logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
@@ -488,6 +478,7 @@ class Simulator(
                 logger.info(logMarker, "Starting WebDriverAgent on ${this@Simulator}")
 
                 webDriverAgent.kill()
+                webDriverAgent.useAppium = this.useAppium
                 webDriverAgent.start()
 
                 Thread.sleep(8000)

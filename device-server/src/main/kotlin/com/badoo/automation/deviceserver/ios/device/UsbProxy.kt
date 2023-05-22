@@ -13,7 +13,6 @@ class UsbProxy(
     private val udid: UDID,
     private val remote: IRemote,
     val localPort: Int,
-    val devicePort: Int,
     private val childFactory: (
         remoteHost: String,
         userName: String,
@@ -31,14 +30,14 @@ class UsbProxy(
         )
     )
 
-    override fun toString(): String = "<iproxy $localPort $devicePort $udid>"
+    override fun toString(): String = "<iproxy $localPort $udid>"
 
     val iproxyBinary = File(remote.homeBrewPath, "iproxy").absolutePath
     val socatBinary = File(remote.homeBrewPath, "socat").absolutePath
     private var iproxy: ChildProcess? = null
     private var socat: ChildProcess? = null
 
-    fun start() {
+    fun start(devicePort: Int) {
         val iProxyCommand = listOf(iproxyBinary, "$localPort:$devicePort", "--udid", udid)
         iproxy = childFactory(
             remote.hostName,
