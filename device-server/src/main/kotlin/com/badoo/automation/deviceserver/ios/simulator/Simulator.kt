@@ -345,7 +345,7 @@ class Simulator(
                 performFBSimctlHealthCheck(fbsimctlFailCount, maxFailCount)
 
                 if (useWda) {
-                    performWebDriverAgentHealthCheck(wdaFailCount, maxFailCount)
+                    performInstrumentationAgentHealthCheck(wdaFailCount, maxFailCount)
                 }
 
                 if (useAppium) {
@@ -357,7 +357,7 @@ class Simulator(
         }
     }
 
-    private suspend fun performWebDriverAgentHealthCheck(wdaFailCount: Int, maxFailCount: Int) {
+    private suspend fun performInstrumentationAgentHealthCheck(wdaFailCount: Int, maxFailCount: Int) {
         var wdaFailCount1 = wdaFailCount
         if (instrumentationAgent.isHealthy()) {
             wdaFailCount1 = 0
