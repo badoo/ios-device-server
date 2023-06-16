@@ -45,7 +45,7 @@ class AppiumServer(
         return localAppiumServerLog
     }
 
-    fun appiumServerLogDelete() {
+    fun deleteAppiumServerLog() {
         Files.write(localAppiumServerLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
 
         if (remote.isLocalhost()) {

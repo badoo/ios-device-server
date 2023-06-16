@@ -111,7 +111,7 @@ class Device(
 
     override val instrumentationAgentLog get() = instrumentationAgent.deviceAgentLog
     override val appiumServerLog get() = appiumServer.appiumServerLog
-    override fun appiumServerLogDelete() = appiumServer.appiumServerLogDelete()
+    override fun deleteAppiumServerLog() = appiumServer.deleteAppiumServerLog()
 
     private val status = SimulatorStatus()
 

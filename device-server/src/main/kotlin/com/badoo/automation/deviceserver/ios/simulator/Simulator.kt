@@ -139,7 +139,7 @@ class Simulator(
 
     override val appiumServerLog get() = appiumServer.appiumServerLog
 
-    override fun appiumServerLogDelete() = appiumServer.appiumServerLogDelete()
+    override fun deleteAppiumServerLog() = appiumServer.deleteAppiumServerLog()
 
     private val simulatorDirectory = File(deviceSetPath, udid)
     private val simulatorDataDirectory = File(simulatorDirectory, "data")

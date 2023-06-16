@@ -369,7 +369,7 @@ fun Application.module() {
                     }
                     delete {
                         val ref = param(call, "ref")
-                        call.respond(devicesController.appiumServerLogDelete(ref))
+                        call.respond(devicesController.deleteAppiumServerLog(ref))
                     }
                 }
                 route("diagnose/{type}") {
