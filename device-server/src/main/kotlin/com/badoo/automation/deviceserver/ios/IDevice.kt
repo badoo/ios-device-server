@@ -30,7 +30,7 @@ interface IDevice {
     fun release(reason: String)
     fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File)
     fun appInstallationStatus(): Map<String, Boolean>
-    val deviceAgentLog: File
+    val instrumentationAgentLog: File
     val appiumServerLog: File
     fun appiumServerLogDelete()
     val osLog: ISysLog

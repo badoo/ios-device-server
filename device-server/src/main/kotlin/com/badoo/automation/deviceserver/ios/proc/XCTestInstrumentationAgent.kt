@@ -13,7 +13,7 @@ import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import java.time.Duration
 
-class XcodeTestRunnerDeviceAgent(
+class XCTestInstrumentationAgent(
     private val remote: IRemote,
     private val wdaBundles: List<WdaBundle>,
     private val udid: UDID,
@@ -226,10 +226,10 @@ class XcodeTestRunnerDeviceAgent(
     }
 
     companion object {
-        val xctestrunSimulatorTemplate: String = XcodeTestRunnerDeviceAgent::class.java.classLoader
+        val xctestrunSimulatorTemplate: String = XCTestInstrumentationAgent::class.java.classLoader
             .getResource("WebDriverAgent-Simulator.template.xctestrun")?.readText()
             ?: throw RuntimeException("Failed to read file WebDriverAgent-Simulator.template.xctestrun from resources")
-        val xctestrunRealDeviceTemplateXcode13: String = XcodeTestRunnerDeviceAgent::class.java.classLoader
+        val xctestrunRealDeviceTemplateXcode13: String = XCTestInstrumentationAgent::class.java.classLoader
             .getResource("WebDriverAgent-RealDevice-Xcode13.template.xctestrun")?.readText()
             ?: throw RuntimeException("Failed to read file WebDriverAgent-RealDevice-Xcode13.template.xctestrun from resources")
     }
