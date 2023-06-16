@@ -166,7 +166,7 @@ class DevicesNode(
         throw(NotImplementedError("AppiumServer log is not supported by physical devices"))
     }
 
-    override fun appiumServerLogDelete(deviceRef: DeviceRef) {
+    override fun deleteAppiumServerLog(deviceRef: DeviceRef) {
         throw(NotImplementedError("AppiumServer log is not supported by physical devices"))
     }
 

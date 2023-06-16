@@ -32,7 +32,7 @@ interface IDevice {
     fun appInstallationStatus(): Map<String, Boolean>
     val instrumentationAgentLog: File
     val appiumServerLog: File
-    fun appiumServerLogDelete()
+    fun deleteAppiumServerLog()
     val osLog: ISysLog
     fun listApps(): List<FBSimctlAppInfo>
 }

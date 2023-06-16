@@ -228,8 +228,8 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).appiumServerLog
     }
 
-    override fun appiumServerLogDelete(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).appiumServerLogDelete()
+    override fun deleteAppiumServerLog(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).deleteAppiumServerLog()
     }
 
     override fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
