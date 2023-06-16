@@ -177,12 +177,12 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.syslog(ref)
     }
 
-    fun deviceAgentLog(ref: DeviceRef): File {
-        return deviceManager.deviceAgentLog(ref)
+    fun instrumentationAgentLog(ref: DeviceRef): File {
+        return deviceManager.instrumentationAgentLog(ref)
     }
 
-    fun deviceAgentLogDelete(ref: DeviceRef) {
-        deviceManager.deviceAgentLogDelete(ref)
+    fun deleteInstrumentationAgentLog(ref: DeviceRef) {
+        deviceManager.deleteInstrumentationAgentLog(ref)
     }
 
     fun appiumServerLog(ref: DeviceRef): File {

@@ -118,7 +118,7 @@ class Simulator(
     private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
-    private val webDriverAgent = XcodeTestRunnerDeviceAgent(
+    private val instrumentationAgent = XCTestInstrumentationAgent(
             remote,
             listOf(wdaSimulatorBundles.deviceAgentBundle, wdaSimulatorBundles.webDriverAgentBundle),
             deviceInfo.udid,
@@ -135,7 +135,7 @@ class Simulator(
         allocatedPorts.wdaPort
     )
 
-    override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
+    override val instrumentationAgentLog get() = instrumentationAgent.deviceAgentLog
 
     override val appiumServerLog get() = appiumServer.appiumServerLog
 
@@ -359,11 +359,11 @@ class Simulator(
 
     private suspend fun performWebDriverAgentHealthCheck(wdaFailCount: Int, maxFailCount: Int) {
         var wdaFailCount1 = wdaFailCount
-        if (webDriverAgent.isHealthy()) {
+        if (instrumentationAgent.isHealthy()) {
             wdaFailCount1 = 0
         } else {
             (1..5).forEach {
-                if (webDriverAgent.isHealthy()) {
+                if (instrumentationAgent.isHealthy()) {
                     wdaFailCount1 = 0
                     return@forEach
                 } else {
@@ -378,7 +378,7 @@ class Simulator(
                 logger.error(logMarker, "WebDriverAgent health check failed $wdaFailCount1 times. Restarting WebDriverAgent")
 
                 try {
-                    webDriverAgent.kill()
+                    instrumentationAgent.kill()
                 } catch (e: RuntimeException) {
                     logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
                 }
@@ -476,8 +476,8 @@ class Simulator(
             try {
                 logger.info(logMarker, "Starting WebDriverAgent on ${this@Simulator}")
 
-                webDriverAgent.kill()
-                webDriverAgent.start(useAppium)
+                instrumentationAgent.kill()
+                instrumentationAgent.start(useAppium)
 
                 Thread.sleep(8000)
 
@@ -488,7 +488,7 @@ class Simulator(
                     logger = logger,
                     marker = logMarker
                 ) {
-                    webDriverAgent.isHealthy()
+                    instrumentationAgent.isHealthy()
                 }
 
                 logger.info(logMarker, "Started WebDriverAgent on ${this@Simulator}")
@@ -498,7 +498,7 @@ class Simulator(
             catch (e: RuntimeException) {
                 logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for ${this@Simulator} failed: $e")
 
-                val wdaLogLines = webDriverAgent.deviceAgentLog.readLines().takeLast(200)
+                val wdaLogLines = instrumentationAgent.deviceAgentLog.readLines().takeLast(200)
                 wdaLogLines.forEach { logLine ->
                     logger.warn(logMarker, "[WDA]: $logLine")
                 }
@@ -643,7 +643,7 @@ class Simulator(
         installTask?.cancel(true)
         ignoringErrors({ videoRecorder.dispose() })
         ignoringErrors({ appiumServer.kill() })
-        ignoringErrors({ webDriverAgent.kill() })
+        ignoringErrors({ instrumentationAgent.kill() })
         ignoringErrors({ fbsimctlProc.kill() })
 
         val result = remote.fbsimctl.shutdown(udid)
@@ -988,7 +988,7 @@ class Simulator(
 
         if (deviceState == DeviceState.CREATED) {
             isFbsimctlReady = fbsimctlProc.isHealthy()
-            isWdaReady = (if (useWda) { webDriverAgent.isHealthy() } else true)
+            isWdaReady = (if (useWda) { instrumentationAgent.isHealthy() } else true)
             isAppiumReady = (if (useAppium) { appiumServer.isHealthy() } else true)
         }
 

@@ -37,8 +37,8 @@ interface ISimulatorsNode {
 
     fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray)
     fun syslog(deviceRef: DeviceRef): File
-    fun deviceAgentLog(deviceRef: DeviceRef): File
-    fun deviceAgentLogDelete(deviceRef: DeviceRef)
+    fun instrumentationAgentLog(deviceRef: DeviceRef): File
+    fun deleteInstrumentationAgentLog(deviceRef: DeviceRef)
     fun appiumServerLog(deviceRef: DeviceRef): File
     fun appiumServerLogDelete(deviceRef: DeviceRef)
     fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions)

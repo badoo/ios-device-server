@@ -153,12 +153,12 @@ class DevicesNode(
         throw(NotImplementedError("Adding media is not supported by physical devices"))
     }
 
-    override fun deviceAgentLog(deviceRef: DeviceRef): File {
-        return slotByExternalRef(deviceRef).device.deviceAgentLog
+    override fun instrumentationAgentLog(deviceRef: DeviceRef): File {
+        return slotByExternalRef(deviceRef).device.instrumentationAgentLog
     }
 
-    override fun deviceAgentLogDelete(deviceRef: DeviceRef) {
-        val logFile = slotByExternalRef(deviceRef).device.deviceAgentLog
+    override fun deleteInstrumentationAgentLog(deviceRef: DeviceRef) {
+        val logFile = slotByExternalRef(deviceRef).device.instrumentationAgentLog
         Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
     }
 

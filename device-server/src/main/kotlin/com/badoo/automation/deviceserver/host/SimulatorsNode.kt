@@ -215,12 +215,12 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).osLog.osLogFile
     }
 
-    override fun deviceAgentLog(deviceRef: DeviceRef): File {
-        return getDeviceFor(deviceRef).deviceAgentLog
+    override fun instrumentationAgentLog(deviceRef: DeviceRef): File {
+        return getDeviceFor(deviceRef).instrumentationAgentLog
     }
 
-    override fun deviceAgentLogDelete(deviceRef: DeviceRef) {
-        val logFile = getDeviceFor(deviceRef).deviceAgentLog
+    override fun deleteInstrumentationAgentLog(deviceRef: DeviceRef) {
+        val logFile = getDeviceFor(deviceRef).instrumentationAgentLog
         Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
     }
 

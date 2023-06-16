@@ -92,7 +92,7 @@ class Device(
         }
 
     private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
-    private val webDriverAgent = XcodeTestRunnerDeviceAgent(
+    private val instrumentationAgent = XCTestInstrumentationAgent(
         remote = remote,
         wdaBundles = wdaDeviceBundles,
         udid = deviceInfo.udid,
@@ -109,7 +109,7 @@ class Device(
         userPorts.wdaPort
     )
 
-    override val deviceAgentLog get() = webDriverAgent.deviceAgentLog
+    override val instrumentationAgentLog get() = instrumentationAgent.deviceAgentLog
     override val appiumServerLog get() = appiumServer.appiumServerLog
     override fun appiumServerLogDelete() = appiumServer.appiumServerLogDelete()
 
@@ -165,7 +165,7 @@ class Device(
             return
         }
 
-        val isWdaHealty = webDriverAgent.isHealthy()
+        val isWdaHealty = instrumentationAgent.isHealthy()
         val fbsimctlStatus = if (useFbsimctlProc) fbsimctlProc.isHealthy() else true
 
         // check if WDA or fbsimctl crashed after being ok for some time
@@ -248,7 +248,7 @@ class Device(
             ignoringDisposeErrors { fbsimctlProc.kill() }
         }
         ignoringDisposeErrors { appiumServer.kill() }
-        ignoringDisposeErrors { webDriverAgent.kill() }
+        ignoringDisposeErrors { instrumentationAgent.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
         ignoringDisposeErrors { mjpegProxy.stop() }
@@ -392,7 +392,7 @@ class Device(
             fbsimctlProc.kill()
         }
         appiumServer.kill()
-        webDriverAgent.kill()
+        instrumentationAgent.kill()
 
         wdaProxy.stop()
         mjpegProxy.stop()
@@ -457,7 +457,7 @@ class Device(
     private suspend fun performWebDriverAgentHealthCheck(maxWDAFailCount: Int) {
         var wdaFailCount = 0
 
-        while (!webDriverAgent.isHealthy() && wdaFailCount < maxWDAFailCount) {
+        while (!instrumentationAgent.isHealthy() && wdaFailCount < maxWDAFailCount) {
             val message = "WebDriverAgent health check failed $wdaFailCount times."
             logger.error(logMarker, message)
             wdaFailCount += 1
@@ -468,7 +468,7 @@ class Device(
             logger.error(logMarker, "WebDriverAgent health check failed $wdaFailCount times. Restarting WebDriverAgent")
 
             try {
-                webDriverAgent.kill()
+                instrumentationAgent.kill()
             } catch (e: RuntimeException) {
                 logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
             }
@@ -542,7 +542,7 @@ class Device(
     }
 
     private fun startWda() {
-        webDriverAgent.start(useAppium)
+        instrumentationAgent.start(useAppium)
 
         Thread.sleep(DEVICE_AGENT_START_TIME)
 
@@ -553,8 +553,8 @@ class Device(
             logger = logger,
             marker = logMarker
         ) {
-            if (webDriverAgent.isProcessAlive) {
-                webDriverAgent.isHealthy()
+            if (instrumentationAgent.isProcessAlive) {
+                instrumentationAgent.isHealthy()
             } else {
                 throw WaitTimeoutError("WebDriverAgent process is not alive")
             }
