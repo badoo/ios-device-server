@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver
 
-import com.badoo.automation.deviceserver.ios.proc.SimulatorWebDriverAgent
 import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import java.io.File
 

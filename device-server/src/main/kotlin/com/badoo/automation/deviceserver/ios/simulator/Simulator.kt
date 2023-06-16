@@ -68,7 +68,7 @@ class Simulator(
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.wdaPort}/")
     override val calabashEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.calabashPort}/")
-    override val appiumEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.appiumPort}/${AppiumServer.APPIUM_BASE_PATH}")
+    override val appiumEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.appiumPort}")
     override val calabashPort: Int = allocatedPorts.calabashPort
     override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
     override val appiumPort: Int = allocatedPorts.appiumPort
@@ -384,8 +384,7 @@ class Simulator(
                 }
 
                 try {
-                    webDriverAgent.useAppium = this.useAppium
-                    webDriverAgent.start()
+                    startWdaWithRetry()
                 } catch (e: RuntimeException) {
                     logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
                     deviceState = DeviceState.FAILED
@@ -478,8 +477,7 @@ class Simulator(
                 logger.info(logMarker, "Starting WebDriverAgent on ${this@Simulator}")
 
                 webDriverAgent.kill()
-                webDriverAgent.useAppium = this.useAppium
-                webDriverAgent.start()
+                webDriverAgent.start(useAppium)
 
                 Thread.sleep(8000)
 
