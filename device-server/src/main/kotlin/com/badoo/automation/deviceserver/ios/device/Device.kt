@@ -48,7 +48,7 @@ class Device(
     private val useFbsimctlProc = ApplicationConfiguration().useFbsimctlProc
 
     @Volatile
-    private var useAppium: Boolean = false
+    private var useAppium: Boolean = true
 
     private val calabashProxy = usbProxyFactory.create(
         udid = deviceInfo.udid,
@@ -68,7 +68,7 @@ class Device(
 
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}/$udid/")
     override val calabashEndpoint = URI("http://${remote.publicHostName}:${userPorts.calabashPort}")
-    override val appiumEndpoint = URI("http://${remote.publicHostName}:${userPorts.appiumPort}/${AppiumServer.APPIUM_BASE_PATH}")
+    override val appiumEndpoint = URI("http://${remote.publicHostName}:${userPorts.appiumPort}")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     override val calabashPort = calabashProxy.localPort
 
@@ -474,7 +474,7 @@ class Device(
             }
 
             try {
-                webDriverAgent.start()
+                startWdaWithRetry()
             } catch (e: RuntimeException) {
                 logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
                 deviceState = DeviceState.FAILED
@@ -541,11 +541,8 @@ class Device(
         }
     }
 
-
     private fun startWda() {
-        webDriverAgent.kill()
-        webDriverAgent.useAppium = useAppium
-        webDriverAgent.start()
+        webDriverAgent.start(useAppium)
 
         Thread.sleep(DEVICE_AGENT_START_TIME)
 

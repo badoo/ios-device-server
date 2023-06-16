@@ -29,7 +29,7 @@ class XcodeTestRunnerDeviceAgent(
         out_reader: ((line: String) -> Unit)?,
         err_reader: ((line: String) -> Unit)?
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
-) : LongRunningProc(udid, remote.hostName), IWebDriverAgent {
+) : LongRunningProc(udid, remote.hostName) {
     private val derivedDataDir =
         remote.shell("/usr/bin/mktemp -d -t derivedDataDir_$udid", returnOnFailure = false).stdOut.trim()
     private val xctestrunDir =
@@ -42,13 +42,10 @@ class XcodeTestRunnerDeviceAgent(
         LogMarkers.HOSTNAME to remote.hostName
     )
 
-    @Volatile
-    var useAppium: Boolean = true
-
     private val instrumentationDaBundle = getWdaBundle("sh.calaba.DeviceAgent")
     private val instrumentationWdaBundle = getWdaBundle("com.facebook.WebDriverAgentRunner")
 
-    private val instrumentationBundle: WdaBundle get() {
+    private fun getInstrumentationBundle(useAppium: Boolean): WdaBundle {
         return if (useAppium) instrumentationWdaBundle else instrumentationDaBundle
     }
 
@@ -71,7 +68,7 @@ class XcodeTestRunnerDeviceAgent(
         derivedDataDir
     )
 
-    private fun prepareXctestrunFile() {
+    private fun prepareXctestrunFile(instrumentationBundle: WdaBundle) {
         val xctestRunnerPath: File = instrumentationBundle.xctestRunnerPath(remote.isLocalhost())
         val xctestRunnerRelativePath = File(xctestRunnerPath.parentFile.name, xctestRunnerPath.name).toString()
         val instrumentationPort = if (isRealDevice) instrumentationBundle.deviceInstrumentationPort else wdaEndpoint.port
@@ -104,41 +101,47 @@ class XcodeTestRunnerDeviceAgent(
     }
 
     private val uri: URI get() {
-        return if (useAppium) {
-            uriWithPath(wdaEndpoint, "status")
-
-        } else {
-            uriWithPath(wdaEndpoint, "1.0/status")
-        }
+        val statusPath = if (useWebDriverAgent) "status" else "1.0/status"
+        return uriWithPath(wdaEndpoint, statusPath)
     }
 
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
 
-    override fun installHostApp() {
+    private fun installHostApp(instrumentationBundle: WdaBundle) {
         remote.fbsimctl.installApp(udid, instrumentationBundle.bundlePath(remote.isLocalhost()))
         val timeout = 3000L
         logger.debug("Waiting $timeout ms after install")
         Thread.sleep(timeout)
     }
 
-    override val deviceAgentLog: File = File.createTempFile("web_driver_agent_log_", ".txt")
+    val deviceAgentLog: File = File.createTempFile("web_driver_agent_log_", ".txt")
 
     @Volatile
     private var wdaRunnerStarted = false
 
     override fun start() {
+        TODO("Not implemented. Use start(useAppium: Boolean)")
+    }
+
+    @Volatile
+    var useWebDriverAgent: Boolean = true // use WebDriverAgent for Appium or DeviceAgent for Calabash
+
+    fun start(useAppium: Boolean) {
         ensure(childProcess == null) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
+
+        useWebDriverAgent = useAppium
+        val instrumentationBundle = getInstrumentationBundle(useAppium)
         ensure(remote.isDirectory(instrumentationBundle.bundlePath(remote.isLocalhost()).absolutePath)) { WebDriverAgentError("WebDriverAgent ${instrumentationBundle.bundlePath(remote.isLocalhost()).absolutePath} does not exist or is not a directory") }
         logger.debug(logMarker, "$this — Starting child process WebDriverAgent on: $wdaEndpoint with bundle id: ${instrumentationBundle.bundleId}")
 
         cleanupLogs()
-        prepareXctestrunFile()
+        prepareXctestrunFile(instrumentationBundle)
 
         listOf(instrumentationDaBundle.bundleId, instrumentationWdaBundle.bundleId).forEach {
             remote.fbsimctl.uninstallApp(udid, it, false)
         }
 
-        installHostApp()
+        installHostApp(instrumentationBundle)
 
         val process = childFactory(
             remote.hostName,
@@ -178,11 +181,15 @@ class XcodeTestRunnerDeviceAgent(
         logger.debug(logMarker, "$this WDA: $childProcess")
     }
 
+    private fun truncateAgentLog() {
+        Files.write(deviceAgentLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+    }
+
     private fun cleanupLogs() {
         remote.shell("rm -rf $derivedDataDir", false)
         remote.shell("mkdir -p $derivedDataDir", true)
         remote.shell("rm -f $xctestrunFile", false)
-        Files.write(deviceAgentLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+        truncateAgentLog()
     }
 
     private fun terminateHostApp() {

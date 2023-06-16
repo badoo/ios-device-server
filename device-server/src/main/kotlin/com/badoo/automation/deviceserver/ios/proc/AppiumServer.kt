@@ -198,7 +198,4 @@ class AppiumServer(
             )
         }
     }
-    companion object {
-        const val APPIUM_BASE_PATH = "wd/hub"
-    }
 }
