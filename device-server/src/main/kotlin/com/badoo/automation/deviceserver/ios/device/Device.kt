@@ -443,7 +443,7 @@ class Device(
 
         healthChecker = launch {
             while (isActive) {
-                performWebDriverAgentHealthCheck(10)
+                performInstrumentationAgentHealthCheck(10)
 
                 if (useAppium) {
                     performAppiumServerHealthCheck()
@@ -454,7 +454,7 @@ class Device(
         }
     }
 
-    private suspend fun performWebDriverAgentHealthCheck(maxWDAFailCount: Int) {
+    private suspend fun performInstrumentationAgentHealthCheck(maxWDAFailCount: Int) {
         var wdaFailCount = 0
 
         while (!instrumentationAgent.isHealthy() && wdaFailCount < maxWDAFailCount) {
