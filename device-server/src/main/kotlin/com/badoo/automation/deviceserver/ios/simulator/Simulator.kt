@@ -15,8 +15,6 @@ import com.badoo.automation.deviceserver.ios.simulator.data.*
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
-import com.badoo.automation.deviceserver.ios.simulator.video.MJPEGVideoRecorder
-import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.*
 import kotlinx.coroutines.experimental.Job
@@ -78,18 +76,6 @@ class Simulator(
         val recorderClassName = appConfig.videoRecorderClassName
 
         return when (recorderClassName) {
-            SimulatorVideoRecorder::class.qualifiedName -> SimulatorVideoRecorder(
-                deviceInfo,
-                remote,
-                location = Paths.get(deviceSetPath, udid, "video.mp4").toFile()
-            )
-            MJPEGVideoRecorder::class.qualifiedName -> MJPEGVideoRecorder(
-                deviceInfo,
-                remote,
-                mjpegServerPort,
-                ref,
-                udid
-            )
             FFMPEGVideoRecorder::class.qualifiedName -> FFMPEGVideoRecorder(
                 remote,
                 mjpegServerPort,
@@ -98,7 +84,7 @@ class Simulator(
             )
             else -> throw IllegalArgumentException(
                 "Wrong class specified as video recorder: $recorderClassName. " +
-                        "Available are: [${SimulatorVideoRecorder::class.qualifiedName}, ${MJPEGVideoRecorder::class.qualifiedName}]"
+                        "Available are: [${FFMPEGVideoRecorder::class.qualifiedName}]"
             )
         }
     }
