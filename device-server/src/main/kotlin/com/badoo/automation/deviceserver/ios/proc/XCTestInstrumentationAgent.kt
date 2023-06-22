@@ -89,6 +89,7 @@ class XCTestInstrumentationAgent(
             val tmpFile = File.createTempFile("xctestRunDir_$udid.", ".xctestrun")
             tmpFile.writeText(xctestRunContents)
             remote.scpToRemoteHost(tmpFile.absolutePath, xctestrunFile.absolutePath)
+            tmpFile.delete()
         }
     }
 
@@ -127,7 +128,8 @@ class XCTestInstrumentationAgent(
     var useWebDriverAgent: Boolean = true // use WebDriverAgent for Appium or DeviceAgent for Calabash
 
     fun start(useAppium: Boolean) {
-        ensure(childProcess == null) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
+        val wdaProcess = childProcess
+        ensure(wdaProcess == null || wdaProcess.isAlive() == false) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
 
         useWebDriverAgent = useAppium
         val instrumentationBundle = getInstrumentationBundle(useAppium)

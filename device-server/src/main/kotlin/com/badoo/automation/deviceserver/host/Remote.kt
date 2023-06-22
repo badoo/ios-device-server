@@ -4,7 +4,6 @@ import XCRunSimctl
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.*
-import com.badoo.automation.deviceserver.host.IRemote.Companion.SSH_AUTH_SOCK
 import com.badoo.automation.deviceserver.host.IRemote.Companion.isLocalhost
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlResponseParser
@@ -13,6 +12,7 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
+import java.lang.IllegalStateException
 import java.time.Duration
 
 class Remote(
@@ -34,7 +34,6 @@ class Remote(
         }
 
         fun getLocalCommandExecutor(): IShellCommand {
-            val config = ApplicationConfiguration()
             return ShellCommand()
         }
 
@@ -46,6 +45,7 @@ class Remote(
             }
         }
     }
+    private val appConfig = ApplicationConfiguration()
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
@@ -57,6 +57,29 @@ class Remote(
 
     override val homeBrewPath: File by lazy {
         getHomeBrewPath(remoteExecutor)
+    }
+
+    override val tmpDir: File by lazy {
+        if (isLocalhost()) {
+            appConfig.tempFolder
+        } else {
+            val tmpdirEnvironmentVariable = getEnvironment()["TMPDIR"]
+                ?: throw IllegalStateException("Environment variable TMPDIR is unknown for host $publicHostName")
+            File(tmpdirEnvironmentVariable)
+        }
+    }
+
+    private fun getEnvironment(): Map<String, String> {
+        if (isLocalhost()) {
+            return System.getenv()
+        }
+
+        val envDelimiter = "="
+        val result = remoteExecutor.exec(command = listOf("/usr/bin/printenv"), environment = mapOf(), returnFailure = false)
+
+        return result.stdOut.lines().associate {
+            it.substringBefore(envDelimiter) to it.substringAfter(envDelimiter)
+        }
     }
 
     override fun isReachable(): Boolean {
@@ -161,15 +184,5 @@ class Remote(
             logger.error(logMarker, message)
             RuntimeException(message)
         }
-    }
-
-    private fun environmentForRsync(): MutableMap<String, String> {
-        val env = mutableMapOf<String, String>()
-        val sshAuthSocket = System.getenv(SSH_AUTH_SOCK)
-
-        if (sshAuthSocket != null) {
-            env[SSH_AUTH_SOCK] = sshAuthSocket
-        }
-        return env
     }
 }

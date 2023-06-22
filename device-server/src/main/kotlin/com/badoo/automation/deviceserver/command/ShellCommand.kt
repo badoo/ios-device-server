@@ -16,7 +16,7 @@ import java.time.Duration
 import java.util.concurrent.*
 
 open class ShellCommand(
-    private val commonEnvironment: Map<String, String> = mapOf<String, String>("HOME" to System.getProperty("user.home"), "TMPDIR" to (System.getenv("TMPDIR") ?: "/tmp"))
+    private val commonEnvironment: Map<String, String> = mapOf<String, String>("HOME" to System.getProperty("user.home"))
 ) : IShellCommand {
     protected val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     protected open val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to "localhost"))
