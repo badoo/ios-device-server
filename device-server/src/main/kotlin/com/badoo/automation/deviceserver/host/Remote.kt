@@ -22,7 +22,8 @@ class Remote(
     override val localExecutor: IShellCommand = ShellCommand(),
     override val remoteExecutor: IShellCommand = getRemoteCommandExecutor(hostName, userName),
     override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(remoteExecutor), FBSimctlResponseParser()),
-    override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor)
+    override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor),
+    private val appConfig: ApplicationConfiguration = ApplicationConfiguration()
 ) : IRemote {
     companion object {
         fun getRemoteCommandExecutor(hostName: String, userName: String): IShellCommand {
@@ -45,7 +46,6 @@ class Remote(
             }
         }
     }
-    private val appConfig = ApplicationConfiguration()
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
