@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.host
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.anyType
 import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.IShellCommand
@@ -15,13 +16,21 @@ import org.mockito.ArgumentMatchers.*
 class RemoteTest {
     private val localExecutor: IShellCommand = mockThis()
     private val remoteExecutor: IShellCommand = mockThis()
+    private val applicationConfiguration: ApplicationConfiguration = mockThis()
     private lateinit var remote: Remote
 
     @Before fun setUp() {
         whenever(remoteExecutor.exec(anyList(), anyMap(), anyType(), anyBoolean(), anyType(), anyType())).thenReturn(
             CommandResult("", "", 0, pid = 1L)
         )
-        remote = Remote("host", "user", "", localExecutor, remoteExecutor)
+        remote = Remote(
+            hostName = "host",
+            userName = "user",
+            publicHostName = "",
+            localExecutor = localExecutor,
+            remoteExecutor = remoteExecutor,
+            appConfig = applicationConfiguration
+        )
     }
 
     @Test
