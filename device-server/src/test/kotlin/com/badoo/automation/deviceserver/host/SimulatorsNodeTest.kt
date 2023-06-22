@@ -9,7 +9,7 @@ import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
-import com.badoo.automation.deviceserver.ios.simulator.video.SimulatorVideoRecorder
+import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.mockThis
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundle
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
@@ -381,7 +381,7 @@ class SimulatorsNodeTest {
         verify(simulatorMock).status()
     }
 
-    private val videoRecorderMock = mockThis<SimulatorVideoRecorder>()
+    private val videoRecorderMock = mockThis<FFMPEGVideoRecorder>()
 
     @Test
     fun videoRecorderDelete() {
