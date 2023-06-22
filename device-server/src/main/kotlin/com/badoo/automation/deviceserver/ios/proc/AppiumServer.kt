@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.proc
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.command.ChildProcess
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.IRemote.Companion.DEFAULT_PATH
@@ -9,10 +10,7 @@ import com.badoo.automation.deviceserver.util.uriWithPath
 import java.io.File
 import java.net.URI
 import java.net.URL
-import java.nio.file.Files
-import java.nio.file.StandardOpenOption
 import java.time.Duration
-
 
 class AppiumServer(
     private val remote: IRemote,
@@ -28,63 +26,32 @@ class AppiumServer(
         err_reader: ((line: String) -> Unit)?
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
-    private val remoteAppiumTmpDirPrefix = "appium_tmpdir_${udid}_"
-    private val remoteAppiumTmpDir = createRemoteAppiumTmpDir()
+    private val remoteAppiumTmpDir: File = File(remote.tmpDir, "appium_tmpdir_${udid}")
     private val remoteAppiumServerLog: File = File(remoteAppiumTmpDir, "remote_appium_server_log_${udid}.txt")
-    private val localAppiumServerLog: File = File.createTempFile("appium_server_log_${udid}", ".txt")
+    private val appConfig = ApplicationConfiguration()
+    private val localAppiumServerLogCopy = File(appConfig.tempFolder, "appium_server_log_${udid}.txt")
 
-    val appiumServerLog get(): File {
-        Files.write(localAppiumServerLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
-
-        if (remote.isLocalhost()) {
-            localAppiumServerLog.writeBytes(remoteAppiumServerLog.readBytes())
-        } else {
-            remote.scpFromRemoteHost(remoteAppiumServerLog.absolutePath, localAppiumServerLog.absolutePath, Duration.ofSeconds(60))
+    val appiumServerLog
+        get(): File {
+            return if (remote.isLocalhost()) {
+                remoteAppiumServerLog
+            } else {
+                localAppiumServerLogCopy.delete()
+                remote.scpFromRemoteHost(
+                    remoteAppiumServerLog.absolutePath,
+                    localAppiumServerLogCopy.absolutePath,
+                    Duration.ofSeconds(120)
+                )
+                localAppiumServerLogCopy
+            }
         }
-
-        return localAppiumServerLog
-    }
 
     fun deleteAppiumServerLog() {
-        Files.write(localAppiumServerLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
-
-        if (remote.isLocalhost()) {
-            Files.write(remoteAppiumServerLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
-        } else {
-            remote.shell("cat /dev/null > ${remoteAppiumServerLog.absolutePath}")
-        }
-    }
-
-    private fun createRemoteAppiumTmpDir(): File {
-        return if (remote.isLocalhost()) {
-            createTempDir(remoteAppiumTmpDirPrefix)
-        } else {
-            val tmpPath = remote.shell(
-                "/usr/bin/mktemp -d -t $remoteAppiumTmpDirPrefix",
-                returnOnFailure = false
-            ).stdOut.trim()
-
-            File(tmpPath)
-        }
+        remote.shell("rm -f ${remoteAppiumServerLog.absolutePath}")
+        localAppiumServerLogCopy.delete()
     }
 
     private val statusUrl: URL = uriWithPath(URI("http://${remote.publicHostName}:$appiumServerPort"), "status").toURL()
-
-    private fun getLogContents(): String {
-        return if (remote.isLocalhost()) {
-            remoteAppiumServerLog.readText()
-        } else {
-            val localLogFile = File.createTempFile("tmp_appium_log_${udid}.txt", ".txt")
-            remote.scpFromRemoteHost(remoteAppiumServerLog.absolutePath, localLogFile.absolutePath, Duration.ofSeconds(60))
-            val log = localLogFile.readText()
-            localLogFile.delete()
-            log
-        }
-    }
-
-    fun truncateAppiumLog() {
-        remote.shell(":> $remoteAppiumServerLog", returnOnFailure = false)
-    }
 
     override fun checkHealth(): Boolean {
         if (childProcess == null) {
@@ -107,7 +74,8 @@ class AppiumServer(
         ensure(childProcess == null) { AppiumServerProcError("Previous Appium Server process $childProcess has not been killed") }
         logger.debug(logMarker, "$this — Starting child process")
         kill() // cleanup old processes in case there are
-        cleanupLogs()
+        deleteRemoteAppiumTmpDir()
+        createRemoteAppiumTmpDir()
 
         val outWriter: ((String) -> Unit)? = null // { message -> logger.info("[Appium Server INFO] $message") }
         val errWriter: (String) -> Unit = { message -> logger.error("[Appium Server ERROR] $message") }
@@ -144,7 +112,7 @@ class AppiumServer(
         } catch (e: Throwable) {
             logger.error(
                 logMarker,
-                "$this — Appium Server on port: $appiumServerPort failed to start. Detailed log follows:\n${getLogContents()}"
+                "$this — Appium Server on port: $appiumServerPort failed to start. Detailed log follows:\n${appiumServerLog.readText()}"
             )
 
             throw e
@@ -154,22 +122,23 @@ class AppiumServer(
     }
 
     override fun kill() {
-        remote.pkill(remoteAppiumTmpDirPrefix, false)
+        remote.pkill(remoteAppiumTmpDir.absolutePath, false)
         super.kill()
     }
 
-    private fun cleanupLogs() {
-        remote.shell("rm -rf $remoteAppiumTmpDir", false)
+    private fun createRemoteAppiumTmpDir() {
+        remote.shell("mkdir -p ${remoteAppiumTmpDir.absolutePath}")
+        remote.shell("touch ${remoteAppiumServerLog.absolutePath}")
+    }
 
-        if (!remote.isLocalhost()) {
-            remoteAppiumTmpDir.deleteRecursively()
-        }
-
-        remote.shell("mkdir -p $remoteAppiumTmpDir", false)
-        truncateAppiumLog()
+    private fun deleteRemoteAppiumTmpDir() {
+        remote.shell("rm -rf ${remoteAppiumTmpDir.absolutePath}")
     }
 
     private fun getAppiumServerStartCommand(): List<String> {
+        val logDecoration = if (remote.isLocalhost()) { "--log-colors" } else { "--log-no-colors" }
+        val logLevel: String = if (remote.isLocalhost()) { "debug" } else { "info" }
+
         val command = listOf(
             "appium",
             "--allow-cors",
@@ -178,9 +147,9 @@ class AppiumServer(
             "--driver-xcuitest-webdriveragent-port",
             wdaPort.toString(),
             "--log-level",
-            "info",
+            logLevel,
             "--log-timestamp",
-            "--log-no-colors",
+            logDecoration,
             "--local-timezone",
             "--log",
             remoteAppiumServerLog.absolutePath,

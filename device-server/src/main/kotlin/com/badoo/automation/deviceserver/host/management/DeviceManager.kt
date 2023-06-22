@@ -21,7 +21,7 @@ import java.util.concurrent.*
 import kotlin.system.measureNanoTime
 
 private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
-private const val MAX_TEMP_FILE_AGE = 7_200_000L // MILLI SEC
+private const val MAX_TEMP_FILE_AGE: Long = 3600L * 3 // MILLI SEC
 
 class DeviceManager(
         config: DeviceServerConfig,
@@ -55,7 +55,8 @@ class DeviceManager(
                 || name.contains("videoRecording_")
                 || name.contains("iOS_SysLog_")
                 || name.contains("device_agent_log_")
-
+                || name.contains("appium_server_log")
+                || name.endsWith(".xctestrun")
     }
 
     private val shellExecutor = ShellCommand()
@@ -117,16 +118,16 @@ class DeviceManager(
         logger.info("Successfully copied Video recorder script ${videoRecorderFile.name} from resources to ${videoRecorderFile.absolutePath}")
     }
 
-    fun cleanupTemporaryFiles() {
-        val currentTime = System.currentTimeMillis()
-        fun File.isOld(): Boolean {
-            val attributes = Files.readAttributes(toPath(), BasicFileAttributes::class.java)
-            val lastModified = attributes.lastModifiedTime().toMillis()
-            return currentTime - lastModified > MAX_TEMP_FILE_AGE
-        }
+    private fun File.isOlderThan(maxCreationTime: Long): Boolean {
+        val attributes = Files.readAttributes(toPath(), BasicFileAttributes::class.java)
+        return attributes.lastModifiedTime().toMillis() < maxCreationTime
+    }
 
-        File(getTmpDir()).walk().forEach {
-            if (it.isFile && it.isTestArtifact && it.isOld()) {
+    fun cleanupTemporaryFiles() {
+        val maxCreationTime = System.currentTimeMillis() - MAX_TEMP_FILE_AGE
+
+        appConfig.tempFolder.listFiles()!!.forEach {
+            if (it.isTestArtifact && it.isFile && it.isOlderThan(maxCreationTime)) {
                 try {
                     it.delete()
                 } catch (e: RuntimeException) {
@@ -135,11 +136,9 @@ class DeviceManager(
             }
         }
 
-        val appCacheDir: File = appConfig.appBundleCachePath
-        appCacheDir.mkdirs()
-
-        appCacheDir.walk().forEach {
-            if (it != appCacheDir && it.isOld()) {
+        appConfig.appBundleCachePath.mkdirs()
+        appConfig.appBundleCachePath.listFiles()!!.forEach {
+            if (it.isOlderThan(maxCreationTime)) {
                 try {
                     it.deleteRecursively()
                 } catch (e: RuntimeException) {
@@ -149,14 +148,6 @@ class DeviceManager(
         }
 
         logger.debug("Cleanup complete.")
-    }
-
-    private fun getTmpDir(): String {
-        return when {
-            System.getProperty("os.name") == "Linux" -> "/tmp"
-            System.getenv("TMPDIR") != null -> System.getenv("TMPDIR")
-            else -> throw RuntimeException("Unknown TEMP directory to clean up")
-        }
     }
 
     private lateinit var cleanUpTask: ScheduledFuture<*>
