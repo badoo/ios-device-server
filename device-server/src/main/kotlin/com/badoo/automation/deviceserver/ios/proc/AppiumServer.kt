@@ -136,7 +136,7 @@ class AppiumServer(
     }
 
     private fun getAppiumServerStartCommand(): List<String> {
-        val logDecoration = if (remote.isLocalhost()) { "--log-colors" } else { "--log-no-colors" }
+        val logDecoration = if (remote.isLocalhost()) { "" } else { "--log-no-colors" }
         val logLevel: String = if (remote.isLocalhost()) { "debug" } else { "info" }
 
         val command = listOf(
