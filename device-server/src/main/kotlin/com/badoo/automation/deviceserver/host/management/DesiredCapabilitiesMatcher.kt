@@ -8,8 +8,8 @@ class DesiredCapabilitiesMatcher {
 
     fun isMatch(actual: DeviceInfo, desiredCaps: DesiredCapabilities): Boolean {
         with(desiredCaps) {
-            return if (udid == null || udid.isBlank()) {
-                (model == null || model == actual.model) && (os == null || isRuntimeMatch(os, actual.os))
+            return if (udid.isNullOrBlank()) {
+                (model.isNullOrBlank() || model == actual.model) && (os.isNullOrBlank() || isRuntimeMatch(os!!, actual.os))
             } else {
                 udid == actual.udid
             }
