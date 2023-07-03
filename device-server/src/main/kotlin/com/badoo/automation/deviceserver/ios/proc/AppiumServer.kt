@@ -86,10 +86,12 @@ class AppiumServer(
             DEFAULT_PATH
         }
 
+        val command = getAppiumServerStartCommand()
+
         val process = childFactory(
             remote.hostName,
             remote.userName,
-            getAppiumServerStartCommand(),
+            command,
             mapOf("PATH" to path),
             outWriter,
             errWriter
@@ -136,7 +138,6 @@ class AppiumServer(
     }
 
     private fun getAppiumServerStartCommand(): List<String> {
-        val logDecoration = if (remote.isLocalhost()) { "" } else { "--log-no-colors" }
         val logLevel: String = if (remote.isLocalhost()) { "debug" } else { "info" }
 
         val command = listOf(
@@ -149,7 +150,7 @@ class AppiumServer(
             "--log-level",
             logLevel,
             "--log-timestamp",
-            logDecoration,
+            "--log-no-colors",
             "--local-timezone",
             "--log",
             remoteAppiumServerLog.absolutePath,

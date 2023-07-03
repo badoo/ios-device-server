@@ -46,7 +46,7 @@ class SimulatorProvider(
 
     private fun listSimulators(): List<FBSimctlDevice> {
         if (cachedSimulatorList.isEmpty()) {
-            cachedSimulatorList = remote.fbsimctl.listSimulators().filter { !it.model.isBlank() && !it.os.isBlank() }
+            cachedSimulatorList = remote.fbsimctl.listSimulators().filter { it.model.isNotBlank() && it.os.isNotBlank() }
         }
         return cachedSimulatorList
     }
