@@ -7,7 +7,24 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:${PATH}"
 
 readonly UDID=${1}
 readonly URL=${2}
-readonly RECORDING="${TMPDIR}videoRecording_${UDID}.mp4"
+
+if [[ -z "${UDID}" ]]; then
+  echo "Device UDID must be provided as fist argument."
+  exit 1
+fi
+
+if [[ -z "${URL}" ]]; then
+  echo "MJPEG server URL must be provided as second argument."
+  exit 1
+fi
+
+if [[ -z "${TMPDIR}" ]]; then
+  echo "Environment variable TMPDIR was not provided."
+  exit 1
+fi
+
+readonly RECORDINGS_FOLDER=$(realpath "${TMPDIR}")
+readonly RECORDING="${RECORDINGS_FOLDER}/videoRecording_${UDID}.mp4"
 
 set -x
 
