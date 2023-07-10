@@ -92,7 +92,7 @@ class AppiumServer(
             remote.hostName,
             remote.userName,
             command,
-            mapOf("PATH" to path),
+            mapOf("PATH" to path, "TMPDIR" to remote.tmpDir.absolutePath),
             outWriter,
             errWriter
         )
