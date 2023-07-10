@@ -72,6 +72,8 @@ class Simulator(
     override val appiumPort: Int = allocatedPorts.appiumPort
     override val locationManager: LocationManager = LocationManager(remote, udid)
 
+    override val isAppiumEnabled get() = useAppium
+
     private fun createVideoRecorder(): VideoRecorder {
         val recorderClassName = appConfig.videoRecorderClassName
 

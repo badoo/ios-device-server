@@ -28,6 +28,9 @@ data class ActualCapabilities(
         @JsonProperty("remote_notifications")
         val remoteNotifications: Boolean,
 
+        @JsonProperty("appium_enabled")
+        val isAppiumEnabled: Boolean,
+
         @JsonProperty("video_capture")
         val videoCapture: Boolean
 )

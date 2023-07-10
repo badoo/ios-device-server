@@ -291,6 +291,7 @@ class SimulatorsNode(
                     setLocation = true,
                     terminateApp = true,
                     remoteNotifications = remoteNotificationsSupported(device.deviceInfo.osMajorVersion()),
+                    isAppiumEnabled = device.isAppiumEnabled,
                     videoCapture = true
                 )
             )
