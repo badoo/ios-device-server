@@ -47,11 +47,17 @@ class FFMPEGVideoRecorder(
     override fun start() {
         logger.debug(logMarker, "Starting video recording - ${videoFile.name}")
 
+        val path = if (remote.isLocalhost()) {
+            "${System.getenv("PATH")}:${IRemote.DEFAULT_PATH}"
+        } else {
+            IRemote.DEFAULT_PATH
+        }
+
         val result = remote.execIgnoringErrors(listOf(
                 config.remoteVideoRecorder.absolutePath,
                 udid,
                 mjpegStreamUrl.toExternalForm()
-        ))
+        ), mapOf("PATH" to path, "TMPDIR" to remote.tmpDir.absolutePath))
 
         if (result.isSuccess) {
             logger.info(logMarker, "Started video recording ${videoFile.name}")
