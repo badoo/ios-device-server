@@ -35,4 +35,5 @@ interface IDevice {
     fun deleteAppiumServerLog()
     val osLog: ISysLog
     fun listApps(): List<FBSimctlAppInfo>
+    val isAppiumEnabled: Boolean
 }

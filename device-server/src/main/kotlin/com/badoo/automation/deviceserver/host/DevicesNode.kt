@@ -503,6 +503,7 @@ class DevicesNode(
                 setLocation = false,
                 terminateApp = false,
                 remoteNotifications = true,
+                isAppiumEnabled = device.isAppiumEnabled,
                 videoCapture = true
             )
         )

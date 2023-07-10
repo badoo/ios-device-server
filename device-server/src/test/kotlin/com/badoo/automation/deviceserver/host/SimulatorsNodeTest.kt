@@ -122,7 +122,7 @@ class SimulatorsNodeTest {
             URI("http://appium"),
             DeviceInfo("", "", "iOS 16.4.1", "", ""),
             null,
-            ActualCapabilities(true, true, false, true)
+            ActualCapabilities(true, true, false, false, true)
     )
     private val expectedDeviceDTOJson = JsonMapper().toJson(expectedDeviceDTO)
 
@@ -316,7 +316,7 @@ class SimulatorsNodeTest {
                 URI("http://appium"),
                 DeviceInfo("", "", "iOS 16.4.1", "", ""),
                 null,
-                ActualCapabilities(true, true, false, true)
+                ActualCapabilities(true, true, false, false, true)
         )))
     }
 

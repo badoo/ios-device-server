@@ -50,6 +50,8 @@ class Device(
     @Volatile
     private var useAppium: Boolean = true
 
+    override val isAppiumEnabled get() = useAppium
+
     private val calabashProxy = usbProxyFactory.create(
         udid = deviceInfo.udid,
         localPort = userPorts.calabashPort
