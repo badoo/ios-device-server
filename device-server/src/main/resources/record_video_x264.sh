@@ -13,6 +13,7 @@ set -x
 
 nohup \
     nice -n 10 \
+    env PATH="${PATH}" \
         ffmpeg \
             -hide_banner \
             -loglevel info \
