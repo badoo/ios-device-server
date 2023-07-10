@@ -139,10 +139,11 @@ class DeviceSlots(
 
     private fun diff(allowedConnectedDevices: Set<DeviceInfo>): Diff {
         val current = activeSlots.filter { it.device.deviceState != DeviceState.FAILED }.map { it.device.udid }.toSet()
+        val failed = activeSlots.filter { it.device.deviceState == DeviceState.FAILED }.map { it.device.udid }.toSet()
         val new = allowedConnectedDevices.map { it.udid }.toSet()
 
         val added = new - current
-        val removed = current - new
+        val removed = (current - new) + failed
 
         return Diff(added, removed)
     }
