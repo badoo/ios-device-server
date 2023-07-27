@@ -45,7 +45,7 @@ class HostFactory(
         return wdaSimulatorBundles
     }
 
-    override fun getHostFromConfig(config: NodeConfig): ISimulatorsNode {
+    override fun getHostFromConfig(config: NodeConfig): IDeviceNode {
         logger.info("Trying to start node $config.")
 
         val hostName = config.host

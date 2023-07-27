@@ -11,6 +11,7 @@ import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
+import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
@@ -44,7 +45,7 @@ class SimulatorsNode(
         private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, applicationConfiguration.simulatorBackupPath),
         private val portAllocator: PortAllocator = PortAllocator(),
         private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
-) : ISimulatorsNode {
+) : IDeviceNode {
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
     private val simulatorsBootExecutorService: ExecutorService = Executors.newFixedThreadPool(simulatorLimit)
     private val concurrentBoot: ExecutorService = Executors.newFixedThreadPool(concurrentBoots)
@@ -142,7 +143,7 @@ class SimulatorsNode(
 
     private val supportedArchitectures = listOf("x86_64")
 
-    private fun getDeviceFor(ref: DeviceRef): ISimulator {
+    override fun getDeviceFor(ref: DeviceRef): ISimulator {
         return createdSimulators[ref]!! //FIXME: replace with explicit unwrapping
     }
 
@@ -242,26 +243,6 @@ class SimulatorsNode(
 
     override fun syslogDelete(deviceRef: DeviceRef) {
         getDeviceFor(deviceRef).osLog.deleteLogFiles()
-    }
-
-    override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
-        return when (type) {
-            DiagnosticType.SystemLog -> Diagnostic(
-                type = type,
-                content = getDeviceFor(deviceRef).systemLog.content()
-            )
-            DiagnosticType.OsLog -> Diagnostic(
-                type = type,
-                content = getDeviceFor(deviceRef).osLog.content(query.process)
-            )
-        }
-    }
-
-    override fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType) {
-        when (type) {
-            DiagnosticType.SystemLog -> getDeviceFor(deviceRef).systemLog.truncate()
-            DiagnosticType.OsLog -> getDeviceFor(deviceRef).osLog.truncate()
-        }
     }
 
     private fun remoteNotificationsSupported(simulatorOSVersion: Int): Boolean {

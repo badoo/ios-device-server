@@ -6,12 +6,8 @@ import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
 import com.badoo.automation.deviceserver.ios.simulator.data.SharedContainer
-import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
-import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
-import java.util.concurrent.locks.ReentrantLock
 
 interface ISimulator: IDevice {
-    val systemLog: SystemLog
     val media: Media
     val locationManager: LocationManager
 

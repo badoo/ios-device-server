@@ -38,7 +38,7 @@ class DevicesNode(
     private val wdaDeviceBundles: List<WdaDeviceBundle>,
     private val fbsimctlVersion: String,
     private val appInstallerExecutorService: ExecutorService = Executors.newFixedThreadPool(4)
-) : ISimulatorsNode {
+) : IDeviceNode {
     override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -191,13 +191,7 @@ class DevicesNode(
         device.osLog.deleteLogFiles()
     }
 
-    override fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
-        throw(NotImplementedError("Diagnostic is not supported by physical devices"))
-    }
-
-    override fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType) {
-        throw(NotImplementedError("Diagnostic is not supported by physical devices"))
-    }
+    override fun getDeviceFor(deviceRef: DeviceRef): Device = slotByExternalRef(deviceRef).device
 
     override fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
         throw(NotImplementedError("Push files is not supported by physical devices"))

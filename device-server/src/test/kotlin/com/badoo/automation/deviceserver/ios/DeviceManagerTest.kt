@@ -1,24 +1,13 @@
 package com.badoo.automation.deviceserver.ios
 
-import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.NodeConfig
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.deviceDTOStub
-import com.badoo.automation.deviceserver.host.ISimulatorsNode
-import com.badoo.automation.deviceserver.host.management.DeviceManager
+import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.IHostFactory
-import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.whenever
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.equalTo
-import org.hamcrest.Matchers.sameInstance
-import org.junit.Test
 import org.mockito.Mockito
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
-import java.io.File
 import java.net.URL
 
 class DeviceManagerTest {
@@ -38,14 +27,14 @@ class DeviceManagerTest {
             "unreachable" to mockHostWithTotalCapacity(4, false)
     )
     private val hostFactory: IHostFactory = object : IHostFactory {
-        override fun getHostFromConfig(config: NodeConfig): ISimulatorsNode {
+        override fun getHostFromConfig(config: NodeConfig): IDeviceNode {
             val nodeName = config.host
             return hostsMap[nodeName]!!
         }
     }
 
-    private fun mockHostWithTotalCapacity(total: Int, reachable: Boolean): ISimulatorsNode {
-        val m: ISimulatorsNode = Mockito.mock(ISimulatorsNode::class.java, "mockHost$total")
+    private fun mockHostWithTotalCapacity(total: Int, reachable: Boolean): IDeviceNode {
+        val m: IDeviceNode = Mockito.mock(IDeviceNode::class.java, "mockHost$total")
         whenever(m.totalCapacity(desiredCaps)).thenReturn(total)
         whenever(m.isReachable()).thenReturn(reachable)
         return m

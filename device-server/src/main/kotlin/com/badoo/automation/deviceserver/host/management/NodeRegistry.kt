@@ -4,7 +4,7 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.DeviceDTO
 import com.badoo.automation.deviceserver.data.DeviceRef
-import com.badoo.automation.deviceserver.host.ISimulatorsNode
+import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
 import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
@@ -85,7 +85,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
             throw NoNodesRegisteredException("No nodes are registered to create a device")
         }
 
-        val node: ISimulatorsNode = getAlive()
+        val node: IDeviceNode = getAlive()
                 .map { wrapper -> wrapper.node }
                 .shuffled()
                 .maxBy { node -> node.capacityRemaining(desiredCapabilities) }

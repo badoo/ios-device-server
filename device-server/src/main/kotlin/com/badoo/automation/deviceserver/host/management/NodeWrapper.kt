@@ -2,7 +2,7 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.NodeConfig
-import com.badoo.automation.deviceserver.host.ISimulatorsNode
+import com.badoo.automation.deviceserver.host.IDeviceNode
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -30,7 +30,7 @@ class NodeWrapper(
     private val lock = ReentrantLock(true)
     @Volatile private var isStarted = false
     private var healthCheckPeriodicTask: Future<*>? = null
-    val node: ISimulatorsNode by lazy { hostFactory.getHostFromConfig(config) } // workaround for SSH connection issues
+    val node: IDeviceNode by lazy { hostFactory.getHostFromConfig(config) } // workaround for SSH connection issues
 
     var lastError: Exception? = null
     @Volatile var isEnabled: Boolean = true

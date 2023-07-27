@@ -1,8 +1,8 @@
 package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.NodeConfig
-import com.badoo.automation.deviceserver.host.ISimulatorsNode
+import com.badoo.automation.deviceserver.host.IDeviceNode
 
 interface IHostFactory {
-    fun getHostFromConfig(config: NodeConfig): ISimulatorsNode
+    fun getHostFromConfig(config: NodeConfig): IDeviceNode
 }

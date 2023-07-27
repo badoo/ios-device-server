@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.ios
 
 import com.badoo.automation.deviceserver.data.DeviceRef
-import com.badoo.automation.deviceserver.host.ISimulatorsNode
+import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.mockThis
 import org.hamcrest.Matchers.*
@@ -10,8 +10,8 @@ import org.junit.Test
 import java.time.Duration
 
 class SessionTest {
-    private var host1: ISimulatorsNode = mockThis()
-    private var host2: ISimulatorsNode = mockThis()
+    private var host1: IDeviceNode = mockThis()
+    private var host2: IDeviceNode = mockThis()
 
     private var sillySeconds:  Long = 42L
     private val session = ActiveDevices(currentTimeSeconds = { sillySeconds++ })
