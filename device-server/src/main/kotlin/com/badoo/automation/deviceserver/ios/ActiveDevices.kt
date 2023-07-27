@@ -3,7 +3,7 @@ package com.badoo.automation.deviceserver.ios
 import com.badoo.automation.deviceserver.data.DeviceDTO
 import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.data.NodeRef
-import com.badoo.automation.deviceserver.host.ISimulatorsNode
+import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -13,9 +13,9 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 data class SessionEntry(
-        val ref: DeviceRef,
-        val node: ISimulatorsNode,
-        val userId: String?
+    val ref: DeviceRef,
+    val node: IDeviceNode,
+    val userId: String?
 )
 
 class ActiveDevices(
@@ -51,17 +51,17 @@ class ActiveDevices(
         return list
     }
 
-    fun registerDevice(ref: DeviceRef, node: ISimulatorsNode, userId: String?) {
+    fun registerDevice(ref: DeviceRef, node: IDeviceNode, userId: String?) {
         devices[ref] = SessionEntry(ref, node, userId)
     }
 
-    fun unregisterNodeDevices(node: ISimulatorsNode) {
+    fun unregisterNodeDevices(node: IDeviceNode) {
         devices.entries
                 .filter { it.value.node == node }
                 .forEach { unregisterDeleteDevice(it.key) }
     }
 
-    private fun tryGetNodeFor(ref: DeviceRef): ISimulatorsNode? {
+    private fun tryGetNodeFor(ref: DeviceRef): IDeviceNode? {
         val sessionEntry = devices[ref]
         if (sessionEntry != null) {
             return sessionEntry.node
@@ -70,7 +70,7 @@ class ActiveDevices(
         }
     }
 
-    fun getNodeFor(ref: DeviceRef): ISimulatorsNode {
+    fun getNodeFor(ref: DeviceRef): IDeviceNode {
         val node = tryGetNodeFor(ref)
         if (node == null) {
             throw DeviceNotFoundException("Device [$ref] not found in [$sessionId] activeDevices")

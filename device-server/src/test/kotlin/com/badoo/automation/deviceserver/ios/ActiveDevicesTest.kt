@@ -1,20 +1,19 @@
 package com.badoo.automation.deviceserver.ios
 
 import com.badoo.automation.deviceserver.deviceDTOStub
-import com.badoo.automation.deviceserver.host.ISimulatorsNode
+import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.Duration
 
 class ActiveDevicesTest {
 
     @Test
     fun deviceListShouldIgnoreDisconnectedDevices() {
         val activeDevices = ActiveDevices()
-        val node = mockThis<ISimulatorsNode>()
+        val node = mockThis<IDeviceNode>()
 
         whenever(node.getDeviceDTO("ref1")).thenReturn(deviceDTOStub("ref1"))
         whenever(node.getDeviceDTO("ref2")).thenThrow(DeviceNotFoundException(""))

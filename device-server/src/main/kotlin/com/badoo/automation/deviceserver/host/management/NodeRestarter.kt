@@ -1,6 +1,6 @@
 package com.badoo.automation.deviceserver.host.management
 
-import com.badoo.automation.deviceserver.host.ISimulatorsNode
+import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.ios.SessionEntry
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -93,11 +93,11 @@ class NodeRestarter(
         logger.info("Successfully restarted simulator host ${nodeWrapper.node.publicHostName}. Took time ${elapsedSeconds} seconds")
     }
 
-    private fun activeSessions(node: ISimulatorsNode): Collection<SessionEntry> {
+    private fun activeSessions(node: IDeviceNode): Collection<SessionEntry> {
         return nodeRegistry.activeDevices.activeDevicesByNode(node.publicHostName).values
     }
 
-    private fun clearActiveSessions(node: ISimulatorsNode) {
+    private fun clearActiveSessions(node: IDeviceNode) {
         val sessions = activeSessions(node).map { it.ref }
         return nodeRegistry.activeDevices.releaseDevices(sessions.toList(), "Reboot of all simulator hosts")
     }

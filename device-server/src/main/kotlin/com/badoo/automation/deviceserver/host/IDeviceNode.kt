@@ -2,13 +2,15 @@ package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
+import com.badoo.automation.deviceserver.ios.IDevice
+import com.badoo.automation.deviceserver.ios.device.Device
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import java.io.File
 import java.net.URL
 import java.nio.file.Path
 import java.util.regex.Pattern
 
-interface ISimulatorsNode {
+interface IDeviceNode {
     fun supports(desiredCaps: DesiredCapabilities): Boolean
 
     fun resetAsync(deviceRef: DeviceRef)
@@ -48,8 +50,22 @@ interface ISimulatorsNode {
     fun listMedia(deviceRef: DeviceRef): List<String>
     fun listPhotoData(deviceRef: DeviceRef): List<String>
 
-    fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic
-    fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType)
+    fun getDeviceFor(deviceRef: DeviceRef): IDevice
+
+    fun getDiagnostic(deviceRef: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
+        return when (type) {
+            DiagnosticType.OsLog -> Diagnostic(
+                type = type,
+                content = getDeviceFor(deviceRef).osLog.content(query.process)
+            )
+        }
+    }
+
+    fun resetDiagnostic(deviceRef: DeviceRef, type: DiagnosticType) {
+        when (type) {
+            DiagnosticType.OsLog -> getDeviceFor(deviceRef).osLog.truncate()
+        }
+    }
 
     val remoteAddress: String
     fun isReachable(): Boolean

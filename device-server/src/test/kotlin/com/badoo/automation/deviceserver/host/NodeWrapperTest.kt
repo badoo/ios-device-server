@@ -17,7 +17,7 @@ import kotlin.test.assertTrue
 class NodeWrapperTest {
     private val registry: NodeRegistry = mockThis()
     private val hostFactory: IHostFactory = mockThis()
-    private val nodeMock: ISimulatorsNode = mockThis()
+    private val nodeMock: IDeviceNode = mockThis()
     private val config = NodeConfig("user", "localhost")
 
     @Test

@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 import java.lang.IllegalArgumentException
 
 enum class DiagnosticType(@JsonValue val value: String) {
-    OsLog("os_log"),
-    SystemLog("system_log");
+    OsLog("os_log");
 
     companion object {
         fun fromString(type: String): DiagnosticType {

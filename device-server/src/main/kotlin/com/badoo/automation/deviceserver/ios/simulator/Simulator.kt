@@ -13,7 +13,6 @@ import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
 import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupError
 import com.badoo.automation.deviceserver.ios.simulator.data.*
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
-import com.badoo.automation.deviceserver.ios.simulator.diagnostic.SystemLog
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.*
@@ -92,7 +91,6 @@ class Simulator(
     }
     override val videoRecorder: VideoRecorder = createVideoRecorder()
 
-    override val systemLog = SystemLog(remote, udid)
     override val osLog = OsLog(remote, udid)
 
     //region instance state variables

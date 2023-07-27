@@ -27,8 +27,8 @@ class NodeRegistryTest {
     private val desiredCapabilities = DesiredCapabilities("udid", "model", "os", headless)
     private val nodeWrapper1: NodeWrapper = mockThis("wrapper1")
     private val nodeWrapper2: NodeWrapper = mockThis("wrapper2")
-    private val wrappedNode1: ISimulatorsNode = mockThis("node1")
-    private val wrappedNode2: ISimulatorsNode = mockThis("node2")
+    private val wrappedNode1: IDeviceNode = mockThis("node1")
+    private val wrappedNode2: IDeviceNode = mockThis("node2")
     private val capacityNotBusy = 0.8F
     private val capacityBusy = 0.3F
 
@@ -125,4 +125,3 @@ class NodeRegistryTest {
         assertEquals(mapOf("total" to 0), nodeRegistry.capacitiesTotal(desiredCapabilities))
     }
 }
-
