@@ -46,25 +46,13 @@ class RealDeviceSysLog(
     }
 
     override fun content(process: String?): String {
-        val cmd = mutableListOf("xcrun", "simctl", "spawn", udid, "log", "show", "--style", "syslog")
-
-        if (timestamp != null) {
-            cmd.addAll(listOf("--start", "@$timestamp"))
-        }
-
-        if (process != null) {
-            cmd.addAll(listOf("--predicate", remote.escape("process==\"$process\"")))
-        }
-
-        val result = remote.execIgnoringErrors(cmd)
-
-        if (!result.isSuccess) {
-            val message = "Could not read OS Log. Result stdErr: ${result.stdErr}"
-            logger.error(logMarker, message)
-            throw RuntimeException(message)
-        }
-
-        return result.stdOut
+        return """
+            Only live syslog recording is supported by real devices. Please use: 
+             - POST   {deviceRef}/syslog/start - to start live recording of logs
+             - POST   {deviceRef}/syslog/stop  - to stop live recording of logs
+             - GET    {deviceRef}/syslog       - to get recorded logs
+             - DELETE {deviceRef}/syslog       - to reset and delete recorded logs
+        """.trimIndent()
     }
 
     override fun deleteLogFiles() {
