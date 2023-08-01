@@ -47,7 +47,7 @@ class AppiumServer(
         }
 
     fun deleteAppiumServerLog() {
-        remote.shell("rm -f ${remoteAppiumServerLog.absolutePath}")
+        remote.shell(": > ${remoteAppiumServerLog.absolutePath}")
         localAppiumServerLogCopy.delete()
     }
 
