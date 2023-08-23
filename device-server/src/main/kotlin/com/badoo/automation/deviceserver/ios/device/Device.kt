@@ -335,6 +335,7 @@ class Device(
         if (useAppium != desiredCaps.useAppium) {
             useAppium = desiredCaps.useAppium
             prepareRequired = true
+            deviceState = DeviceState.CREATING
         }
 
         if (status().state == DeviceState.FAILED.value) {
