@@ -107,7 +107,7 @@ class Simulator(
     private val instrumentationAgent = XCTestInstrumentationAgent(
             remote,
             listOf(wdaSimulatorBundles.deviceAgentBundle, wdaSimulatorBundles.webDriverAgentBundle),
-            deviceInfo.udid,
+            deviceInfo,
             wdaEndpoint,
             mjpegServerPort,
             deviceRef,

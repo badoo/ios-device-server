@@ -2,8 +2,8 @@ package com.badoo.automation.deviceserver.ios.proc
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.ChildProcess
+import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.data.DeviceRef
-import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.util.*
@@ -16,7 +16,7 @@ import java.time.Duration
 class XCTestInstrumentationAgent(
     private val remote: IRemote,
     private val wdaBundles: List<WdaBundle>,
-    private val udid: UDID,
+    private val deviceInfo: DeviceInfo,
     private val wdaEndpoint: URI,
     private val mjpegServerPort: Int,
     private val deviceRef: DeviceRef,
@@ -29,7 +29,8 @@ class XCTestInstrumentationAgent(
         out_reader: ((line: String) -> Unit)?,
         err_reader: ((line: String) -> Unit)?
     ) -> ChildProcess = ChildProcess.Companion::fromCommand
-) : LongRunningProc(udid, remote.hostName) {
+) : LongRunningProc(deviceInfo.udid, remote.hostName) {
+    private val udid = deviceInfo.udid
     private val derivedDataDir =
         remote.shell("/usr/bin/mktemp -d -t derivedDataDir_$udid", returnOnFailure = false).stdOut.trim()
     private val xctestrunDir =
@@ -82,6 +83,9 @@ class XCTestInstrumentationAgent(
             .replace("__TEST_IDENTIFIER__", instrumentationBundle.testIdentifier)
             .replace("__TESTBUNDLE_DESTINATION_RELATIVE_PATH__", xctestRunnerRelativePath)
 
+            // real device Xcode 15 and iOS 17
+            .replace("__DEVICE_AGENT_FULL_PATH_ON_MAC__", instrumentationBundle.bundlePath(remote.isLocalhost()).absolutePath)
+
 
         if (remote.isLocalhost()) {
             xctestrunFile.writeText(xctestRunContents)
@@ -95,7 +99,11 @@ class XCTestInstrumentationAgent(
 
     private val xctestRunTemplate: String by lazy {
         if (isRealDevice) {
-            xctestrunRealDeviceTemplateXcode13
+            if (deviceInfo.osMajorVersion() >= 17) {
+                xctestrunRealDeviceTemplateXcode15
+            } else {
+                xctestrunRealDeviceTemplateXcode13
+            }
         } else {
             xctestrunSimulatorTemplate
         }
@@ -234,5 +242,8 @@ class XCTestInstrumentationAgent(
         val xctestrunRealDeviceTemplateXcode13: String = XCTestInstrumentationAgent::class.java.classLoader
             .getResource("WebDriverAgent-RealDevice-Xcode13.template.xctestrun")?.readText()
             ?: throw RuntimeException("Failed to read file WebDriverAgent-RealDevice-Xcode13.template.xctestrun from resources")
+        val xctestrunRealDeviceTemplateXcode15: String = XCTestInstrumentationAgent::class.java.classLoader
+            .getResource("WebDriverAgent-RealDevice-Xcode15.template.xctestrun")?.readText()
+            ?: throw RuntimeException("Failed to read file WebDriverAgent-RealDevice-Xcode15.template.xctestrun from resources")
     }
 }
