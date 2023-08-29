@@ -97,7 +97,7 @@ class Device(
     private val instrumentationAgent = XCTestInstrumentationAgent(
         remote = remote,
         wdaBundles = wdaDeviceBundles,
-        udid = deviceInfo.udid,
+        deviceInfo = deviceInfo,
         wdaEndpoint = wdaEndpoint,
         mjpegServerPort = mjpegServerPort,
         deviceRef = ref,
