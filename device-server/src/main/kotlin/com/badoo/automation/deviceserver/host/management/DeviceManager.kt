@@ -456,8 +456,6 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).resetDiagnostic(ref, type)
     }
 
-    private val applicationsCache: ConcurrentHashMap<String, ApplicationBundle> = ConcurrentHashMap()
-
     fun installApplication(ref: String, dto: AppBundleDto) {
         nodeRegistry.activeDevices.getNodeFor(ref).installApplication(ref, dto)
     }
