@@ -286,7 +286,7 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
-    fun appInstallationStatus(ref: String): Map<String, Boolean> {
+    fun appInstallationStatus(ref: String): Map<String, Any> {
         return deviceManager.appInstallationStatus(ref)
     }
 

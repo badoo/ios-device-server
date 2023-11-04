@@ -76,7 +76,7 @@ class SimulatorsNode(
         device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath)
     }
 
-    override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Boolean> {
+    override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Any> {
         return getDeviceFor(deviceRef).appInstallationStatus()
     }
 

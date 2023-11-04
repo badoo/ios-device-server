@@ -4,9 +4,11 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.AppInstaller
+import com.badoo.automation.deviceserver.util.InstallResult
 import java.io.File
 import java.net.URI
 import java.net.URL
+import java.util.concurrent.Future
 
 interface IDevice {
     fun prepareAsync()
@@ -29,7 +31,29 @@ interface IDevice {
     fun endpointFor(port: Int): URL
     fun release(reason: String)
     fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File)
-    fun appInstallationStatus(): Map<String, Boolean>
+    fun getInstallTask(): Future<InstallResult>?
+
+    fun appInstallationStatus(): Map<String, Any> {
+        val task = getInstallTask()
+            ?: return mapOf(
+                "task_exists" to false,
+                "task_complete" to false,
+                "success" to false
+            )
+
+        val status = mutableMapOf<String, Any>(
+            "task_exists" to true,
+            "task_complete" to task.isDone,
+            "success" to (task.isDone && task.get().isSuccess)
+        )
+
+        if (task.isDone && !task.get().isSuccess) {
+            status["error_message"] = "${task.get().errorMessage}"
+        }
+
+        return status
+    }
+
     val instrumentationAgentLog: File
     val appiumServerLog: File
     fun deleteAppiumServerLog()
