@@ -90,36 +90,9 @@ class DevicesNode(
             appBinaryPath = File("${appBinaryPath.parentFile.absolutePath}.ipa")
         }
 
-        val device = slotByExternalRef(deviceRef).device
-        val udid = device.udid
-        val installTask = appInstallerExecutorService.submit(Callable<Boolean> {
-            return@Callable performInstall(logMarker, udid, appBinaryPath, appBundleDto.appUrl)
-        })
+        val device: Device = slotByExternalRef(deviceRef).device
 
-        installTask.get()
-    }
-
-    private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, appUrl: String): Boolean {
-        logger.debug(logMarker, "Installing application $appUrl on device $udid")
-
-        val nanos = measureNanoTime {
-            logger.debug(logMarker, "Will install application $appUrl on device $udid using fbsimctl install ${appBinaryPath.absolutePath}")
-            try {
-                remote.fbsimctl.installApp(udid, appBinaryPath)
-            } catch (e: RuntimeException) {
-                logger.error(logMarker, "Error happened while installing the app $appUrl on $udid", e)
-                return false
-            }
-        }
-
-        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
-        val measurement = mutableMapOf(
-            "action_name" to "install_application",
-            "duration" to seconds
-        )
-        measurement.putAll(logMarkerDetails(udid))
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed application $appUrl on device $udid. Took $seconds seconds")
-        return true
+        device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath)
     }
 
     private val commonLogMarkerDetails = mapOf(
@@ -577,15 +550,8 @@ class DevicesNode(
         return true
     }
 
-    override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Boolean> {
-//        return slotByExternalRef(deviceRef).device.appInstallationStatus()
-
-        val status = mapOf<String, Boolean>(
-            "task_exists" to true,
-            "task_complete" to true,
-            "success" to true
-        )
-        return status
+    override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Any> {
+        return slotByExternalRef(deviceRef).device.appInstallationStatus()
     }
     override fun hashCode(): Int {
         return publicHostName.hashCode()

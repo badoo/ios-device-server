@@ -3,7 +3,6 @@ package com.badoo.automation.deviceserver.host
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.ios.IDevice
-import com.badoo.automation.deviceserver.ios.device.Device
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import java.io.File
 import java.net.URL
@@ -86,7 +85,7 @@ interface IDeviceNode {
     fun pushFile(ref: DeviceRef, data: ByteArray, path: Path)
     fun deleteFile(ref: DeviceRef, path: Path)
     fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto)
-    fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Boolean>
+    fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Any>
     fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO)
     val publicHostName: String
     fun deployApplication(appBundle: ApplicationBundle)

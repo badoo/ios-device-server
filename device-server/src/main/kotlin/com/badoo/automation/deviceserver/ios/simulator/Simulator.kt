@@ -149,7 +149,9 @@ class Simulator(
     @Volatile
     private var bootTask: Future<*>? = null
     @Volatile
-    private var installTask: Future<Boolean>? = null
+    private var installTask: Future<InstallResult>? = null
+
+    override fun getInstallTask(): Future<InstallResult>? = installTask
 
     override fun installApplication(
         appInstaller: AppInstaller,
@@ -165,18 +167,8 @@ class Simulator(
                 }
             }
 
-            installTask = appInstaller.installApplication(udid, appBundleId, appBinaryPath)
+            installTask = appInstaller.installApplication(udid, appBundleId, appBinaryPath, false)
         }
-    }
-
-    override fun appInstallationStatus(): Map<String, Boolean> {
-        val task = installTask
-        val status = mapOf<String, Boolean>(
-            "task_exists" to (task != null),
-            "task_complete" to (task != null && task.isDone),
-            "success" to (task != null && task.isDone && task.get())
-        )
-        return status
     }
 
     //region prepareAsync

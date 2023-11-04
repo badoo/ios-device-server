@@ -136,17 +136,6 @@ class DeviceManager(
             }
         }
 
-        appConfig.appBundleCachePath.mkdirs()
-        appConfig.appBundleCachePath.listFiles()!!.forEach {
-            if (it.isOlderThan(maxCreationTime)) {
-                try {
-                    it.deleteRecursively()
-                } catch (e: RuntimeException) {
-                    logger.error("Failed to cleanup file ${it.absolutePath}. Error: ${e.message}", e)
-                }
-            }
-        }
-
         logger.debug("Cleanup complete.")
     }
 
@@ -460,7 +449,7 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).installApplication(ref, dto)
     }
 
-    fun appInstallationStatus(ref: String): Map<String, Boolean> {
+    fun appInstallationStatus(ref: String): Map<String, Any> {
         return nodeRegistry.activeDevices.getNodeFor(ref).appInstallationStatus(ref)
     }
 
@@ -505,8 +494,10 @@ class DeviceManager(
             logger.debug(marker, "Downloading app bundle to cache ${appBundle.appUrl}. Url: ${appBundle.appUrl}")
             try {
                 logger.info(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath}")
-                appConfig.appBundleCachePath.deleteRecursively()
+
                 appConfig.appBundleCachePath.mkdirs()
+                appConfig.appBundleCachePath.listFiles().forEach { it.deleteRecursively() }
+
                 logger.info(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} is done")
             } catch (t: Throwable) {
                 logger.error(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} failed! Error: ${t.message}", t)

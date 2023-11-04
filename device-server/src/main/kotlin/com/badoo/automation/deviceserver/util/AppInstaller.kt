@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.util
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
+import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlError
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
@@ -21,20 +22,23 @@ class AppInstaller(
         LogMarkers.HOSTNAME to remote.hostName
     )
 
-    fun installApplication(udid: UDID, appUrl: String, appBinaryPath: File): Future<Boolean> {
+    fun installApplication(udid: UDID, appUrl: String, appBinaryPath: File, isRealDevice: Boolean): Future<InstallResult> {
         val logMarker = logMarker(udid)
         logger.info(logMarker, "Installing app $appUrl on device $udid")
 
-        val installTask = installExecutor.submit(Callable {
+        return installExecutor.submit(Callable {
             try {
-                return@Callable performInstall(logMarker, udid, appBinaryPath, appUrl)
+                return@Callable if (isRealDevice) {
+                    performInstallRealDevice(logMarker, udid, appBinaryPath, appUrl)
+                } else {
+                    performInstallSimulator(logMarker, udid, appBinaryPath, appUrl)
+                }
             } catch (e: RuntimeException) {
-                logger.error(logMarker, "Error happened while installing the app $appUrl on $udid", e)
-                return@Callable false
+                val errorMessage = "Error happened while installing the app $appUrl on $udid. ${e.message}"
+                logger.error(logMarker, errorMessage, e)
+                return@Callable InstallResult(false, errorMessage)
             }
         })
-
-        return installTask
     }
 
     fun uninstallApplication(udid: UDID, bundleId: String) {
@@ -71,7 +75,7 @@ class AppInstaller(
         }
     }
 
-    private fun performInstall(logMarker: Marker, udid: UDID, appBinaryPath: File, appUrl: String): Boolean {
+    private fun performInstallSimulator(logMarker: Marker, udid: UDID, appBinaryPath: File, appUrl: String): InstallResult {
         logger.debug(logMarker, "Installing application $appUrl on simulator $udid")
 
         val nanos = measureNanoTime {
@@ -82,7 +86,7 @@ class AppInstaller(
             if (!result.isSuccess) {
                 val errorMessage = "Failed to install application $appUrl to simulator $udid. Result: $result"
                 logger.error(logMarker, errorMessage)
-                return false
+                return InstallResult(false, errorMessage)
             }
         }
 
@@ -93,7 +97,30 @@ class AppInstaller(
         )
         measurement.putAll(logMarkerDetails(udid))
         logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed application $appUrl on simulator $udid. Took $seconds seconds")
-        return true
+        return InstallResult(true, null)
+    }
+
+    private fun performInstallRealDevice(logMarker: Marker, udid: UDID, appBinaryPath: File, appUrl: String): InstallResult {
+        logger.debug(logMarker, "Installing application $appUrl on device $udid")
+
+        val nanos = measureNanoTime {
+            logger.debug(logMarker, "Will install application $appUrl on device $udid using fbsimctl install ${appBinaryPath.absolutePath}")
+            try {
+                remote.fbsimctl.installApp(udid, appBinaryPath)
+            } catch (e: FBSimctlError) {
+                logger.error(logMarker, "Error happened while installing the app $appUrl on $udid", e)
+                return InstallResult(false, e.message)
+            }
+        }
+
+        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+        val measurement = mutableMapOf(
+            "action_name" to "install_application",
+            "duration" to seconds
+        )
+        measurement.putAll(logMarkerDetails(udid))
+        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed application $appUrl on device $udid. Took $seconds seconds")
+        return InstallResult(true, null)
     }
 
     private fun logMarker(udid: UDID) = MapEntriesAppendingMarker(logMarkerDetails(udid))
