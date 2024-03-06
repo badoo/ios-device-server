@@ -33,7 +33,7 @@ interface ISimulatorControl {
     fun diagnose(udid: UDID): FBSimctlDeviceDiagnosticInfo
     fun shutdown(udid: UDID): CommandResult
     fun shutdownAllBooted(): String
-    fun delete(udid: UDID): String
+    fun delete(udid: UDID): CommandResult
     fun terminateApp(udid: UDID, bundleId: String, raiseOnError: Boolean = false): String
     fun uninstallApp(udid: UDID, bundleId: String, raiseOnError: Boolean = true)
     val fbsimctlBinary: String

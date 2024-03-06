@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
+import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
@@ -614,6 +615,16 @@ class Simulator(
         return listDevices().lines().find { it.contains(udid) && it.contains("(Shutdown)") } != null
     }
 
+    private fun deleteSimulator() {
+        logger.debug(logMarker, "Will delete simulator $udid")
+        val result: CommandResult = remote.fbsimctl.delete(udid)
+        if (result.isSuccess) {
+            logger.debug(logMarker, "Did delete simulator $udid")
+        } else {
+            logger.error(logMarker, "Error occurred while deleting simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
+        }
+    }
+
     private fun shutdown() {
         logger.info(logMarker, "Shutting down ${this@Simulator}")
         stopPeriodicHealthCheck()
@@ -627,7 +638,7 @@ class Simulator(
         val result = remote.fbsimctl.shutdown(udid)
 
         if (!result.isSuccess && !result.stdErr.contains("current state: Shutdown") && !result.stdOut.contains("current state: Shutdown")) {
-            logger.debug(logMarker, "Error occured while shutting down simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
+            logger.debug(logMarker, "Error occurred while shutting down simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
         }
 
         pollFor(
@@ -1053,29 +1064,38 @@ class Simulator(
         logger.info(logMarker, "Released device $this")
     }
 
-    private fun deleteSimulatorKeepingMetadata() {
-        val simulatorDataDirectoryPath = simulatorDataDirectory.absolutePath
+    override fun delete(reason: String) {
+        logger.info(logMarker, "Deleting device $this because $reason")
+        ignoringErrors({ backup.delete() })
+        ignoringErrors({ shutdown() })
+        ignoringErrors({ deleteSimulator() })
+        ignoringErrors({ disposeResources(keepMetadata = false) })
+        logger.info(logMarker, "Deleted device $this because $reason")
+    }
+
+    private fun deleteSimulatorFolder(keepMetadata: Boolean) {
+        val directoryPath = if (keepMetadata) simulatorDataDirectory.absolutePath else simulatorDirectory.absolutePath
 
         (1..3).any {
-            val chmodResult = remote.execIgnoringErrors(listOf("/bin/chmod", "-RP", "755", simulatorDataDirectoryPath), timeOutSeconds = 120L)
+            val chmodResult = remote.execIgnoringErrors(listOf("/bin/chmod", "-RP", "755", directoryPath), timeOutSeconds = 120L)
 
             if (!chmodResult.isSuccess) {
-                logger.error(logMarker, "Attempt number $it: Failed to chmod at path: [$simulatorDataDirectoryPath]. Result: $chmodResult")
+                logger.error(logMarker, "Attempt number $it: Failed to chmod at path: [$directoryPath]. Result: $chmodResult")
             }
 
-            val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", simulatorDataDirectoryPath), timeOutSeconds = 120L)
+            val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", directoryPath), timeOutSeconds = 120L)
 
             if (!deleteResult.isSuccess) {
-                logger.error(logMarker, "Attempt number $it: Failed to delete at path: [$simulatorDataDirectoryPath]. Result: $deleteResult")
+                logger.error(logMarker, "Attempt number $it: Failed to delete at path: [$directoryPath]. Result: $deleteResult")
             }
 
             deleteResult.isSuccess
         }
     }
 
-    private fun disposeResources() {
+    private fun disposeResources(keepMetadata: Boolean = true) {
         ignoringErrors({ videoRecorder.dispose() })
-        deleteSimulatorKeepingMetadata()
+        deleteSimulatorFolder(keepMetadata)
     }
 
     private fun ignoringErrors(action: () -> Unit?) {

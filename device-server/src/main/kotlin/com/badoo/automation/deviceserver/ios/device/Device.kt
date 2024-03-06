@@ -213,6 +213,10 @@ class Device(
         disposeResources()
     }
 
+    override fun delete(reason: String) {
+        release(reason)
+    }
+
     private val deviceLock = ReentrantLock()
 
     @Volatile

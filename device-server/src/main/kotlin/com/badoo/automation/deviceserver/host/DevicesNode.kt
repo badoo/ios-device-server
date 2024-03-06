@@ -266,6 +266,10 @@ class DevicesNode(
         }
     }
 
+    override fun deleteDevice(deviceRef: DeviceRef, reason: String): Boolean {
+        return deleteRelease(deviceRef, reason)
+    }
+
     override fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO {
         val device = slotByExternalRef(deviceRef).device
         return deviceToDto(device)

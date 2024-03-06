@@ -110,7 +110,9 @@ class FBSimctl(
 
     override fun shutdownAllBooted() = shellCommand.exec("/usr/bin/xcrun simctl shutdown all".split(" "), timeOut = Duration.ofMinutes(3), returnFailure = true).stdOut
 
-    override fun delete(udid: UDID) = fbsimctl("delete", udid)
+    override fun delete(udid: UDID): CommandResult {
+        return shellCommand.exec("/usr/bin/xcrun simctl delete $udid".split(" "), timeOut = SIMULATOR_SHUTDOWN_TIMEOUT, returnFailure = true)
+    }
 
     override fun terminateApp(udid: UDID, bundleId: String, raiseOnError: Boolean)
             = fbsimctl(listOf("terminate", bundleId), udid, raiseOnError = raiseOnError)

@@ -96,6 +96,13 @@ class ActiveDevices(
         unregisterDeleteDevice(session.ref)
     }
 
+    fun deleteDevice(ref: DeviceRef, reason: String) {
+        logger.debug("Deleting a device due to reason: ${reason}")
+        val session = sessionByRef(ref)
+        session.node.deleteDevice(session.ref, reason)
+        unregisterDeleteDevice(session.ref)
+    }
+
     fun releaseDevices(entries: List<DeviceRef>, reason: String) {
         logger.debug("Releasing active devices: ${entries.joinToString(", ")}")
         if (entries == null || entries.isEmpty()) {
