@@ -13,6 +13,8 @@ import java.time.Duration
 
 class XCRunSimctl(
     private val shellCommand: IShellCommand,
+    private val isRemoteHost: Boolean,
+    private val hostName: String,
     override val fbsimctlBinary: String = "Unsupported here"
 ) : ISimulatorControl {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -111,6 +113,8 @@ class XCRunSimctl(
         }
 
         val udid = result.stdOut.trim() // remove last new_line
+        val host = if (isRemoteHost)  hostName else "localhost"
+        logger.info("Created iOS Simulator ${udid} on host ${host} ")
 
         return FBSimctlDevice(
             arch = "x86_64",
@@ -134,7 +138,7 @@ class XCRunSimctl(
         TODO("Not yet implemented")
     }
 
-    override fun delete(udid: UDID): String {
+    override fun delete(udid: UDID): CommandResult {
         TODO("Not yet implemented")
     }
 

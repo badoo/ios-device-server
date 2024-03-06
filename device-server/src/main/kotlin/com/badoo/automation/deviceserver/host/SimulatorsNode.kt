@@ -444,12 +444,25 @@ class SimulatorsNode(
         return true
     }
 
+    override fun deleteDevice(deviceRef: DeviceRef, reason: String): Boolean {
+        val iSimulator = createdSimulators[deviceRef] ?: return false
+        cancelRunningSimulatorTask(deviceRef, "deleteRelease")
+        iSimulator.delete("deleteForcefully $reason $deviceRef")
+        logger.info(logMarker, "Deleted Simulator $deviceRef successfully")
+        createdSimulators.remove(deviceRef)
+        val entries = allocatedPorts[deviceRef] ?: return true
+        portAllocator.deallocateDAP(entries)
+        return true
+    }
+
     private fun cancelRunningSimulatorTask(deviceRef: DeviceRef, reason: String) {
-        prepareTasks[deviceRef]?.let { oldPrepareTask ->
-            if (!oldPrepareTask.isDone) {
+        val task = prepareTasks[deviceRef]
+        if (task != null) {
+            if (!task.isDone) {
                 logger.error(logMarker, "Cancelling async task for Simulator $deviceRef while performing $reason")
-                oldPrepareTask.cancel(true)
+                task.cancel(true)
             }
+            prepareTasks.remove(deviceRef)
         }
     }
 

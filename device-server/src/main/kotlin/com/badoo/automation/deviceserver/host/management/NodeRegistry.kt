@@ -120,4 +120,13 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
             return
         }
     }
+
+    fun deleteDevice(ref: DeviceRef, reason: String) {
+        try {
+            activeDevices.deleteDevice(ref, reason)
+        } catch (e: DeviceNotFoundException) {
+            logger.warn("Skipping $ref delete because no node knows about it")
+            return
+        }
+    }
 }

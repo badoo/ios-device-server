@@ -71,6 +71,7 @@ interface IDeviceNode {
     fun prepareNode()
     fun list(): List<DeviceDTO>
     fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean
+    fun deleteDevice(deviceRef: DeviceRef, reason: String): Boolean
     fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO
     fun totalCapacity(desiredCaps: DesiredCapabilities): Int
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
