@@ -697,8 +697,6 @@ class Simulator(
             "com.apple.corespeechd",
             "com.apple.corespotlightservice",
             "com.apple.dataaccess.dataaccessd",
-            "com.apple.diagnosticd",
-            "com.apple.diagnosticextensionsd",
             "com.apple.donotdisturbd",
             "com.apple.email.maild",
             "com.apple.familycircled",
