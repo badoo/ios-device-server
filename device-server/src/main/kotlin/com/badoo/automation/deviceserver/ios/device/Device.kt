@@ -48,7 +48,7 @@ class Device(
     private val useFbsimctlProc = ApplicationConfiguration().useFbsimctlProc
 
     @Volatile
-    private var useAppium: Boolean = true
+    private var useAppium: Boolean = false
 
     override val isAppiumEnabled get() = useAppium
 
