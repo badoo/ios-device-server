@@ -149,7 +149,6 @@ class SimulatorHostChecker(
                 "/var/folders/*/*/*/*-*-*/*.app",
                 "/var/folders/*/*/*/fbsimctl-*",
                 "/var/folders/*/*/*/videoRecording_*",
-                "/var/folders/*/*/*/videoRecording_*",
                 "/var/folders/*/*/*/derivedDataDir_*",
                 "/var/folders/*/*/*/xctestRunDir_*",
                 "/var/folders/*/*/*/device_agent_log_*",

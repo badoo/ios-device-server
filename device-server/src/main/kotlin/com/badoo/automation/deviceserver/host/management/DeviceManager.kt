@@ -290,6 +290,10 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingGet(ref)
     }
 
+    fun getVideoLog(ref: DeviceRef): String {
+        return nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingLogGet(ref)
+    }
+
     fun deleteVideo(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingDelete(ref)
     }

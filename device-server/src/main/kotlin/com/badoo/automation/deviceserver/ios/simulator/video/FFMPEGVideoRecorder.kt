@@ -10,6 +10,7 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.FileNotFoundException
 import java.net.URL
 import java.time.Duration
 
@@ -28,41 +29,58 @@ class FFMPEGVideoRecorder(
             LogMarkers.DEVICE_REF to ref
         )
     )
-    private val videoFile = File(config.tempFolder, "videoRecording_${udid}.mp4")
-    private val videoLogFile = File(config.tempFolder, "videoRecording_${udid}.mp4.log")
+    private val videoFileName = "videoRecording_${udid}.mp4"
+
+    private val videoFile = File(config.tempFolder, videoFileName)
+    private val videoLogFile = File(config.tempFolder, "${videoFileName}.log")
+    private val videoPidFile = File(config.tempFolder, "${videoFileName}.pid")
+
+    private val remoteVideoPath = File(remote.tmpDir, videoFileName).absolutePath
+    private val remoteVideoLogPath = File(remote.tmpDir, "${videoFileName}.log").absolutePath
+    private val remoteVideoPidPath = File(remote.tmpDir, "${videoFileName}.pid").absolutePath
+
     private val mjpegStreamUrl = URL("http://${remote.publicHostName}:${mjpegServerPort}")
 
     override fun toString(): String = "${javaClass.simpleName} for $ref"
 
     override fun delete() {
-        if (remote.isLocalhost()) {
-            videoFile.delete()
-            videoLogFile.delete()
-        } else {
-            remote.shell("rm -vf ${'$'}{TMPDIR}${videoFile.name}")
-            remote.shell("rm -vf ${'$'}{TMPDIR}${videoLogFile.name}")
+        if (!remote.isLocalhost()) {
+            val remoteVideoPaths = listOf(
+                remoteVideoPath,
+                remoteVideoLogPath,
+                remoteVideoPidPath
+            ).joinToString(" ")
+            remote.shell("rm -vf $remoteVideoPaths")
+        }
+
+        listOf(
+            videoFile,
+            videoLogFile,
+            videoPidFile
+        ).forEach {
+            if (it.exists()) {
+                it.delete()
+            }
         }
     }
 
     override fun start() {
         logger.debug(logMarker, "Starting video recording - ${videoFile.name}")
-
-        val path = if (remote.isLocalhost()) {
-            "${System.getenv("PATH")}:${IRemote.DEFAULT_PATH}"
-        } else {
-            IRemote.DEFAULT_PATH
-        }
-
-        val result = remote.execIgnoringErrors(listOf(
-                config.remoteVideoRecorder.absolutePath,
-                udid,
-                mjpegStreamUrl.toExternalForm()
-        ), mapOf("PATH" to path, "TMPDIR" to remote.tmpDir.absolutePath))
+        val command = listOf(
+            config.remoteVideoRecorder.absolutePath,
+            udid,
+            mjpegStreamUrl.toExternalForm(),
+            remoteVideoPath,
+            remoteVideoLogPath,
+            remoteVideoPidPath
+        ).joinToString(" ")
+        val result = remote.shell(command)
 
         if (result.isSuccess) {
             logger.info(logMarker, "Started video recording ${videoFile.name}")
         } else {
-            val errorMessage = "Failed to start video recording ${videoFile.name}. Exit code: ${result.exitCode} StdOut: ${result.stdOut} StdErr: ${result.stdErr}. Log contents: ${getLogContents()}"
+            val errorMessage =
+                "Failed to start video recording ${videoFile.name}. Exit code: ${result.exitCode} StdOut: ${result.stdOut} StdErr: ${result.stdErr}. Log contents: ${getRecordingLog()}"
             logger.error(errorMessage)
             throw VideoRecordingException(errorMessage)
         }
@@ -70,42 +88,65 @@ class FFMPEGVideoRecorder(
 
     override fun stop() {
         logger.debug(logMarker, "Stopping video recording ${videoFile.name}")
-        val result = remote.shell("pkill -f ${videoFile.name}")
+        val lsofResult = remote.shell("lsof -p $(cat $remoteVideoPidPath) | grep ${videoFile.name}")
 
-        when {
-            result.isSuccess -> {
-                logger.info(logMarker, "Stopped video recording ${videoFile.name}")
-                pollFor(
-                    Duration.ofSeconds(60),
-                    reasonName = "Stop video recording",
-                    shouldReturnOnTimeout = true,
-                    retryInterval = Duration.ofMillis(500),
-                    logger = logger,
-                    marker = logMarker
-                ) {
-                    remote.shell("pgrep -f ${videoFile.name}").exitCode == 1 // pgrep has exit code 1 when process not found
-                }
+        if (lsofResult.isSuccess) {
+            val pid = lsofResult.stdOut.lines().first().split(whiteSpacesRegex)[1]
+            logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Got PID $pid")
+            val killResult = remote.shell("kill -SIGINT $pid")
+            if (killResult.isSuccess) {
+                logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Successfully sent SIGINT to PID $pid")
+            } else {
+                logger.error(logMarker, "Stopping video recording ${videoFile.name}. Failure while sending SIGINT to PID ${pid}. ${killResult.stdErr}")
             }
-            result.exitCode == 1 -> {
-                logger.info("No video recording process found for ${videoFile.name}")
+        } else {
+            logger.warn(logMarker, "Stopping video recording ${videoFile.name}. Failed to get PID from lsof. Maybe process exited. Will use pkill")
+            val pkillResult = remote.shell("pkill -SIGINT -f ${videoFile.name}")
+            if (pkillResult.isSuccess) {
+                logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Successfully sent SIGINT using pkill")
+            } else {
+                logger.error(logMarker, "Stopping video recording ${videoFile.name}. Failure while sending SIGINT using pkill. Maybe process exited")
             }
-            else -> {
-                logger.error("Failed to stop video recording process for ${videoFile.name}. Exit code: ${result.exitCode} StdOut: ${result.stdOut} StdErr: ${result.stdErr}")
-            }
+        }
+
+        var videoRecorderExited = false
+        val duration = Duration.ofSeconds(10)
+        pollFor(
+            duration,
+            reasonName = "Waiting ${duration.seconds} seconds for video recording to stop",
+            shouldReturnOnTimeout = true,
+            retryInterval = Duration.ofMillis(1000),
+            logger = logger,
+            marker = logMarker
+        ) {
+            videoRecorderExited = remote.shell("pgrep -f ${videoFile.name}").exitCode == 1 // pgrep has exit code 1 when process not found
+            videoRecorderExited
+        }
+
+        if (videoRecorderExited) {
+            logger.info(logMarker, "Stopped video recording ${videoFile.name}. Successfully waited for video recording to exit")
+        } else {
+            logger.info(logMarker, "Failed to stop video recording ${videoFile.name}. Recorder process is still running after waiting for ${duration.seconds} seconds")
         }
     }
 
-    private fun getLogContents(): String {
-        return if (remote.isLocalhost()) {
-            if (videoLogFile.exists()) videoLogFile.readText() else "Failed to find ${videoLogFile.name}"
-        } else {
-            val logFileResult = remote.shell("find ${'$'}{TMPDIR}${videoLogFile.name}")
+    private fun downloadRemoteFile(remotePath: String, localFile: File) {
+        try {
+            remote.scpFromRemoteHost(remotePath, localFile.absolutePath, Duration.ofSeconds(60))
+        } catch (e: FileNotFoundException) {
+            logger.error("Failed to find $remotePath at ${remote.hostName}")
+        }
+    }
 
-            if (logFileResult.isSuccess) {
-                remote.execIgnoringErrors(listOf("cat", logFileResult.stdOut.trim())).stdOut
-            } else {
-                "Failed to find ${videoLogFile.name}"
-            }
+    override fun getRecordingLog(): String {
+        if (!remote.isLocalhost()) {
+            downloadRemoteFile(remoteVideoLogPath, videoLogFile)
+        }
+
+        return if (videoLogFile.exists()) {
+            videoLogFile.readText()
+        } else {
+            "File $videoLogFile not found"
         }
     }
 
@@ -113,28 +154,13 @@ class FFMPEGVideoRecorder(
         logger.info(logMarker, "Getting video recording ${videoFile.name}")
 
         if (!remote.isLocalhost()) {
-            val videoFileResult = remote.shell("find ${'$'}{TMPDIR}${videoFile.name}")
-
-            if (videoFileResult.isSuccess) {
-                val videoFilePath = videoFileResult.stdOut.trim()
-                remote.scpFromRemoteHost(videoFilePath, videoFile.absolutePath, Duration.ofSeconds(60))
-            } else {
-                val errorMessage = "Failed to find video recording ${videoFile.name} on remote host. ${videoFileResult.stdErr}. Log contents: ${getLogContents()}"
-                logger.error(errorMessage)
-
-                val videoLogFileResult = remote.shell("find ${'$'}{TMPDIR}${videoLogFile.name}")
-
-                if (videoLogFileResult.isSuccess) {
-                    val videoLogFilePath = videoLogFileResult.stdOut.trim()
-                    remote.scpFromRemoteHost(videoLogFilePath, videoFile.absolutePath, Duration.ofSeconds(60))
-                }
-            }
+            downloadRemoteFile(remoteVideoPath, videoFile)
         }
 
         return if (videoFile.exists()) {
             videoFile.readBytes()
         } else {
-            val errorMessage = "Failed to find video recording ${videoFile.absolutePath}. Log contents: ${getLogContents()}"
+            val errorMessage = "Failed to find video recording ${videoFile.absolutePath}. Log contents: ${getRecordingLog()}"
             logger.error(errorMessage)
             throw VideoRecordingException(errorMessage)
         }
@@ -143,5 +169,9 @@ class FFMPEGVideoRecorder(
     override fun dispose() {
         stop()
         delete()
+    }
+
+    companion object {
+        private val whiteSpacesRegex = Regex("\\s+")
     }
 }

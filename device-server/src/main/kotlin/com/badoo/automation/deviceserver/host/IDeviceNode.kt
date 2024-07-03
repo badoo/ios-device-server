@@ -31,6 +31,7 @@ interface IDeviceNode {
     fun videoRecordingGet(deviceRef: DeviceRef): ByteArray
     fun videoRecordingStart(deviceRef: DeviceRef)
     fun videoRecordingStop(deviceRef: DeviceRef)
+    fun videoRecordingLogGet(deviceRef: DeviceRef): String
 
     fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String>
     fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray

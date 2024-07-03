@@ -154,6 +154,10 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.getVideo(ref)
     }
 
+    fun getVideoLog(ref: DeviceRef): String {
+        return deviceManager.getVideoLog(ref)
+    }
+
     fun deleteVideo(ref: DeviceRef): EmptyMap {
         deviceManager.deleteVideo(ref)
         return happy

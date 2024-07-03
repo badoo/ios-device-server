@@ -5,28 +5,14 @@
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:${PATH}"
 
+set -u
 readonly UDID=${1}
 readonly URL=${2}
+readonly RECORDING=${3}
+readonly RECORDING_LOG=${4}
+readonly RECORDING_PID=${5}
 
-if [[ -z "${UDID}" ]]; then
-  echo "Device UDID must be provided as fist argument."
-  exit 1
-fi
-
-if [[ -z "${URL}" ]]; then
-  echo "MJPEG server URL must be provided as second argument."
-  exit 1
-fi
-
-if [[ -z "${TMPDIR}" ]]; then
-  echo "Environment variable TMPDIR was not provided."
-  exit 1
-fi
-
-readonly RECORDINGS_FOLDER=$(realpath "${TMPDIR}")
-readonly RECORDING="${RECORDINGS_FOLDER}/videoRecording_${UDID}.mp4"
-
-set -x
+set -xe
 
 nohup \
     nice -n 10 \
@@ -35,10 +21,9 @@ nohup \
             -hide_banner \
             -loglevel info \
             -f mjpeg \
-            -framerate 4 \
+            -framerate 5 \
             -i "${URL}" \
             -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' \
-            -vf 'scale=400:-2' \
             -an \
             -threads 1 \
             -t "00:15:00" \
@@ -49,4 +34,5 @@ nohup \
             -metadata comment="${RECORDING}" \
             -y \
             "${RECORDING}" \
-            &> "${RECORDING}.log" 2>&1 &
+            &> "${RECORDING_LOG}" 2>&1 &
+echo $! > "${RECORDING_PID}"

@@ -493,6 +493,10 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).videoRecorder.getRecording()
     }
 
+    override fun videoRecordingLogGet(deviceRef: DeviceRef): String {
+        return getDeviceFor(deviceRef).videoRecorder.getRecordingLog()
+    }
+
     override fun videoRecordingStart(deviceRef: DeviceRef) {
         getDeviceFor(deviceRef).videoRecorder.start()
     }

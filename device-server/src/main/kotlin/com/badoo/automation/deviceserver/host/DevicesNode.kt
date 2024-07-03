@@ -432,6 +432,10 @@ class DevicesNode(
         return slotByExternalRef(deviceRef).device.videoRecorder.getRecording()
     }
 
+    override fun videoRecordingLogGet(deviceRef: DeviceRef): String {
+        return slotByExternalRef(deviceRef).device.videoRecorder.getRecordingLog()
+    }
+
     override fun videoRecordingStart(deviceRef: DeviceRef) {
         slotByExternalRef(deviceRef).device.videoRecorder.start()
     }

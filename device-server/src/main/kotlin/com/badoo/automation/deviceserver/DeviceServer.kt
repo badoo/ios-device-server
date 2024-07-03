@@ -406,6 +406,9 @@ fun Application.module() {
                         //FIXME: see [call.respondFile] basically - read from ssh proc listener's ByteBuffer
                         call.respond(devicesController.getVideo(param(call, "ref")))
                     }
+                    get("log") {
+                        call.respond(devicesController.getVideoLog(param(call, "ref")))
+                    }
                     post {
                         call.respond(devicesController.startStopVideo(param(call, "ref"), jsonContent(call)))
                     }
