@@ -24,6 +24,7 @@ nohup \
             -framerate 5 \
             -i "${URL}" \
             -vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' \
+            -vf 'scale=400:-2' \
             -an \
             -threads 1 \
             -t "00:15:00" \
