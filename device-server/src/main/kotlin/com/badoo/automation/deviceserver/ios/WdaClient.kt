@@ -9,7 +9,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URL
 import java.time.Duration
 import java.util.concurrent.TimeUnit
-import kotlin.test.currentStackTrace
 
 class WdaClient(
     private val commandExecutor: URL,
@@ -97,8 +96,7 @@ class WdaClient(
 
     private fun raiseIfNoSession() {
         if (sessionId == null) {
-
-            throw WdaException("${currentStackTrace()[1].methodName} requires session")
+            throw WdaException("${Thread.currentThread().stackTrace[1].methodName} requires session")
         }
     }
 

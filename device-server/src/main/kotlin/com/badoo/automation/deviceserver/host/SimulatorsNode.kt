@@ -11,7 +11,6 @@ import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
-import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
@@ -19,8 +18,9 @@ import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import com.badoo.automation.deviceserver.util.pollFor
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -306,20 +306,9 @@ class SimulatorsNode(
     override fun dispose() {
         logger.info(logMarker, "Finalising simulator pool for ${remote.hostName}")
 
-        val disposeJobs = createdSimulators.map {
-            launch(context = simulatorsThreadPool) {
-                try {
-                    val simulator = it.value
-                    cancelRunningSimulatorTask(simulator.ref, "dispose")
-                    simulator.release("Finalising pool for ${remote.hostName}")
-                } catch (e: Throwable) {
-                    logger.error(logMarker, "While releasing '${it.key}' for ${remote.hostName}: $e")
-                }
-            }
-        }
-
-        runBlocking {
-            disposeJobs.forEach { it.join() }
+        createdSimulators.toList().parallelStream().forEach { (deviceRef, simulator) ->
+            cancelRunningSimulatorTask(simulator.ref, "dispose")
+            simulator.release("Finalising pool for ${remote.hostName}")
         }
 
         hostChecker.killDiskCleanupThread()

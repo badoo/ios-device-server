@@ -17,10 +17,10 @@ import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.*
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.Runnable
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
@@ -32,6 +32,7 @@ import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.NANOSECONDS
 import java.util.concurrent.locks.ReentrantLock
@@ -140,7 +141,7 @@ class Simulator(
     )
     private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
-    @Volatile private var healthChecker: Job? = null
+    @Volatile private var healthChecker: ScheduledFuture<*>? = null
     //endregion
 
     override val media: Media = Media(remote, udid, deviceSetPath)
@@ -319,24 +320,21 @@ class Simulator(
         val maxFailCount = 3
         val healthCheckInterval = Duration.ofSeconds(15).toMillis()
 
-        healthChecker = launch {
-            while (isActive) {
-                performFBSimctlHealthCheck(fbsimctlFailCount, maxFailCount)
+        healthChecker = periodicTasksPool.scheduleWithFixedDelay(Runnable {
+            performFBSimctlHealthCheck(fbsimctlFailCount, maxFailCount)
 
-                if (useWda) {
-                    performInstrumentationAgentHealthCheck(wdaFailCount, maxFailCount)
-                }
-
-                if (useAppium) {
-                    performAppiumServerHealthCheck()
-                }
-
-                delay(healthCheckInterval)
+            if (useWda) {
+                performInstrumentationAgentHealthCheck(wdaFailCount, maxFailCount)
             }
-        }
+
+            if (useAppium) {
+                performAppiumServerHealthCheck()
+            }
+        }, 0, healthCheckInterval, TimeUnit.MILLISECONDS)
+
     }
 
-    private suspend fun performInstrumentationAgentHealthCheck(wdaFailCount: Int, maxFailCount: Int) {
+    private fun performInstrumentationAgentHealthCheck(wdaFailCount: Int, maxFailCount: Int) {
         var wdaFailCount1 = wdaFailCount
         if (instrumentationAgent.isHealthy()) {
             wdaFailCount1 = 0
@@ -349,7 +347,7 @@ class Simulator(
                     val message = "WebDriverAgent health check failed $wdaFailCount1 times."
                     logger.error(logMarker, message)
                     wdaFailCount1 += 1
-                    delay(Duration.ofSeconds(2).toMillis())
+                    Thread.sleep(Duration.ofSeconds(2).toMillis())
                 }
             }
 
@@ -373,14 +371,14 @@ class Simulator(
         }
     }
 
-    private suspend fun performAppiumServerHealthCheck() {
+    private fun performAppiumServerHealthCheck() {
         val maxFailCount = 5
         var appiumFailCount = 0
 
         while (!appiumServer.isHealthy() && appiumFailCount < maxFailCount) {
             logger.error(logMarker, "Appium health check failed $appiumFailCount times.")
             appiumFailCount += 1
-            delay(Duration.ofSeconds(2).toMillis())
+            Thread.sleep(Duration.ofSeconds(2).toMillis())
         }
 
         if (appiumFailCount >= maxFailCount) {
@@ -402,7 +400,7 @@ class Simulator(
         }
     }
 
-    private suspend fun performFBSimctlHealthCheck(fbsimctlFailCount: Int, maxFailCount: Int) {
+    private fun performFBSimctlHealthCheck(fbsimctlFailCount: Int, maxFailCount: Int) {
         var fbsimctlFailCount1 = fbsimctlFailCount
         if (fbsimctlProc.isHealthy()) {
             fbsimctlFailCount1 = 0
@@ -415,7 +413,7 @@ class Simulator(
                     val message = "Fbsimctl health check failed $fbsimctlFailCount1 times."
                     logger.error(logMarker, message)
                     fbsimctlFailCount1 += 1
-                    delay(Duration.ofSeconds(2).toMillis())
+                    Thread.sleep(Duration.ofSeconds(2).toMillis())
                 }
             }
 
@@ -441,10 +439,7 @@ class Simulator(
 
     private fun stopPeriodicHealthCheck() {
         healthChecker?.let { checker ->
-            checker.cancel()
-            while (checker.isActive) {
-                Thread.sleep(100)
-            }
+            checker.cancel(true)
         }
     }
 

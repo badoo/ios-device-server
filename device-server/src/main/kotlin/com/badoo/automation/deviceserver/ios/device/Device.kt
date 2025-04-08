@@ -10,12 +10,13 @@ import com.badoo.automation.deviceserver.ios.device.diagnostic.RealDeviceSysLog
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDeviceState
 import com.badoo.automation.deviceserver.ios.proc.*
+import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.*
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
@@ -26,6 +27,8 @@ import java.nio.file.Files
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -436,34 +439,32 @@ class Device(
     }
 
     @Volatile
-    private var healthChecker: Job? = null
+    private var healthChecker: ScheduledFuture<*>? = null
 
     private fun startPeriodicHealthCheck() {
         stopPeriodicHealthCheck()
 
         val healthCheckInterval = Duration.ofSeconds(30).toMillis()
 
-        healthChecker = launch {
-            while (isActive) {
-                performInstrumentationAgentHealthCheck(10)
+        val task: ScheduledFuture<*> = periodicTasksPool.scheduleWithFixedDelay(Runnable {
+            performInstrumentationAgentHealthCheck(10)
 
-                if (useAppium) {
-                    performAppiumServerHealthCheck()
-                }
-
-                delay(healthCheckInterval)
+            if (useAppium) {
+                performAppiumServerHealthCheck()
             }
-        }
+        }, 0, healthCheckInterval, TimeUnit.MILLISECONDS)
+
+        healthChecker = task
     }
 
-    private suspend fun performInstrumentationAgentHealthCheck(maxWDAFailCount: Int) {
+    private fun performInstrumentationAgentHealthCheck(maxWDAFailCount: Int) {
         var wdaFailCount = 0
 
         while (!instrumentationAgent.isHealthy() && wdaFailCount < maxWDAFailCount) {
             val message = "WebDriverAgent health check failed $wdaFailCount times."
             logger.error(logMarker, message)
             wdaFailCount += 1
-            delay(Duration.ofSeconds(3).toMillis())
+            Thread.sleep(Duration.ofSeconds(3).toMillis())
         }
 
         if (wdaFailCount >= maxWDAFailCount) {
@@ -485,14 +486,14 @@ class Device(
         }
     }
 
-    private suspend fun performAppiumServerHealthCheck() {
+    private fun performAppiumServerHealthCheck() {
         val maxFailCount = 5
         var appiumFailCount = 0
 
         while (!appiumServer.isHealthy() && appiumFailCount < maxFailCount) {
             logger.error(logMarker, "Appium health check failed $appiumFailCount times.")
             appiumFailCount += 1
-            delay(Duration.ofSeconds(2).toMillis())
+            Thread.sleep(Duration.ofSeconds(2).toMillis())
         }
 
         if (appiumFailCount >= maxFailCount) {
@@ -516,10 +517,7 @@ class Device(
 
     private fun stopPeriodicHealthCheck() {
         healthChecker?.let { checker ->
-            checker.cancel()
-            while (checker.isActive) {
-                Thread.sleep(100)
-            }
+            checker.cancel(true)
         }
     }
 
