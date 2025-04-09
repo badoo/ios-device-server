@@ -88,24 +88,28 @@ class FFMPEGVideoRecorder(
 
     override fun stop() {
         logger.debug(logMarker, "Stopping video recording ${videoFile.name}")
-        val lsofResult = remote.shell("lsof -p $(cat $remoteVideoPidPath) | grep ${videoFile.name}")
+        val findResult = remote.shell("pgrep -f ${videoFile.name}")
 
-        if (lsofResult.isSuccess) {
-            val pid = lsofResult.stdOut.lines().first().split(whiteSpacesRegex)[1]
-            logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Got PID $pid")
-            val killResult = remote.shell("kill -SIGINT $pid")
-            if (killResult.isSuccess) {
-                logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Successfully sent SIGINT to PID $pid")
-            } else {
-                logger.error(logMarker, "Stopping video recording ${videoFile.name}. Failure while sending SIGINT to PID ${pid}. ${killResult.stdErr}")
-            }
-        } else {
-            logger.warn(logMarker, "Stopping video recording ${videoFile.name}. Failed to get PID from lsof. Maybe process exited. Will use pkill")
-            val pkillResult = remote.shell("pkill -SIGINT -f ${videoFile.name}")
-            if (pkillResult.isSuccess) {
-                logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Successfully sent SIGINT using pkill")
-            } else {
-                logger.error(logMarker, "Stopping video recording ${videoFile.name}. Failure while sending SIGINT using pkill. Maybe process exited")
+        if (findResult.isSuccess) {
+            findResult.stdOut.lines().filter { it.isNotBlank() }.forEach { line ->
+                val pid = line.trim()
+                val pidResult = remote.shell("ps -o command -p ${pid}")
+
+                if (pidResult.isSuccess) {
+                    logger.info(logMarker, " \n==========================\nQQQ VIDEO PID COMMAND \n${pidResult.stdOut}\n\n==========================\n")
+                    pidResult.stdOut.trim().lines().forEach { line ->
+                        if (line.contains("ffmpeg") && line.contains(remoteVideoPath) && !line.contains(config.remoteVideoRecorder.absolutePath)) {
+                            logger.debug(logMarker, "Stopping video recorder process ${videoFile.name}. Got PID $pid")
+                            val killResult = remote.shell("kill -SIGINT $pid")
+                            if (killResult.isSuccess) {
+                                logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Successfully sent SIGINT to PID $pid")
+                            } else {
+                                logger.error(logMarker, "Stopping video recording ${videoFile.name}. Failure while sending SIGINT to PID ${pid}. ${killResult.stdErr}")
+                            }
+
+                        }
+                    }
+                }
             }
         }
 
@@ -113,14 +117,19 @@ class FFMPEGVideoRecorder(
         val duration = Duration.ofSeconds(10)
         pollFor(
             duration,
-            reasonName = "Waiting ${duration.seconds} seconds for video recording to stop",
+            reasonName = "Waiting up to ${duration.seconds} seconds for video recording to stop",
             shouldReturnOnTimeout = true,
             retryInterval = Duration.ofMillis(1000),
             logger = logger,
             marker = logMarker
         ) {
-            videoRecorderExited = remote.shell("pgrep -f ${videoFile.name}").exitCode == 1 // pgrep has exit code 1 when process not found
-            videoRecorderExited
+            val processList = remote.shell("ps ax")
+            if (processList.isSuccess) {
+                videoRecorderExited = processList.stdOut.trim().lines().none { it.contains(remoteVideoPath) }
+                videoRecorderExited
+            } else {
+                false
+            }
         }
 
         if (videoRecorderExited) {
