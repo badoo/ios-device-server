@@ -5,41 +5,32 @@ import com.badoo.automation.deviceserver.controllers.StatusController
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.management.DeviceManager
-import com.badoo.automation.deviceserver.host.management.errors.*
+import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
+import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
+import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
+import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.call
-import io.ktor.server.application.install
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.*
+import io.ktor.http.*
+import io.ktor.serialization.jackson.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.engine.*
+import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondFile
-import io.ktor.server.response.respondText
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
-//import io.ktor.server.engine.ApplicationEngineEnvironmentReloading
-import io.ktor.server.engine.ShutDownUrl
 import io.ktor.utils.io.jvm.javaio.*
-import io.netty.handler.codec.DefaultHeaders
-//import kotlinx.coroutines.io.jvm.javaio.toInputStream
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
-import java.lang.IllegalStateException
 import java.net.NetworkInterface
 import java.util.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.application.*
-
-
-import io.ktor.server.application.*
-//import io.ktor.server.plugins.defaultheaders.*
 
 
 private fun jsonContent(call: ApplicationCall): JsonNode {
@@ -93,16 +84,11 @@ private fun serverConfig(): DeviceServerConfig {
     return JsonMapper().fromJson(configFile.readText())
 }
 
-var routes: Route? = null
-
 private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpleName)
 
 
 @Suppress("unused")
 fun Application.modulwe() {
-    configureHTTP()
-    configureRouting()
-
     val config = serverConfig()
     val startTime = System.nanoTime()
 
@@ -125,7 +111,7 @@ fun Application.modulwe() {
     val devicesController = DevicesController(deviceManager)
     val statusController = StatusController(deviceManager)
 
-    install(DefaultHeaders())
+    install(DefaultHeaders)
     install(CallLogging)
     install(ContentNegotiation) {
         jackson {
@@ -134,27 +120,31 @@ fun Application.modulwe() {
         }
     }
 
-    install(ShutDownUrl.ApplicationCallFeature) {
+    install(ShutDownUrl.ApplicationCallPlugin) {
         shutDownUrl = "/quitquitquit"
         exitCodeSupplier = { 1 }
     }
 
-// FIXME:
-//    authentication {
-//        bearerAuthentication("default") { token ->
-//            val name = Base64.getDecoder().decode(token).toString(Charsets.ISO_8859_1)
-//            when {
-//                name.isEmpty() -> null
-//                else -> UserIdPrincipal(name)
-//            }
-//        }
-//        anonymousAuthentication()
-//    }
+    authentication {
+        bearer("auth-bearer") {
+            realm = "Ktor Server"
+            authenticate { bearerTokenCredential: BearerTokenCredential ->
+                if (bearerTokenCredential.token == null || bearerTokenCredential.token.isBlank()) {
+                    null
+                } else {
+                    val userName: String = Base64.getDecoder().decode(bearerTokenCredential.token).toString(Charsets.ISO_8859_1)
+                    UserIdPrincipal(userName)
+                }
+            }
+        }
+        // FIXME: See anonymousAuthentication
+    }
 
     logger.info("Server: Installing routing...")
-    routes = install(Routing) {
+    install(RoutingRoot) {
         get {
-            call.respondText(statusController.welcomeMessage(routes), ContentType.Text.Html)
+            val toDoRoutes: Route? = null
+            call.respondText(statusController.welcomeMessage(toDoRoutes), ContentType.Text.Html)
         }
         route("status") {
             get {
@@ -468,15 +458,13 @@ fun Application.modulwe() {
 
     logger.info("Server: Installing status pages...")
     install(StatusPages) {
-        status(HttpStatusCode.NotFound) {
-            val msg =  "${it.value} ${it.description} : ${call.request.uri}"
-            val error = ErrorDto("RouteNotFound",msg, emptyList())
-            call.respond(HttpStatusCode.NotFound,
-                    hashMapOf("error" to error)
-            )
+        status(HttpStatusCode.NotFound) { call: ApplicationCall, status: HttpStatusCode ->
+            val error = ErrorDto("RouteNotFound", call.request.uri, emptyList())
+            call.respond(status, hashMapOf("error" to error))
         }
-        exception { exception: Throwable ->
-            val statusCode = when (exception) {
+
+        exception<Throwable> { call: ApplicationCall, cause: Throwable ->
+            val statusCode = when (cause) {
                 is IllegalArgumentException -> HttpStatusCode(422, "Unprocessable Entity")
                 is IllegalStateException -> HttpStatusCode.Conflict
                 is DeviceNotFoundException -> HttpStatusCode.NotFound
@@ -486,26 +474,21 @@ fun Application.modulwe() {
                 is DeviceCreationException -> HttpStatusCode.ServiceUnavailable
                 else -> HttpStatusCode.InternalServerError
             }
-
             val path = call.request.path()
             val marker = MapEntriesAppendingMarker(mapOf(
                 "http_api" to path,
-                "exception_class" to exception.javaClass.canonicalName
+                "exception_class" to cause.javaClass.canonicalName
             ))
 
-            logger.error(marker, "HTTP_API: $path | Error: ${exception.message}", exception)
-
-            call.respond(statusCode,
-                    hashMapOf(
-                            "error" to exception.toDto()
-                    )
+            logger.error(marker, "HTTP_API: $path | Error: ${cause.message}", cause)
+            call.respond(
+                statusCode,
+                hashMapOf(
+                    "error" to cause.toDto()
+                )
             )
         }
     }
 
-    logger.info("Server: Installation complete. Should be available at ${connectors()} ${getAddresses()}")
-}
-
-private fun Application.connectors(): String {
-    return (this.environment as ApplicationEngineEnvironmentReloading).connectors.toString()
+    logger.info("Server: Installation complete. Should be available at ${getAddresses()}")
 }

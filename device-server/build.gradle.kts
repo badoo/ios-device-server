@@ -7,9 +7,7 @@ group = "com.badoo.automation"
 version = "2.0-SNAPSHOT"
 
 application {
-    mainClass = "io.ktor.server.netty.EngineMain"
-//    mainClass = "com.badoo.automation.deviceserver.Program"
-//    mainClassName = "com.badoo.automation.deviceserver.ProgramKt"
+    mainClass = "com.badoo.automation.deviceserver.ProgramKt"
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
@@ -21,19 +19,17 @@ repositories {
 
 dependencies {
     implementation(libs.ktor.serialization.jackson)
+    implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.call.logging)
     implementation(libs.ktor.server.config.yaml)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.default.headers)
     implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.status.pages)
     implementation(libs.logback.classic)
-    implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.ktor.server.default.headers)
-    implementation(libs.ktor.server.netty)
-    implementation(libs.logback.classic)
-    implementation(libs.ktor.server.config.yaml)
+
 
     implementation("org.apache.commons:commons-configuration2:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -56,16 +52,6 @@ dependencies {
     testImplementation("com.nhaarman:mockito-kotlin:1.5.0")
     testImplementation("org.hamcrest:hamcrest-junit:2.0.0.0")
 }
-
-//jar {
-//    manifest {
-//        attributes 'Main-Class': mainClassName
-//    }
-//
-//    from {
-//        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-//    }
-//}
 
 ///**
 // * For tests only

@@ -24,7 +24,7 @@ class StatusController(private val deviceManager: DeviceManager) {
         )
     }
 
-    private fun childHierarchy(route: Route, path: String = "", margin: String = "\n. "): String {
+    private fun childHierarchy(route: Route?, path: String = "", margin: String = "\n. "): String {
         // FIXME: Here should be routes hierarchy
         return "FIXME: Here should be routes hierarchy"
         //        val selector = route.selector.toString()
