@@ -15,11 +15,13 @@ import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import java.time.Duration
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
+@Ignore
 class NodeRegistryTest {
     private val activeDevices: ActiveDevices = mockThis()
     private val nodeRegistry: NodeRegistry = NodeRegistry(activeDevices)

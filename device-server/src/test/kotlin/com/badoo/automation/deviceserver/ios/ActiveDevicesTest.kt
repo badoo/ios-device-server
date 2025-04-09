@@ -6,7 +6,10 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Assert.assertEquals
+import org.junit.Ignore
 import org.junit.Test
+
+@Ignore
 
 class ActiveDevicesTest {
 

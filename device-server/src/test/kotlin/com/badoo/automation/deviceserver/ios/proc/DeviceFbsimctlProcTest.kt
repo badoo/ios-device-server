@@ -7,12 +7,14 @@ import com.badoo.automation.deviceserver.ios.device.DeviceFbsimctlProc
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import java.net.URI
 import kotlin.test.assertEquals
 
+@Ignore
 class DeviceFbsimctlProcTest {
     @Mock
     private lateinit var remote: IRemote

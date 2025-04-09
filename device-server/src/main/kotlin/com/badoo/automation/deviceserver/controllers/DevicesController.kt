@@ -6,7 +6,7 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.fasterxml.jackson.databind.JsonNode
-import io.ktor.auth.UserIdPrincipal
+import io.ktor.server.auth.UserIdPrincipal
 import java.io.File
 import java.nio.file.Path
 

@@ -9,25 +9,23 @@ import com.badoo.automation.deviceserver.host.management.errors.*
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import io.ktor.application.Application
-import io.ktor.application.ApplicationCall
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.auth.UserIdPrincipal
-import io.ktor.auth.authentication
-import io.ktor.auth.principal
-import io.ktor.features.*
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.call
+import io.ktor.server.application.install
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.jackson.jackson
-import io.ktor.request.*
-import io.ktor.response.respond
-import io.ktor.response.respondFile
-import io.ktor.response.respondText
-import io.ktor.routing.*
-import io.ktor.server.engine.ApplicationEngineEnvironmentReloading
+import io.ktor.serialization.*
+import io.ktor.server.request.*
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondFile
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.*
+//import io.ktor.server.engine.ApplicationEngineEnvironmentReloading
 import io.ktor.server.engine.ShutDownUrl
-import kotlinx.coroutines.io.jvm.javaio.toInputStream
+import io.ktor.utils.io.jvm.javaio.*
+import io.netty.handler.codec.DefaultHeaders
+//import kotlinx.coroutines.io.jvm.javaio.toInputStream
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -35,8 +33,14 @@ import java.io.FileNotFoundException
 import java.lang.IllegalStateException
 import java.net.NetworkInterface
 import java.util.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import io.ktor.server.application.*
 
-typealias EmptyMap = Map<Unit, Unit>
+
+import io.ktor.server.application.*
+//import io.ktor.server.plugins.defaultheaders.*
+
 
 private fun jsonContent(call: ApplicationCall): JsonNode {
     val json = call.request.receiveChannel().toInputStream()
@@ -93,8 +97,12 @@ var routes: Route? = null
 
 private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpleName)
 
+
 @Suppress("unused")
-fun Application.module() {
+fun Application.modulwe() {
+    configureHTTP()
+    configureRouting()
+
     val config = serverConfig()
     val startTime = System.nanoTime()
 
@@ -117,7 +125,7 @@ fun Application.module() {
     val devicesController = DevicesController(deviceManager)
     val statusController = StatusController(deviceManager)
 
-    install(DefaultHeaders)
+    install(DefaultHeaders())
     install(CallLogging)
     install(ContentNegotiation) {
         jackson {

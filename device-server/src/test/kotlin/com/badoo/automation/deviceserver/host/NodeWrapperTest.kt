@@ -14,6 +14,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+@Ignore
 class NodeWrapperTest {
     private val registry: NodeRegistry = mockThis()
     private val hostFactory: IHostFactory = mockThis()

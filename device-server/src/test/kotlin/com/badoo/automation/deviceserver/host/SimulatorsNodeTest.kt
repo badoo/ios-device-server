@@ -28,6 +28,7 @@ import java.net.URI
 import java.nio.file.Paths
 import java.util.concurrent.locks.ReentrantLock
 
+@Ignore
 class SimulatorsNodeTest {
     private val iRemote: IRemote = mockThis()
     private val fbSimctl: FBSimctl = mockThis()

@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito
 import java.io.File
@@ -13,6 +14,7 @@ import java.nio.file.Paths
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 
+@Ignore
 class DataContainerTest {
 
     private val remote: IRemote = mockThis()

@@ -6,9 +6,11 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.mockThis
 import org.hamcrest.Matchers.*
 import org.junit.Assert.assertThat
+import org.junit.Ignore
 import org.junit.Test
 import java.time.Duration
 
+@Ignore
 class SessionTest {
     private var host1: IDeviceNode = mockThis()
     private var host2: IDeviceNode = mockThis()

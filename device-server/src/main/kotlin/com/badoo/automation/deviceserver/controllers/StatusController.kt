@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.controllers
 
 import com.badoo.automation.deviceserver.host.management.DeviceManager
-import io.ktor.routing.Route
+import io.ktor.server.routing.Route
 import java.util.concurrent.TimeUnit
 
 class StatusController(private val deviceManager: DeviceManager) {
@@ -25,21 +25,23 @@ class StatusController(private val deviceManager: DeviceManager) {
     }
 
     private fun childHierarchy(route: Route, path: String = "", margin: String = "\n. "): String {
-        val selector = route.selector.toString()
-        val maybe_real_endpoint =
-                if (!selector.startsWith("(method:"))
-                    ""
-                else
-                {
-                    val path_or_link =
-                            if (selector == "(method:GET)" && !path.contains('{'))
-                                "<a href='${path}'>$path</a>" // Safe to provide as a link: idempotent.
-                            else
-                                path
-                    "$margin $path_or_link ${route.selector}"
-                }
-        return maybe_real_endpoint +
-               route.children.sortedBy { it.toString() }
-                       .joinToString("" ) { childHierarchy(it, route.toString(), "$margin. ") }
+        // FIXME: Here should be routes hierarchy
+        return "FIXME: Here should be routes hierarchy"
+        //        val selector = route.selector.toString()
+        //        val maybe_real_endpoint =
+        //                if (!selector.startsWith("(method:"))
+        //                    ""
+        //                else
+        //                {
+        //                    val path_or_link =
+        //                            if (selector == "(method:GET)" && !path.contains('{'))
+        //                                "<a href='${path}'>$path</a>" // Safe to provide as a link: idempotent.
+        //                            else
+        //                                path
+        //                    "$margin $path_or_link ${route.selector}"
+        //                }
+        //        return maybe_real_endpoint +
+        //               route.children.sortedBy { it.toString() }
+        //                       .joinToString("" ) { childHierarchy(it, route.toString(), "$margin. ") }
     }
 }

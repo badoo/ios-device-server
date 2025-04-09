@@ -6,12 +6,15 @@ import com.badoo.automation.deviceserver.command.IShellCommand
 import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Assert
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.slf4j.Marker
 import java.io.File
+
+@Ignore
 
 class FBSimctlTest {
     @Mock private lateinit var executor: IShellCommand

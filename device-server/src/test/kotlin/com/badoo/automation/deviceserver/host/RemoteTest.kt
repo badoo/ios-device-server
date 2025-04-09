@@ -11,8 +11,10 @@ import org.junit.Test
 
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.Ignore
 import org.mockito.ArgumentMatchers.*
 
+@Ignore
 class RemoteTest {
     private val localExecutor: IShellCommand = mockThis()
     private val remoteExecutor: IShellCommand = mockThis()

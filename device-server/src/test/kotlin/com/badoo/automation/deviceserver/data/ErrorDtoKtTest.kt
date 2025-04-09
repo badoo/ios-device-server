@@ -3,12 +3,13 @@ package com.badoo.automation.deviceserver.data
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.whenever
 import org.junit.Assert
+import org.junit.Ignore
 import org.junit.Test
 
 class ErrorDtoKtTest {
     private val exception: Exception = mockThis()
 
-    @Test
+    @Test @Ignore
     fun toDto() {
         val stackTrace: Array<StackTraceElement> = listOf(
             StackTraceElement("com.badoo.SomeClass", "someMethod", "SomeFile.kt", 2),

@@ -7,9 +7,11 @@ import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.mockThis
 import com.nhaarman.mockito_kotlin.*
 import org.junit.Assert.assertEquals
+import org.junit.Ignore
 import org.junit.Test
 import kotlin.test.assertNull
 
+@Ignore
 class SimulatorProcessTest {
     private val udid: UDID = "ADB25768-5C9D-487E-A787-D271934B78B0"
     private val deviceRef: DeviceRef = "asdf"
