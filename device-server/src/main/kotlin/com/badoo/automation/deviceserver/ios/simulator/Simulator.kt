@@ -745,7 +745,7 @@ class Simulator(
             "com.apple.suggestd",
             "com.apple.telephonyutilities.callservicesd",
             "com.apple.voiced",
-            // "com.apple.diagnosticextensionsd",
+            "com.apple.diagnosticextensionsd",
             "com.apple.intelligenceplatformd",
             "com.apple.mediaremoted",
             "com.apple.tvremoted",
