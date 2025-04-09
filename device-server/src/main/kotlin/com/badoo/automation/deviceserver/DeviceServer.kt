@@ -88,7 +88,7 @@ private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpl
 
 
 @Suppress("unused")
-fun Application.modulwe() {
+fun Application.module() {
     val config = serverConfig()
     val startTime = System.nanoTime()
 

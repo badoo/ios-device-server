@@ -1,0 +1,12 @@
+ktor:
+  application:
+    modules:
+      - com.badoo.automation.deviceserver.DeviceServerKt.module
+  deployment:
+    port: 4567
+#    autoreload: false
+#    watch: []
+#    parallelism: 8
+#    connectionGroupSize: 40
+#    workerGroupSize: 100
+#    callGroupSize: 200
