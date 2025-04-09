@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.host.Remote
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
+import org.slf4j.Marker
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -13,7 +14,7 @@ import java.time.Duration
 import java.util.concurrent.*
 
 class ChildProcess private constructor(
-    command: List<String>,
+    private val command: List<String>,
     executor: IShellCommand,
     remoteHostname: String,
     commandEnvironment: Map<String, String> = mapOf(),
@@ -24,53 +25,84 @@ class ChildProcess private constructor(
     private val logMarker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHostname))
     private val process: Process
     private val poolExecutor: ExecutorService
-    val stdOutTask: Future<*>
-    val stdErrTask: Future<*>
+    private val stdOutTask: Future<*>
+    private val stdErrTask: Future<*>
 
     init {
         logger.debug(logMarker, "Starting long living process from command [$command]")
         process = executor.startProcess(command, commandEnvironment)
 
-        poolExecutor = Executors.newFixedThreadPool(2)
-        stdOutTask = poolExecutor.submit(lineReader(process.inputStream, outWriter))
-        stdErrTask = poolExecutor.submit(lineReader(process.errorStream, errWriter))
+        poolExecutor = Executors.newVirtualThreadPerTaskExecutor()
+        stdOutTask = poolExecutor.submit(readStream(process.inputStream, outWriter))
+        stdErrTask = poolExecutor.submit(readStream(process.errorStream, errWriter))
 
         logger.debug(logMarker, "Started long living process $this from command [$command]")
     }
 
-    val onExit: CompletableFuture<Process> = process.onExit()
-
     override fun toString(): String = "< PID: ${process.pid()}>"
 
     fun isAlive(): Boolean = process.isAlive
-    private val processDestroyTimeOut = Duration.ofSeconds(15)
 
     fun kill() {
         logger.debug(logMarker, "Sending SIGTERM to process $this")
+
+        destroyProcess(process, logMarker, command.joinToString(" "), process.pid())
+        stdOutTask.cancel(true)
+        stdErrTask.cancel(true)
+        poolExecutor.shutdown()
+
         try {
-            process.destroy()
-            val exited = process.waitFor(processDestroyTimeOut.seconds, TimeUnit.SECONDS)
-            if (!exited) {
-                logger.warn(logMarker, "Process $this did not terminate gracefully within [${processDestroyTimeOut.seconds}] seconds. Sending SIGKILL")
-                process.destroyForcibly()
-            }
-        } catch (e: RuntimeException) {
-            logger.error(logMarker, "Error while terminating process $this. ${e.message}", e)
+            poolExecutor.awaitTermination(5, TimeUnit.SECONDS)
+        } catch (e: InterruptedException) {
+            poolExecutor.shutdownNow()
+            Thread.currentThread().interrupt()
         }
     }
 
-    private fun lineReader(inputStream: InputStream, writer: ((line: String) -> Unit)?): Runnable {
-        return Runnable {
-            inputStream.use { stream ->
-                val inputStreamReader = InputStreamReader(stream, StandardCharsets.UTF_8)
-                val reader = BufferedReader(inputStreamReader, 65356)
-
-                var line: String? = reader.readLine()
-
-                while (line != null) {
-                    writer?.invoke(line)
-                    line = reader.readLine()
+    private fun readStream(inputStream: InputStream, writer: ((line: String) -> Unit)?): FutureTask<Unit> {
+        return FutureTask(Callable<Unit> {
+            try {
+                BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8), 1045696).use { reader ->
+                    var line: String
+                    while ((reader.readLine().also { line = it }) != null) {
+                        writer?.invoke(line)
+                    }
                 }
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+        })
+    }
+
+    private fun destroyProcess(
+        process: Process,
+        logMarker: Marker?,
+        commandString: String,
+        pid: Long,
+        destroyTimeOutNanos: Long = Duration.ofSeconds(5).toNanos(),
+    ) {
+        logger.debug(logMarker, "Trying to kill command with SIGTERM. Command: $commandString, PID: $pid")
+        process.destroy()
+
+        val isDestroyedSuccess: Boolean = process.waitFor(destroyTimeOutNanos, TimeUnit.NANOSECONDS)
+
+        if (isDestroyedSuccess) {
+            logger.debug(logMarker, "SIGTERM was a success. Process exited OK. Command: $commandString, PID: $pid")
+        } else {
+            logger.debug(logMarker, "SIGTERM was ignored. Process has NOT exited. Command: $commandString, PID: $pid. Will send SIGKILL")
+
+            process.destroyForcibly().waitFor()
+
+            val forceDestroyStartTime = System.nanoTime()
+
+            while (process.isAlive && (System.nanoTime() - forceDestroyStartTime) < destroyTimeOutNanos) {
+                Thread.sleep(50)
+            }
+
+            if (process.isAlive) {
+                logger.error(logMarker, "Process did not terminate after SIGKILL PID: $pid")
+            } else {
+                logger.debug(logMarker, "Process destroyed with SIGKILL PID: $pid.")
             }
         }
     }

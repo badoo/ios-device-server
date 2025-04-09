@@ -2,7 +2,6 @@ package com.badoo.automation.deviceserver.command
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.util.ensure
-import com.zaxxer.nuprocess.internal.LibC
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -20,7 +19,6 @@ open class ShellCommand(
 ) : IShellCommand {
     protected val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     protected open val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to "localhost"))
-    private val executor = Executors.newCachedThreadPool()
 
     override fun exec(
         command: List<String>, environment: Map<String, String>, timeOut: Duration,
@@ -38,8 +36,13 @@ open class ShellCommand(
             val pidLogMarker = MapEntriesAppendingMarker(mapOf("PID" to pid))
             logMarker?.let { pidLogMarker.add(it) }
             logger.debug(pidLogMarker, "Executing command: $commandString, PID: $pid")
-            val stdOut = executor.submit(lineReader(process.inputStream))
-            val stdErr = executor.submit(lineReader(process.errorStream))
+            val stdOutBuilder = StringBuilder()
+            val stdErrBuilder = StringBuilder()
+
+            val outputReaderExecutor = Executors.newVirtualThreadPerTaskExecutor()
+
+            val stdOutReader = outputReaderExecutor.submit(readStream(process.inputStream, stdOutBuilder))
+            val stdErrReader = outputReaderExecutor.submit(readStream(process.errorStream, stdErrBuilder))
 
             val hasExited = process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
 
@@ -51,14 +54,24 @@ open class ShellCommand(
 
             if (!hasExited) {
                 logger.error(pidLogMarker, "Command has failed to complete in time. Timeout: ${timeOut.toSeconds()} seconds. Command: $commandString, PID: $pid")
-                executor.submit {
-                    waitForProcessToComplete(process, pidLogMarker, commandString, pid.toInt(), timeOut)
-                }
+                destroyProcess(process, pidLogMarker, commandString, pid)
+                stdOutReader.cancel(true)
+                stdErrReader.cancel(true)
             }
 
+            outputReaderExecutor.shutdown()
+
+            try {
+                outputReaderExecutor.awaitTermination(5, TimeUnit.SECONDS)
+            } catch (e: InterruptedException) {
+                outputReaderExecutor.shutdownNow()
+                Thread.currentThread().interrupt()
+            }
+
+
             val result = CommandResult(
-                stdOut = stdOut.get(),
-                stdErr = stdErr.get(),
+                stdOut = stdOutBuilder.toString(),
+                stdErr = stdErrBuilder.toString(),
                 exitCode = exitCode,
                 cmd = command, // Store actual command - including ssh stuff.
                 pid = pid
@@ -82,52 +95,52 @@ open class ShellCommand(
         }
     }
 
-    private fun waitForProcessToComplete(
+    private fun destroyProcess(
         process: Process,
         logMarker: Marker?,
         commandString: String,
-        pid: Int,
-        timeOut: Duration
+        pid: Long,
+        destroyTimeOutNanos: Long = Duration.ofSeconds(5).toNanos(),
     ) {
-        logger.debug(logMarker, "Trying to kill failed command. Command: $commandString, PID: $pid")
-        LibC.kill(pid, LibC.SIGTERM)
-        process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
+        logger.debug(logMarker, "Trying to kill failed command with SIGTERM. Command: $commandString, PID: $pid")
+        process.destroy()
 
-        if (process.isAlive) {
-            logger.debug(logMarker, "Trying to destroy failed command. Command: $commandString, PID: $pid")
-            process.destroy()
-            process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
-            logger.debug(logMarker, "Destroyed failed command. Command: $commandString, PID: $pid")
-        }
+        val isDestroyedSuccess: Boolean = process.waitFor(destroyTimeOutNanos, TimeUnit.NANOSECONDS)
 
-        if (process.isAlive) {
-            logger.debug(logMarker, "Trying to destroy forcibly failed command. Command: $commandString, PID: $pid")
-            process.destroyForcibly()
-            process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
-            logger.debug(logMarker, "Destroyed forcibly failed command. Command: $commandString, PID: $pid")
-        }
+        if (isDestroyedSuccess) {
+            logger.debug(logMarker, "SIGTERM was a success. Process exited OK. Command: $commandString, PID: $pid")
+        } else {
+            logger.debug(logMarker, "SIGTERM was ignored. Process has NOT exited. Command: $commandString, PID: $pid. Will send SIGKILL")
 
-        process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
-    }
+            process.destroyForcibly().waitFor()
 
-    private fun lineReader(inputStream: InputStream): Callable<String> {
-        return Callable<String> {
-            inputStream.use {
-                val inputStreamReader = InputStreamReader(it, StandardCharsets.UTF_8)
-                val builder = StringBuilder()
-                val reader = BufferedReader(inputStreamReader, 1045696)
+            val forceDestroyStartTime = System.nanoTime()
 
-                var line: String? = reader.readLine()
+            while (process.isAlive && (System.nanoTime() - forceDestroyStartTime) < destroyTimeOutNanos) {
+                Thread.sleep(50)
+            }
 
-                while (line != null) {
-                    builder.append(line)
-                    builder.append("\n")
-                    line = reader.readLine()
-                }
-
-                builder.toString()
+            if (process.isAlive) {
+                logger.error(logMarker, "Process did not terminate after SIGKILL PID: $pid")
+            } else {
+                logger.debug(logMarker, "Process destroyed with SIGKILL PID: $pid.")
             }
         }
+    }
+
+    private fun readStream(inputStream: InputStream, stringBuilder: StringBuilder): FutureTask<Unit> {
+        return FutureTask(Callable<Unit> {
+            try {
+                BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8), 1045696).use { reader ->
+                    var line: String
+                    while ((reader.readLine().also { line = it }) != null) {
+                        stringBuilder.append(line).append("\n")
+                    }
+                }
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+        })
     }
 
     override fun startProcess(
