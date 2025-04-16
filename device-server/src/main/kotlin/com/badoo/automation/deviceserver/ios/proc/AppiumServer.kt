@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.ios.proc
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
-import com.badoo.automation.deviceserver.command.ChildProcess
+import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.IRemote.Companion.DEFAULT_PATH
 import com.badoo.automation.deviceserver.util.ensure
@@ -24,7 +24,7 @@ class AppiumServer(
         commandEnvironment: Map<String, String>,
         out_reader: ((line: String) -> Unit)?,
         err_reader: ((line: String) -> Unit)?
-    ) -> ChildProcess = ChildProcess.Companion::fromCommand
+    ) -> SubProcess = SubProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
     private val remoteAppiumTmpDir: File = File(remote.tmpDir, "appium_tmpdir_${udid}")
     private val remoteAppiumServerLog: File = File(remoteAppiumTmpDir, "remote_appium_server_log_${udid}.txt")
@@ -54,7 +54,7 @@ class AppiumServer(
     private val statusUrl: URL = uriWithPath(URI("http://${remote.publicHostName}:$appiumServerPort"), "status").toURL()
 
     override fun checkHealth(): Boolean {
-        if (childProcess == null) {
+        if (subProcess == null) {
             logger.debug(logMarker, "$this Appium Server has not yet started.")
             return false
         }
@@ -71,7 +71,7 @@ class AppiumServer(
     }
 
     override fun start() {
-        ensure(childProcess == null) { AppiumServerProcError("Previous Appium Server process $childProcess has not been killed") }
+        ensure(subProcess == null) { AppiumServerProcError("Previous Appium Server process $subProcess has not been killed") }
         logger.debug(logMarker, "$this — Starting child process")
         kill() // cleanup old processes in case there are
         deleteRemoteAppiumTmpDir()
@@ -97,7 +97,7 @@ class AppiumServer(
             errWriter
         )
 
-        childProcess = process
+        subProcess = process
 
         try {
             Thread.sleep(3000) // initial Appium timeout to get process started
@@ -120,7 +120,7 @@ class AppiumServer(
             throw e
         }
 
-        logger.debug(logMarker, "$this Appium Server: $childProcess")
+        logger.debug(logMarker, "$this Appium Server: $subProcess")
     }
 
     override fun kill() {
