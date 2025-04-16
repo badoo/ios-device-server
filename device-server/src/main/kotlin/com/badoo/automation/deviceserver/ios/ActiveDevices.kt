@@ -110,18 +110,15 @@ class ActiveDevices(
             return
         }
 
-        val size: Int = entries.size
-        val executor = Executors.newFixedThreadPool(size)
-        val tasks = mutableListOf<Future<*>>()
-        entries.forEach {
-            val task: Future<*> = executor.submit {
+        val executor = Executors.newVirtualThreadPerTaskExecutor()
+        val tasks: List<Future<*>> = entries.map {
+            executor.submit {
                 try {
                     releaseDevice(it, reason)
                 } catch (e: RuntimeException) {
                     logger.warn("Failed to release device $it", e)
                 }
             }
-            tasks.add(task)
         }
 
         executor.shutdown()
@@ -129,9 +126,10 @@ class ActiveDevices(
         tasks.forEach { it.get() }
 
         try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            executor.awaitTermination(120, TimeUnit.SECONDS);
         } catch (e: InterruptedException) {
             println("Failed to awaitTermination while releasing devices due to issue. ${e.javaClass.name}, ${e.message}")
+            Thread.currentThread().interrupt()
         }
     }
 
