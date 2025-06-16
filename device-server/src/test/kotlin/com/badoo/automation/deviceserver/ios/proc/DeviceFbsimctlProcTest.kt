@@ -1,6 +1,6 @@
 package com.badoo.automation.deviceserver.ios.proc
 
-import com.badoo.automation.deviceserver.command.ChildProcess
+import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.device.DeviceFbsimctlProc
@@ -22,7 +22,7 @@ class DeviceFbsimctlProcTest {
     @Mock
     private lateinit var endpoint: URI
     @Mock
-    private lateinit var childProcess: ChildProcess
+    private lateinit var subProcess: SubProcess
     @Mock
     private lateinit var fbsimctl: FBSimctl
     private lateinit var actualCommand: List<String>
@@ -65,8 +65,8 @@ class DeviceFbsimctlProcTest {
         commandEnvironment: Map<String, String>,
         out_reader: ((line: String) -> Unit)?,
         err_reader: ((line: String) -> Unit)?
-    ): ChildProcess {
+    ): SubProcess {
         actualCommand = cmd
-        return childProcess
+        return subProcess
     }
 }

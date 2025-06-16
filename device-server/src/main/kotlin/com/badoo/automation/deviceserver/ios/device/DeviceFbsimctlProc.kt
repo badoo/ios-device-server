@@ -1,8 +1,7 @@
 package com.badoo.automation.deviceserver.ios.device
 
-import com.badoo.automation.deviceserver.command.ChildProcess
+import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.proc.FbsimctlProc
 import java.net.URI
 
@@ -18,7 +17,7 @@ class DeviceFbsimctlProc(
         commandEnvironment: Map<String, String>,
         out_reader: ((line: String) -> Unit)?,
         err_reader: ((line: String) -> Unit)?
-    ) -> ChildProcess = ChildProcess.Companion::fromCommand
+    ) -> SubProcess = SubProcess.Companion::fromCommand
 ) : FbsimctlProc(remote, udid, fbsimctlEndpoint, headless, childFactory) {
 
     override fun getFbsimctlCommand(): List<String> {
