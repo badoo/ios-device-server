@@ -13,18 +13,18 @@ class FileSystem(
     private val remote: IRemote,
     private val udid: UDID
 ) {
-    private val logger = LoggerFactory.getLogger(DataContainer::class.java.simpleName)
+    private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val deviceRef = deviceRefFromUDID(udid, remote.publicHostName)
-    private val logMarker = MapEntriesAppendingMarker(mapOf(
+    val logMarkerData = mapOf(
         LogMarkers.HOSTNAME to remote.hostName,
         LogMarkers.UDID to udid,
         LogMarkers.DEVICE_REF to deviceRef
-    ))
+    )
 
     fun applicationContainer(bundleId: String): DataContainer {
         return DataContainer(
             remote,
-            getContainerPath(bundleId, "app"),
+            getContainerPathWithRetry(bundleId, "app"),
             bundleId
         )
     }
@@ -32,7 +32,7 @@ class FileSystem(
     fun dataContainer(bundleId: String): DataContainer {
         return DataContainer(
             remote,
-            getContainerPath(bundleId, "data"),
+            getContainerPathWithRetry(bundleId, "data"),
             bundleId
         )
     }
@@ -43,6 +43,24 @@ class FileSystem(
         }
 
         return SharedContainer(remote, File(sharedResourceDirectory))
+    }
+
+    private fun getContainerPathWithRetry(bundleId: String, containerType: String): File {
+        1.rangeTo(3).forEach { attempt ->
+            try {
+                return getContainerPath(bundleId, containerType)
+            } catch (e: FileNotFoundException) {
+                val metaData = HashMap(logMarkerData)
+                metaData.put("method", "getContainerPath")
+                metaData.put("is_success", "false")
+                val logMarker = MapEntriesAppendingMarker(metaData)
+                logger.warn(logMarker, "Attempt $attempt to get container path for bundle id $bundleId on simulator $udid failed: ${e.message}")
+                if (attempt == 3) {
+                    throw e
+                }
+            }
+        }
+        return File("")
     }
 
     private fun getContainerPath(bundleId: String, containerType: String): File {
@@ -60,10 +78,30 @@ class FileSystem(
             timeOutSeconds = 30
         )
 
+        val metaData = HashMap(logMarkerData)
+        metaData.put("method", "getContainerPath")
+        val logMarker = MapEntriesAppendingMarker(metaData)
+
         return if (result.isSuccess) {
-            File(result.stdOut.trim())
+            val stdOut = result.stdOut.trim()
+            metaData.put("get_app_container", stdOut)
+            if (stdOut.isBlank()) {
+                metaData.put("is_success", "false")
+                val message = "getContainerPath Failed to get container for $containerType for bundle id $bundleId on simulator $udid -> $stdOut"
+                logger.error(logMarker, message)
+                throw FileNotFoundException(message)
+            } else {
+                metaData.put("is_success", "true")
+                val message = "getContainerPath Got container for $containerType for bundle id $bundleId on simulator $udid -> $stdOut"
+                logger.info(logMarker, message)
+                File(stdOut)
+            }
         } else {
-            val message = "Failed to get container for $containerType for bundle id $bundleId on simulator $udid"
+            metaData.put("is_success", "false")
+            val message = "Failed to get container for $containerType for bundle id $bundleId on simulator $udid. " +
+                    "Exit code: ${result.exitCode}, " +
+                    "StdOut: ${result.stdOut}, " +
+                    "StdErr: ${result.stdErr}"
             logger.error(logMarker, message)
             throw FileNotFoundException(message)
         }

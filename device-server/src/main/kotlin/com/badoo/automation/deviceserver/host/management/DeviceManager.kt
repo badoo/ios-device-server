@@ -520,11 +520,15 @@ class DeviceManager(
         logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
 
         val nodeWrappers = nodeRegistry.getAll()
-        val executor = Executors.newFixedThreadPool(nodeWrappers.size)
+        val executor = Executors.newFixedThreadPool(Math.min(nodeWrappers.size, 4))
         val tasks = mutableListOf<Future<*>>()
         nodeWrappers.forEach { nodeWrapper ->
             val task: Future<*> = executor.submit {
-                nodeWrapper.node.deployApplication(appBundle)
+                try {
+                    nodeWrapper.node.deployApplication(appBundle)
+                } catch (e: RuntimeException) {
+                    logger.error(marker, "Failed to deploy application ${dto.appUrl} to ${nodeWrapper.node.remoteAddress}. Error: ${e.message}", e)
+                }
             }
             tasks.add(task)
         }
