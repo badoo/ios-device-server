@@ -23,6 +23,8 @@ class ApplicationConfiguration {
     val remoteTestHelperAppBundleRoot = System.getProperty("remote.test.helper.app.bundle.path", "/usr/local/opt/ios-device-server/test_helper_app")
     val useTestHelperApp = java.lang.Boolean.getBoolean("useTestHelperApp")
     val remoteVideoRecorder = File(System.getProperty("remote.video.recorder.path", "/usr/local/opt/ios-device-server-utils/record_video_x264.sh"))
+    val remoteFbsimctl = File(System.getProperty("remote.fbsimctl.script.path", "/usr/local/opt/ios-device-server-utils/fbsimctl_async.sh"))
+    val remoteXcrunSimctl = File(System.getProperty("remote.xcrun.simctl.script.path", "/usr/local/opt/ios-device-server-utils/remote_xcrun_simctl_async.sh"))
     val useFbsimctlProc = java.lang.Boolean.getBoolean("useFbsimctlProc")
     val tempFolder = File(System.getProperty("java.io.tmpdir") ?: throw IllegalStateException("Property java.io.tmpdir is not defined"))
     val trustStorePath: String = System.getProperty("trust.store.path", "")
