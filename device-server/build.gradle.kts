@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.badoo.automation"
-version = "2.0-SNAPSHOT"
+version = "2.0-SNAPSHOT-" + System.currentTimeMillis().toString()
 
 application {
     mainClass = "com.badoo.automation.deviceserver.ProgramKt"
@@ -51,6 +51,12 @@ dependencies {
 
     testImplementation("com.nhaarman:mockito-kotlin:1.5.0")
     testImplementation("org.hamcrest:hamcrest-junit:2.0.0.0")
+}
+
+tasks.jar {
+    manifest {
+        attributes["Implementation-Version"] = project.version
+    }
 }
 
 ///**
