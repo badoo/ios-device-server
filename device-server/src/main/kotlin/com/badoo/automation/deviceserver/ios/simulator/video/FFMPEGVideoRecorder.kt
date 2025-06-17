@@ -88,29 +88,18 @@ class FFMPEGVideoRecorder(
 
     override fun stop() {
         logger.debug(logMarker, "Stopping video recording ${videoFile.name}")
-        val findResult = remote.shell("pgrep -f ${videoFile.name}")
+        val stopResult = remote.shell("/usr/bin/pkill -SIGINT -f ${remoteVideoPath}")
 
-        if (findResult.isSuccess) {
-            findResult.stdOut.lines().filter { it.isNotBlank() }.forEach { line ->
-                val pid = line.trim()
-                val pidResult = remote.shell("ps -o command -p ${pid}")
-
-                if (pidResult.isSuccess) {
-                    logger.info(logMarker, " \n==========================\nQQQ VIDEO PID COMMAND \n${pidResult.stdOut}\n\n==========================\n")
-                    pidResult.stdOut.trim().lines().forEach { line ->
-                        if (line.contains("ffmpeg") && line.contains(remoteVideoPath) && !line.contains(config.remoteVideoRecorder.absolutePath)) {
-                            logger.debug(logMarker, "Stopping video recorder process ${videoFile.name}. Got PID $pid")
-                            val killResult = remote.shell("kill -SIGINT $pid")
-                            if (killResult.isSuccess) {
-                                logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Successfully sent SIGINT to PID $pid")
-                            } else {
-                                logger.error(logMarker, "Stopping video recording ${videoFile.name}. Failure while sending SIGINT to PID ${pid}. ${killResult.stdErr}")
-                            }
-
-                        }
-                    }
-                }
+        when (stopResult.exitCode) {
+            0 -> {
+                logger.debug(logMarker, "Stopping video recording ${videoFile.name}. Successfully sent SIGINT")
+                Thread.sleep(500) // Give some time for the process to handle SIGINT
             }
+            1 -> logger.warn(logMarker, "Stopping video recording ${videoFile.name}. No process found to send SIGINT")
+            else -> logger.error(
+                logMarker,
+                "Stopping video recording ${videoFile.name}. Failed to send SIGINT. Exit code: ${stopResult.exitCode} StdOut: ${stopResult.stdOut} StdErr: ${stopResult.stdErr}"
+            )
         }
 
         var videoRecorderExited = false
