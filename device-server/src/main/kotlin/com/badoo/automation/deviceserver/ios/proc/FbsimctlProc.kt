@@ -1,8 +1,7 @@
 package com.badoo.automation.deviceserver.ios.proc
 
-import com.badoo.automation.deviceserver.command.ChildProcess
+import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.util.ensure
 import com.badoo.automation.deviceserver.util.uriWithPath
 import java.net.URI
@@ -12,14 +11,14 @@ open class FbsimctlProc(
     protected val udid: String,
     protected val fbsimctlEndpoint: URI,
     val headless: Boolean,
-    private val childFactory: (
+    private val subProcessFactory: (
         remoteHost: String,
         username: String,
         cmd: List<String>,
         commandEnvironment: Map<String, String>,
         out_reader: ((line: String) -> Unit)?,
         err_reader: ((line: String) -> Unit)?
-    ) -> ChildProcess = ChildProcess.Companion::fromCommand
+    ) -> SubProcess = SubProcess.Companion::fromCommand
 ) : LongRunningProc(udid, remote.hostName) {
     private val uri: URI = uriWithPath(fbsimctlEndpoint, "list")
     //private val stdOutFile: File = File.createTempFile("", "")
@@ -28,13 +27,13 @@ open class FbsimctlProc(
     override fun toString(): String = "<$udid at ${remote.hostName}:${fbsimctlEndpoint.port}>"
 
     override fun start() {
-        ensure(childProcess == null) { FbsimctlProcError("Previous fbsimctl process $childProcess has not been killed") }
+        ensure(subProcess == null) { FbsimctlProcError("Previous fbsimctl process $subProcess has not been killed") }
         logger.debug(logMarker, "$this — Starting child process")
 
         val outWriter: (String) -> Unit = { logger.debug(logMarker, it.trim()) }
         val errWriter: (String) -> Unit = { logger.warn(logMarker, it.trim()) }
 
-        childProcess = childFactory(
+        subProcess = subProcessFactory(
                 remote.hostName,
                 remote.userName,
                 getFbsimctlCommand(),
@@ -44,7 +43,7 @@ open class FbsimctlProc(
                 errWriter  // TODO: write to file e.txt
         )
 
-        logger.debug(logMarker, "$this FBSimCtl: $childProcess")
+        logger.debug(logMarker, "$this FBSimCtl: $subProcess")
     }
 
     override fun checkHealth(): Boolean {

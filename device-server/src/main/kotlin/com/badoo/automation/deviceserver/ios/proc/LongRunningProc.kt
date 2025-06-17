@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.ios.proc
 
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.command.ChildProcess
+import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.util.CustomHttpClient
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -18,17 +18,19 @@ abstract class LongRunningProc(udid: UDID, remoteHostName: String) : ILongRunnin
             LogMarkers.UDID to udid,
             LogMarkers.DEVICE_REF to "$udid-$remoteHostName".replace(Regex("[^-\\w]"), "-")
     ))
-    @Volatile protected var childProcess: ChildProcess? = null
-    override val isProcessAlive: Boolean get() = true == childProcess?.isAlive()
+    @Volatile protected var subProcess: SubProcess? = null
+    override val isProcessAlive: Boolean get() = true == subProcess?.isAlive()
 
     override fun kill() {
-        if (childProcess == null) {
+        if (subProcess == null) {
             return
         }
 
-        logger.debug(logMarker, "$this — Killing child process $childProcess")
-        childProcess!!.kill()
-        childProcess = null
+        logger.debug(logMarker, "$this — Killing child process $subProcess")
+        subProcess?.let {
+            it.kill()
+        }
+        subProcess = null
     }
 
     override fun isHealthy(): Boolean {

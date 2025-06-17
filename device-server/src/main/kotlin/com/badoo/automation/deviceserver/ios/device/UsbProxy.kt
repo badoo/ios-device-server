@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.ios.device
 
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.command.ChildProcess
+import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -20,7 +20,7 @@ class UsbProxy(
         commandEnvironment: Map<String, String>,
         out_reader: (line: String) -> Unit,
         err_reader: (line: String) -> Unit
-    ) -> ChildProcess = ChildProcess.Companion::fromCommand
+    ) -> SubProcess = SubProcess.Companion::fromCommand
 ) {
     private val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(
@@ -34,8 +34,8 @@ class UsbProxy(
 
     val iproxyBinary = File(remote.homeBrewPath, "iproxy").absolutePath
     val socatBinary = File(remote.homeBrewPath, "socat").absolutePath
-    private var iproxy: ChildProcess? = null
-    private var socat: ChildProcess? = null
+    private var iproxy: SubProcess? = null
+    private var socat: SubProcess? = null
 
     fun start(devicePort: Int) {
         val iProxyCommand = listOf(iproxyBinary, "$localPort:$devicePort", "--udid", udid)
