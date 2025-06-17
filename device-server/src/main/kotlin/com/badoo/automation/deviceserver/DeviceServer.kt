@@ -87,9 +87,38 @@ private fun serverConfig(): DeviceServerConfig {
 
 private val logger = LoggerFactory.getLogger(DevicesController::class.java.simpleName)
 
+val defaultUser = UserIdPrincipal("DefaultUser")
+val homeDir = System.getProperty("user.home")
+val sshSocketsDir = File("$homeDir/.ssh/sockets")
+
+fun ensureSocketFolderExists() {
+    if (!sshSocketsDir.exists() || !sshSocketsDir.isDirectory) {
+        logger.debug("Creating SSH socket folder $sshSocketsDir")
+        sshSocketsDir.mkdirs()
+    }
+
+    val permissions: Set<PosixFilePermission> = Files.getPosixFilePermissions(sshSocketsDir.toPath())
+    val expectedPermissions: Set<PosixFilePermission> = setOf(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.OWNER_EXECUTE,
+    )
+
+    if (!permissions.equals(expectedPermissions)) {
+        logger.debug("SSH sockets folder $sshSocketsDir permissions are NOT as expected. Expected: $expectedPermissions, actual: $permissions. Fixing")
+        Files.setPosixFilePermissions(sshSocketsDir.toPath(), expectedPermissions)
+
+        if (!Files.getPosixFilePermissions(sshSocketsDir.toPath()).equals(expectedPermissions)) {
+            logger.error("SSH sockets folder $sshSocketsDir permissions are NOT as expected. Expected: $expectedPermissions, actual: $permissions")
+        }
+    } else {
+        logger.debug("SSH sockets folder $sshSocketsDir permissions are as expected: $permissions")
+    }
+}
 
 @Suppress("unused")
 fun Application.module() {
+    ensureSocketFolderExists()
     val config = serverConfig()
     val startTime = System.nanoTime()
 

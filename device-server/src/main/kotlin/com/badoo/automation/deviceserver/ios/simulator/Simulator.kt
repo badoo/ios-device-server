@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationException
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.proc.*
 import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
@@ -96,10 +95,10 @@ class Simulator(
     @Volatile override var lastException: Exception? = null // writing from separate thread
         private set
 
-    private val fbsimctlProc: FbsimctlProc = FbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, headless)
+    private val fbsimctlProc: FbsimctlProcAsync = FbsimctlProcAsync(remote, deviceInfo.udid, fbsimctlEndpoint, headless, deviceRef)
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
-    private val instrumentationAgent = XCTestInstrumentationAgent(
+    private val instrumentationAgent = XCTestInstrumentationAgentAsync(
             remote,
             listOf(wdaSimulatorBundles.deviceAgentBundle, wdaSimulatorBundles.webDriverAgentBundle),
             deviceInfo,
