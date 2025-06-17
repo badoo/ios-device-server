@@ -228,7 +228,7 @@ fun Application.module() {
                 }
             }
             post("deploy_app") {
-                val appBundle = jsonContent<AppBundleDto>(call)
+                val appBundle = jsonContent<AppBundleDeployDto>(call)
                 call.respond(devicesController.deployApplication(appBundle))
             }
             post("-/capacity") {
