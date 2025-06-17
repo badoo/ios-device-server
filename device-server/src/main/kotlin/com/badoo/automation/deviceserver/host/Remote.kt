@@ -183,21 +183,27 @@ class Remote(
     }
 
     override fun scpToRemoteHost(from: String, to: String, timeOut: Duration) {
-        val result = localExecutor.exec(listOf("/usr/bin/scp", "-v", "-r", from, "$userAtHost:$to"), timeOut = timeOut, returnFailure = true)
+        val result = localExecutor.exec(listOf("/usr/bin/scp", "-P", "2222", "-r", from, "$userAtHost:$to"), timeOut = timeOut, returnFailure = true)
 
         ensure(result.isSuccess) {
             val message = "Copying files to remote host failed with ${result.stdErr}"
-            logger.error(logMarker, message)
+            val stackTrace = Thread.currentThread().stackTrace.joinToString("\n")
+            val marker = MapEntriesAppendingMarker(mapOf("stack_trace" to stackTrace))
+            marker.add(logMarker)
+            logger.error(marker, message, stackTrace)
             RuntimeException(message)
         }
     }
 
     override fun scpFromRemoteHost(from: String, to: String, timeOut: Duration) {
-        val result = localExecutor.exec(listOf("/usr/bin/scp", "-r", "$userAtHost:$from", to), timeOut = timeOut, returnFailure = true)
+        val result = localExecutor.exec(listOf("/usr/bin/scp", "-P", "2222", "-r", "$userAtHost:$from", to), timeOut = timeOut, returnFailure = true)
 
         if (!result.isSuccess) {
             val message = "Copying files from remote host failed with ${result.stdErr}"
-            logger.error(logMarker, message)
+            val stackTrace = Thread.currentThread().stackTrace.joinToString("\n")
+            val marker = MapEntriesAppendingMarker(mapOf("stack_trace" to stackTrace))
+            marker.add(logMarker)
+            logger.error(logMarker, message, stackTrace)
 
             throw if (result.stdErr.contains("No such file or directory")) {
                 FileNotFoundException(message)
