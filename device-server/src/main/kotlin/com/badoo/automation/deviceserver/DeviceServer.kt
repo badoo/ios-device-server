@@ -159,20 +159,20 @@ fun Application.module() {
         exitCodeSupplier = { 1 }
     }
 
-    authentication {
-        bearer("auth-bearer") {
-            realm = "Ktor Server"
-            authenticate { bearerTokenCredential: BearerTokenCredential ->
-                if (bearerTokenCredential.token == null || bearerTokenCredential.token.isBlank()) {
-                    null
-                } else {
-                    val userName: String = Base64.getDecoder().decode(bearerTokenCredential.token).toString(Charsets.ISO_8859_1)
-                    UserIdPrincipal(userName)
-                }
-            }
-        }
-        // FIXME: See anonymousAuthentication
-    }
+//    authentication {
+//        bearer("auth-bearer") {
+//            realm = "Ktor Server"
+//            authenticate { bearerTokenCredential: BearerTokenCredential ->
+//                if (bearerTokenCredential.token == null || bearerTokenCredential.token.isBlank()) {
+//                    null
+//                } else {
+//                    val userName: String = Base64.getDecoder().decode(bearerTokenCredential.token).toString(Charsets.ISO_8859_1)
+//                    UserIdPrincipal(userName)
+//                }
+//            }
+//        }
+//        // FIXME: See anonymousAuthentication
+//    }
 
     install(IgnoreTrailingSlash)
 
@@ -213,12 +213,14 @@ fun Application.module() {
                 call.respond(devicesController.getDeviceRefs())
             }
             post {
-                val user = call.principal<UserIdPrincipal>()
+//                val user = call.principal<UserIdPrincipal>()
+                val user = defaultUser
                 val deviceDto: DeviceDTO = devicesController.createDevice(jsonContent<DesiredCapabilities>(call), user)
                 call.respond(deviceDto)
             }
             delete {
-                val user = call.principal<UserIdPrincipal>()
+//                val user = call.principal<UserIdPrincipal>()
+                val user = defaultUser
                 if (user == null) {
                     call.respond(devicesController.releaseAllDevices())
                 } else {
