@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
+import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.XcodeVersion.Companion.REQUIRED_XCODE_VERSION
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
@@ -22,6 +23,8 @@ interface ISimulatorHostChecker {
     fun copyWdaBundleToHost()
     fun copyTestHelperBundleToHost()
     fun copyVideoRecorderHelperToHost()
+    fun copyFbsimctlScriptToHost()
+    fun copyXcrunSimctlHelperToHost()
 }
 
 class SimulatorHostChecker(
@@ -31,7 +34,9 @@ class SimulatorHostChecker(
         private val remoteTestHelperAppRoot: File,
         private val fbsimctlVersion: String,
         private val shutdownSimulators: Boolean,
-        private val remoteVideoRecorder: File
+        private val remoteVideoRecorder: File,
+        private val remoteXcrunSimctl: File,
+        private val remoteFbsimctl: File,
 ) : ISimulatorHostChecker {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
@@ -83,6 +88,34 @@ class SimulatorHostChecker(
         remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteVideoRecorder.absolutePath))
     }
 
+    override fun copyXcrunSimctlHelperToHost() {
+        logger.debug(logMarker, "Setting up remote node: Copying xcrun simctl helper to node ${remote.hostName}")
+
+        if (!remoteXcrunSimctl.exists()) {
+            logger.error(logMarker, "Failed to copy xcrun simctl to node ${remote.hostName}. Remote xcrun simctl does not exist")
+            return
+        }
+
+        remote.rm(remoteXcrunSimctl.absolutePath)
+        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteXcrunSimctl.parent))
+        remote.scpToRemoteHost(remoteXcrunSimctl.absolutePath, remoteXcrunSimctl.absolutePath)
+        remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteXcrunSimctl.absolutePath))
+    }
+
+    override fun copyFbsimctlScriptToHost() {
+        logger.debug(logMarker, "Setting up remote node: Copying fbsimctl helper to node ${remote.hostName}")
+
+        if (!remoteFbsimctl.exists()) {
+            logger.error(logMarker, "Failed to copy fbsimctl to node ${remote.hostName}. fbsimctl script does not exist")
+            return
+        }
+
+        remote.rm(remoteFbsimctl.absolutePath)
+        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteFbsimctl.parent))
+        remote.scpToRemoteHost(remoteFbsimctl.absolutePath, remoteFbsimctl.absolutePath)
+        remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteFbsimctl.absolutePath))
+    }
+
     override fun killDiskCleanupThread() {
         if (::cleanUpTask.isInitialized) {
             cleanUpTask.cancel(true)
@@ -115,6 +148,7 @@ class SimulatorHostChecker(
             logger.info(logMarker, "Done shutting down booted simulators")
             logger.info(logMarker, "Will kill abandoned long living fbsimctl processes")
             remote.pkill(remote.fbsimctl.fbsimctlBinary, true)
+            remote.pkill("fbsimctl", true)
         } catch (e: Exception) {
             logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")
         }
