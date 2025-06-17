@@ -126,6 +126,8 @@ fun Application.module() {
         fbsimctlVersion = appConfiguration.fbsimctlVersion,
         remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile,
         remoteVideoRecorder = appConfiguration.remoteVideoRecorder,
+        remoteXcrunSimctl = appConfiguration.remoteXcrunSimctl,
+        remoteFbsimctl = appConfiguration.remoteFbsimctl,
         appConfiguration = ApplicationConfiguration()
     )
     val deviceManager = DeviceManager(config, hostFactory)
@@ -134,6 +136,8 @@ fun Application.module() {
         deviceManager.extractTestApp()
     }
     deviceManager.extractVideoRecorder()
+    deviceManager.extractXcrunSimctlScript()
+    deviceManager.extractFBSimCtlScript()
     deviceManager.startPeriodicFileCleanup()
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchZombieReaper()
