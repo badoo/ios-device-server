@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -18,7 +20,7 @@ class NodeWrapper(
     private val config: NodeConfig,
     hostFactory: IHostFactory,
     private val registry: NodeRegistry,
-    private val maxHealthCheckAttempts: Int = 6,
+    private val maxHealthCheckAttempts: Int = 3,
     private val nodeCheckInterval: Duration = Duration.ofSeconds(60)
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -103,36 +105,46 @@ class NodeWrapper(
             throw RuntimeException("Can not start polling stopped node. Call start() on node first")
         }
 
-        val executor = Executors.newSingleThreadExecutor()
         var healthCheckAttempts = 0
-        healthCheckPeriodicTask = executor.submit {
-            while (!Thread.currentThread().isInterrupted) {
-                Thread.sleep(nodeCheckInterval.toMillis())
 
-                if (isStarted && node.isReachable()) {
-                    healthCheckAttempts = 0
-                    isReachable = true
-                } else {
-                    healthCheckAttempts++
-                    logger.debug(logMarker, "Node $this is down for last $healthCheckAttempts tries")
+        val task: ScheduledFuture<*> = executor.scheduleWithFixedDelay(
+            {
+                try {
+                    if (isStarted && node.isReachable()) {
+                        healthCheckAttempts = 0
+                        isReachable = true
+                    } else {
+                        healthCheckAttempts++
+                        logger.debug(logMarker, "Node $this is down for last $healthCheckAttempts tries")
 
-                    if (healthCheckAttempts >= maxHealthCheckAttempts) {
-                        isReachable = false
-                        registry.removeIfPresent(this)
-                        val message =
-                            "Removing node [${node.remoteAddress}]: cannot reach the node for $maxHealthCheckAttempts tries"
-                        logger.error(logMarker, message)
-                        throw RuntimeException(message)
+                        if (healthCheckAttempts >= maxHealthCheckAttempts) {
+                            isReachable = false
+                            registry.removeIfPresent(this)
+                            val message = "Removing node [${node.remoteAddress}]: cannot reach the node for $maxHealthCheckAttempts tries"
+                            logger.error(logMarker, message)
+                            throw RuntimeException(message)
+                        }
                     }
+                } catch (e: InterruptedException) {
+                    logger.error(logMarker, "Failed to check node health", e)
+                    lastError = e
+                    Thread.currentThread().interrupt()
                 }
+            },
+            nodeCheckInterval.seconds,
+            nodeCheckInterval.seconds,
+            TimeUnit.SECONDS
+        )
 
-            }
-        }
-        executor.shutdown()
+        healthCheckPeriodicTask = task
     }
 
     private fun stopPeriodicHealthCheck() {
         healthCheckPeriodicTask?.cancel(true)
         healthCheckPeriodicTask = null
+    }
+
+    companion object {
+        private val executor = Executors.newScheduledThreadPool(1)
     }
 }
