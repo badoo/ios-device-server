@@ -1,12 +1,6 @@
 package com.badoo.automation.deviceserver
 
-import io.ktor.server.application.*
-import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import io.ktor.server.application.*
-import io.ktor.server.plugins.defaultheaders.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
 
 //fun main(args: Array<String>) {
 //    embeddedServer(Netty, commandLineEnvironment(args)) {
@@ -17,5 +11,16 @@ import io.ktor.server.routing.*
 //}
 
 fun main(args: Array<String>) {
-    io.ktor.server.netty.EngineMain.main(args)
+    System.setProperty("io.netty.eventLoopThreads", "200")
+    val server = EngineMain.createServer(args)
+
+    with(server.engine.configuration) {
+        this.tcpKeepAlive = true
+        this.runningLimit = 300
+        this.connectionGroupSize = 200
+        this.workerGroupSize = 200
+        this.callGroupSize = 200
+    }
+
+    server.start(wait = true)
 }
