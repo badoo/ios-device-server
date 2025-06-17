@@ -333,6 +333,10 @@ class Simulator(
             wdaFailCount1 = 0
         } else {
             (1..5).forEach {
+                if (Thread.currentThread().isInterrupted) {
+                    logger.error(logMarker, "Health check interrupted")
+                    return
+                }
                 if (instrumentationAgent.isHealthy()) {
                     wdaFailCount1 = 0
                     return@forEach
@@ -399,6 +403,10 @@ class Simulator(
             fbsimctlFailCount1 = 0
         } else {
             (1..5).forEach {
+                if (Thread.currentThread().isInterrupted) {
+                    logger.error(logMarker, "Health check interrupted")
+                    return
+                }
                 if (fbsimctlProc.isHealthy()) {
                     fbsimctlFailCount1 = 0
                     return@forEach
@@ -414,7 +422,7 @@ class Simulator(
                 logger.error(logMarker, "Fbsimctl health check failed $fbsimctlFailCount1 times. Restarting fbsimctl")
 
                 try {
-                    fbsimctlProc.kill()
+                    fbsimctlProc.stop()
                 } catch (e: RuntimeException) {
                     logger.error(logMarker, "Failed to kill Fbsimctl. ${e.message}", e)
                 }
@@ -432,7 +440,7 @@ class Simulator(
 
     private fun stopPeriodicHealthCheck() {
         healthChecker?.let { checker ->
-            checker.cancel(true)
+            cancelTask(checker, "health checker")
         }
     }
 
@@ -440,6 +448,11 @@ class Simulator(
         val maxRetries = 7
 
         for (attempt in 1..maxRetries) {
+            if (Thread.currentThread().isInterrupted) {
+                logger.error(logMarker, "Start WDA with retry interrupted")
+                return
+            }
+
             try {
                 logger.info(logMarker, "Starting WebDriverAgent on ${this@Simulator}")
 
@@ -613,25 +626,51 @@ class Simulator(
         }
     }
 
+    private fun cancelTask(task: Future<*>, taskName: String) {
+        task.cancel(true)
+        val timeOut = Duration.ofSeconds(30)
+        val stopTime = System.nanoTime() + timeOut.toNanos()
+
+        while (!task.isDone) {
+            if (System.nanoTime() > stopTime) {
+                logger.error(logMarker, "Task $taskName was not cancelled in time. Was waiting for ${timeOut.seconds} seconds")
+                break
+            }
+
+            Thread.sleep(50)
+        }
+    }
+
     private fun shutdown() {
         logger.info(logMarker, "Shutting down ${this@Simulator}")
         stopPeriodicHealthCheck()
-        bootTask?.cancel(true)
-        installTask?.cancel(true)
-        ignoringErrors({ videoRecorder.dispose() })
-        ignoringErrors({ appiumServer.kill() })
-        ignoringErrors({ instrumentationAgent.kill() })
-        ignoringErrors({ fbsimctlProc.kill() })
+
+        bootTask?.let {
+            cancelTask(it, "bootTask")
+        }
+
+        installTask?.let {
+            cancelTask(it, "installTask")
+        }
+
+       val executor = Executors.newVirtualThreadPerTaskExecutor()
+       val tasks = setOf(
+           {ignoringErrors({ videoRecorder.dispose() })},
+           {ignoringErrors({ appiumServer.kill() })},
+           {ignoringErrors({ instrumentationAgent.kill() })},
+           {ignoringErrors({ fbsimctlProc.stop() })},
+       ).map { executor.submit(it) }
 
         val result = remote.fbsimctl.shutdown(udid)
+        tasks.forEach { it.get() }
 
         if (!result.isSuccess && !result.stdErr.contains("current state: Shutdown") && !result.stdOut.contains("current state: Shutdown")) {
             logger.debug(logMarker, "Error occurred while shutting down simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
         }
 
         pollFor(
-            timeOut = Duration.ofSeconds(90),
-            retryInterval = Duration.ofSeconds(5),
+            timeOut = Duration.ofSeconds(60),
+            retryInterval = Duration.ofSeconds(1),
             reasonName = "${this@Simulator} to shutdown",
             shouldReturnOnTimeout = true,
             logger = logger,
@@ -801,45 +840,16 @@ class Simulator(
 
     private fun waitUntilSimulatorBooted(bootTime: Long) {
         Thread.sleep(5000L) // make sure enough time for initial boot before any other actions
-
-        val escapedCommand = if (remote.isLocalhost()) {
-            "/usr/bin/xcrun simctl spawn $udid log show --color none --start @${bootTime} --predicate \"process == 'SpringBoard' AND composedMessage CONTAINS 'Bootstrap success'\""
+        val startTime = System.nanoTime()
+        val bootResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "bootstatus", udid), mapOf(), true, 240)
+        val finishTime = System.nanoTime()
+        val elapsedSeconds = NANOSECONDS.toSeconds(finishTime - startTime)
+        if (bootResult.isSuccess) {
+            val message = "Simulator bootstatus $udid successfully booted to sufficient state. Was waiting for ${elapsedSeconds} seconds."
+            logger.info(logMarker, message)
         } else {
-            "\"/usr/bin/xcrun simctl spawn $udid log show --color none --start @${bootTime} --predicate \\\"process == 'SpringBoard' AND composedMessage CONTAINS 'Bootstrap success'\\\"\""
-        }
-
-        val logsCommand = listOf("/bin/bash", "-c", escapedCommand)
-
-        val requiredService = RequiredService.Spotlight()
-        val serviceBundleId = requiredService.identifier
-        var stdOut = ""
-        var stdErr = ""
-
-        pollFor(
-            timeOut = Duration.ofMinutes(3),
-            reasonName = "Simulator boot process",
-            shouldReturnOnTimeout = true,
-            retryInterval = Duration.ofSeconds(10),
-            logger = logger,
-            marker = logMarker
-        ) {
-            val logsResult = remote.execIgnoringErrors(logsCommand, timeOutSeconds = 120L)
-            stdOut = logsResult.stdOut
-            stdErr = logsResult.stdErr
-
-            if (stdOut.contains(serviceBundleId)) {
-                requiredService.booted = true
-            }
-
-            requiredService.booted
-        }
-
-        if (!requiredService.booted) {
-            val failedServicesMessage = "Failed services [${requiredService}]"
-            val errorMessage = "Simulator $udid failed to successfully boot to sufficient state. $failedServicesMessage. StdErr: \n$stdErr\n. StdOut: \n$stdOut"
-            logger.error(logMarker, "Simulator $udid log has not exited in time. Possible errors. StdErr: $stdErr. StdOut: $stdOut")
-            logger.error(logMarker, errorMessage)
-            throw DeviceCreationException(errorMessage)
+            val message = "Simulator bootstatus $udid failed to successfully boot to sufficient state. Was waiting for ${elapsedSeconds} seconds. Exit code: ${bootResult.exitCode}. StdErr: ${bootResult.stdErr}. StdOut: ${bootResult.stdOut}"
+            logger.error(logMarker, message)
         }
     }
 
