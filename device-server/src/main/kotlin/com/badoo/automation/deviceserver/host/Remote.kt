@@ -142,9 +142,9 @@ class Remote(
         }
     }
 
-    override fun pkill(matchString: String, force: Boolean) {
+    override fun pkill(matchString: String, force: Boolean): CommandResult {
         val signal = if (force) { Signal.SIGKILL } else { Signal.SIGTERM }
-        execIgnoringErrors(listOf("pkill", "-$signal", "-f", matchString))
+        return execIgnoringErrors(listOf("pkill", "-$signal", "-f", matchString))
     }
 
     override fun isDirectory(path: String): Boolean {
