@@ -684,109 +684,128 @@ class Simulator(
 
     private fun disabledServices(): List<String> {
         val cmdLine = listOf(
-            "com.apple.Maps.mapspushd",
-            "com.apple.Maps",
-            "com.apple.MapsUI",
-            "com.apple.NPKCompanionAgent",
-            "com.apple.SafariBookmarksSyncAgent",
-            "com.apple.ScreenTimeAgent",
-            "com.apple.ScreenTimeWidgetApplication",
-            "com.apple.UsageTrackingAgent",
-//            "com.apple.nanoregistryd",
-//            "com.apple.nanoregistrylaunchd",
-//            "com.apple.nanoprefsyncd.2",
-//            "com.apple.nanomapscd",
-//            "com.apple.nanosystemsettingsd",
-//            "com.apple.nanobackupd",
-//            "com.apple.nanoappregistryd",
-//            "com.apple.nanotimekitcompaniond",
-            "com.apple.MapKit.SnapshotService",
-            "com.apple.WallpaperKit",
-            "com.apple.WallpaperKit.WallpaperMigrator",
-            "com.apple.WebBookmarks.webbookmarksd",
             "com.apple.accessibility.AccessibilityUIServer",
+            "com.apple.activityawardsd", // Manages user awards/badges in Activity app.
+            "com.apple.activitysharingd", // Activity sharing with contacts (Fitness).
             "com.apple.addressbooksyncd",
-            "com.apple.ap.adprivacyd",
-            "com.apple.ap.promotedcontentd",
+            "com.apple.AMPIDService", // Apple Music personalized recommendations.
+            "com.apple.amsengagementd", // App Store/Music notifications and promotions.
+            "com.apple.announced", // Announce notifications (VoiceOver).
+            "com.apple.ap.adprivacyd", // App privacy ad measurement.
+            "com.apple.ap.promotedcontentd", // Apple-promoted content/ad handling.
             "com.apple.assistant_service",
             "com.apple.assistantd",
-            "com.apple.avatarsd",
+            "com.apple.avatarsd", // Memoji/avatar services.
+            "com.apple.Batteries.BatteriesWidget",
+            "com.apple.biomed", // Health-related biomedical data.
+            "com.apple.biomesyncd", // Sync health data between devices.
             "com.apple.bird",
             "com.apple.calaccessd",
-            "com.apple.carkitd",
+            "com.apple.carkitd", // CarPlay interactions.
+            "com.apple.chronod", // it launches all the following services for the widgets
             "com.apple.cloudd",
             "com.apple.companionappd",
             "com.apple.coreservices.useractivityd",
-            "com.apple.corespeechd",
+            "com.apple.corespeechd", // Voice/Speech recognition.
             "com.apple.corespotlightservice",
             "com.apple.dataaccess.dataaccessd",
+            "com.apple.diagnosticd",
+            "com.apple.diagnosticextensionsd",
             "com.apple.donotdisturbd",
-            "com.apple.email.maild",
-            "com.apple.familycircled",
-            "com.apple.familynotification",
-            "com.apple.fitnesscoachingd",
+            "com.apple.email.maild", // Mail app background operations.
+            "com.apple.familycircled", // Family sharing service.
+            "com.apple.FamilyControlsAgent", // Parental control service.
+            "com.apple.familynotification", // Family sharing notifications.
+            "com.apple.findmy.findmylocated", // "Find My" location tracking.
+            "com.apple.fitcore",
+            "com.apple.fitnesscoachingd", // Fitness app logic.
+            "com.apple.gamecontroller.ConfigService", // Game controller input.
             "com.apple.GameController.gamecontrollerd",
+            "com.apple.gamecontrollerd", // Game controller input.
+            "com.apple.gamed", // Game Center interactions.
+            "com.apple.geoanalyticsd", // Location analytics.
+            "com.apple.Health.Sleep.SleepWidgetExtension",
             "com.apple.healthappd",
             "com.apple.healthd",
-            "com.apple.homed",
+            "com.apple.healthrecordsd", // Health/medical records.
+            "com.apple.homed", // HomeKit automation.
+            "com.apple.icloudmailagent", // iCloud mail background handling.
+            "com.apple.intelligenceplatformd",
+            "com.apple.MapKit.SnapshotService",
+            "com.apple.Maps.GeneralMapsWidget",
+            "com.apple.Maps.mapspushd",
+            "com.apple.Maps.mapssyncd", // Maps services.
+            "com.apple.Maps",
+            "com.apple.MapsUI",
+            "com.apple.mediaanalysisd", // Analyzes user media (photos/videos).
+            "com.apple.mediaremoted",
+            "com.apple.mobilecal.CalendarWidgetExtension",
             "com.apple.mobilecal",
+            "com.apple.mobileslideshow.PhotosReliveWidget",
             "com.apple.mobiletimerd",
-            "com.apple.navd",
-            "com.apple.news",
-            "com.apple.newsd",
+            "com.apple.nanoappregistryd",
+            "com.apple.nanobackupd",
+            "com.apple.nanomapscd",
             "com.apple.nanonewscd",
-            "com.apple.newscore",
-            "com.apple.newscore2",
-            "NewsToday2",
+            "com.apple.nanoprefsyncd.2",
+            "com.apple.nanoregistryd",
+            "com.apple.nanoregistrylaunchd",
+            "com.apple.nanosystemsettingsd",
+            "com.apple.nanotimekitcompaniond",
+            "com.apple.navd",
             "com.apple.news.articlenotificationextension",
+            "com.apple.news.articlenotificationserviceextension",
+            "com.apple.news.engagementExtension",
+            "com.apple.news.marketingnotificationextension",
             "com.apple.news.NewsArticleQuickLook",
+            "com.apple.news.NewsAudioExtension",
             "com.apple.news.openinnews",
             "com.apple.news.tag",
-
-            "com.apple.chronod", // it launches all the following services for the widgets
-            "com.apple.Batteries.BatteriesWidget",
-            "com.apple.reminders.WidgetExtension",
-            "com.apple.mobilecal.CalendarWidgetExtension",
-            "com.apple.mobileslideshow.PhotosReliveWidget",
-            "com.apple.PassbookStub.PassbookWidgets",
-            "com.apple.Maps.GeneralMapsWidget",
-            "com.apple.Health.Sleep.SleepWidgetExtension",
-            "com.apple.Passbook.PassbookWidgets",
-            "com.apple.PeopleViewService.PeopleWidget-iOS",
-            "com.apple.ScreenTimeWidgetApplication.ScreenTimeWidgetExtension",
-
-            "com.apple.news.engagementExtension",
-            "com.apple.news.articlenotificationserviceextension",
-            "com.apple.news.marketingnotificationextension",
             "com.apple.news.widget",
-            "com.apple.news.NewsAudioExtension",
             "com.apple.news.widgetintents",
+            "com.apple.news",
+            "com.apple.newscore",
+            "com.apple.newscore2",
+            "com.apple.newsd", // Apple News content handling.
+            "com.apple.NPKCompanionAgent", // Apple Pay companion tasks.
             "com.apple.pairedsyncd",
             "com.apple.parsecd", // https://jira.badoojira.com/browse/IOS-33218
-            "com.apple.photoanalysisd",
+            "com.apple.Passbook.PassbookWidgets",
+            "com.apple.PassbookStub.PassbookWidgets",
+            "com.apple.PeopleViewService.PeopleWidget-iOS",
+            "com.apple.photoanalysisd", // Photo library analysis (face recognition, etc.).
             "com.apple.PosterBoard", // iOS 16
             "com.apple.posterboardservices", // iOS 16
-            "com.apple.purplebuddy.budd",
-            "com.apple.remindd",
+            "com.apple.purplebuddy.budd", // Initial device setup wizard.
+            "com.apple.remindd", // Reminders app
+            "com.apple.reminders.WidgetExtension",
+            "com.apple.remotemanagementd",
+            "com.apple.Safari.passwordbreachd", // Checks compromised passwords.
+            "com.apple.SafariBookmarksSyncAgent",
+            "com.apple.schooltimed", // ScreenTime management for educational environments.
+            "com.apple.ScreenTimeAgent",
+            "com.apple.ScreenTimeWidgetApplication.ScreenTimeWidgetExtension",
+            "com.apple.ScreenTimeWidgetApplication",
             "com.apple.searchd",
-            "com.apple.siriinferenced",
-            "com.apple.siriknowledged",
             "com.apple.siri.ClientFlow.ClientScripter",
             "com.apple.siri.context.service",
             "com.apple.siriactionsd",
+            "com.apple.siriinferenced",
+            "com.apple.siriknowledged",
+            "com.apple.sleepd", // Sleep tracking logic.
             "com.apple.suggestd",
             "com.apple.telephonyutilities.callservicesd",
+            "com.apple.tvremoted", // Apple TV remote handling.
+            "com.apple.UsageTrackingAgent",
+            "com.apple.videosubscriptionsd", // Video subscription management (Apple TV).
+            "com.apple.voicebankingd", // Voice training for accessibility.
             "com.apple.voiced",
-            "com.apple.diagnosticextensionsd",
-            "com.apple.intelligenceplatformd",
-            "com.apple.mediaremoted",
-            "com.apple.tvremoted",
-            "com.apple.videosubscriptionsd",
-            "com.apple.Maps.mapssyncd",
-            "com.apple.FamilyControlsAgent",
-            "com.apple.remotemanagementd",
-            "com.apple.fitcore",
-            "com.apple.weatherd"
+            "com.apple.WallpaperKit.WallpaperMigrator",
+            "com.apple.WallpaperKit",
+            "com.apple.weatherd", // Weather data updates.
+            "com.apple.WebBookmarks.webbookmarksd",
+            "com.apple.webkit.adattributiond", // Web ad tracking attribution.
+//            "NewsToday2",
         ).map {
             "--disabledJob=$it"
         }
