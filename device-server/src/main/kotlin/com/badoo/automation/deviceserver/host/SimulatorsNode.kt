@@ -13,14 +13,10 @@ import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
-import com.badoo.automation.deviceserver.ios.simulator.simulatorsThreadPool
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import com.badoo.automation.deviceserver.util.pollFor
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -28,23 +24,23 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.security.MessageDigest
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.*
-import kotlin.collections.HashMap
 import kotlin.system.measureNanoTime
 
 class SimulatorsNode(
-        val remote: IRemote,
-        override val publicHostName: String,
-        private val hostChecker: ISimulatorHostChecker,
-        private val simulatorLimit: Int,
-        concurrentBoots: Int,
-        private val wdaSimulatorBundles: WdaSimulatorBundles,
-        private val applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration(),
-        private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, applicationConfiguration.simulatorBackupPath),
-        private val portAllocator: PortAllocator = PortAllocator(),
-        private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
+    val remote: IRemote,
+    override val publicHostName: String,
+    private val hostChecker: ISimulatorHostChecker,
+    private val simulatorLimit: Int,
+    concurrentBoots: Int,
+    private val wdaSimulatorBundles: WdaSimulatorBundles,
+    private val applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration(),
+    private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, applicationConfiguration.simulatorBackupPath),
+    private val portAllocator: PortAllocator = PortAllocator(remote),
+    private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
 ) : IDeviceNode {
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
     private val simulatorsBootExecutorService: ExecutorService = Executors.newFixedThreadPool(simulatorLimit)
@@ -113,11 +109,17 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).dataContainer(bundleId).delete()
     }
 
+    private fun shaSum(url: String): String {
+        return MessageDigest.getInstance("SHA-256").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }
+    }
+
     private fun copyAppToRemoteHost(appBundle: ApplicationBundle): File {
         val marker = MapEntriesAppendingMarker(mapOf(HOSTNAME to remote.publicHostName, "action_name" to "scp_application"))
         logger.debug(marker, "Copying application ${appBundle.appUrl} to $this")
 
-        val remoteDirectory = File(applicationConfiguration.appBundleCacheRemotePath, UUID.randomUUID().toString()).absolutePath
+        val sha = shaSum(appBundle.appUrl.toExternalForm())
+
+        val remoteDirectory = File(applicationConfiguration.appBundleCacheRemotePath, sha).absolutePath
         remote.exec(listOf("/bin/rm", "-rf", remoteDirectory), mapOf(), false, 90).stdOut.trim()
         remote.exec(listOf("/bin/mkdir", "-p", remoteDirectory), mapOf(), false, 90).stdOut.trim()
 
@@ -151,6 +153,8 @@ class SimulatorsNode(
                 hostChecker.copyTestHelperBundleToHost()
             }
             hostChecker.copyVideoRecorderHelperToHost()
+            hostChecker.copyXcrunSimctlHelperToHost()
+            hostChecker.copyFbsimctlScriptToHost()
         }
 
         hostChecker.cleanup()
@@ -219,11 +223,11 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).media.reset()
     }
 
-    override fun listMedia(deviceRef: DeviceRef) : List<String> {
+    override fun listMedia(deviceRef: DeviceRef): List<String> {
         return getDeviceFor(deviceRef).media.list()
     }
 
-    override fun listPhotoData(deviceRef: DeviceRef) : List<String> {
+    override fun listPhotoData(deviceRef: DeviceRef): List<String> {
         return getDeviceFor(deviceRef).media.listPhotoData()
     }
 
@@ -231,7 +235,7 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).media.addMedia(File(fileName), data)
     }
 
-    override fun syslog(deviceRef: DeviceRef) : File {
+    override fun syslog(deviceRef: DeviceRef): File {
         return getDeviceFor(deviceRef).osLog.osLogFile
     }
 
@@ -411,11 +415,7 @@ class SimulatorsNode(
     }
 
     override fun locationStartLocationSequence(
-        deviceRef: DeviceRef,
-        speed: Int,
-        distance: Int,
-        interval: Int,
-        waypoints: List<LocationDto>
+        deviceRef: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>
     ) {
         getDeviceFor(deviceRef).locationManager.startLocationSequence(speed, distance, interval, waypoints)
     }
@@ -437,6 +437,7 @@ class SimulatorsNode(
     }
 
     override fun isReachable(): Boolean = remote.isReachable()
+    override fun isLocalhost(): Boolean = remote.isLocalhost()
 
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
         val iSimulator = createdSimulators[deviceRef] ?: return false
@@ -465,14 +466,45 @@ class SimulatorsNode(
 
     private fun cancelRunningSimulatorTask(deviceRef: DeviceRef, reason: String) {
         val task = prepareTasks[deviceRef]
-        if (task != null) {
-            if (!task.isDone) {
-                logger.error(logMarker, "Cancelling async task for Simulator $deviceRef while performing $reason")
+        val markerData = mutableMapOf(
+            DEVICE_REF to deviceRef, "action_name" to "cancelRunningSimulatorTask", "action_reason" to reason
+        )
+        val marker = MapEntriesAppendingMarker(markerData)
+        marker.add(logMarker)
+
+        if (task == null) {
+            logger.debug(marker, "No async task found for Simulator $deviceRef while performing $reason")
+        } else {
+            if (task.isDone) {
+                logger.debug(marker, "Async task for Simulator $deviceRef is already done while performing $reason")
+            } else {
+                val startTime = System.nanoTime()
                 task.cancel(true)
+                val duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
+                marker.add(MapEntriesAppendingMarker(mapOf("cancellation_duration" to duration)))
+                logger.error(marker, "Cancelled async task for Simulator $deviceRef while performing $reason. Cancellation took $duration ms")
+
+                val startWaitingTime = System.nanoTime()
+                pollFor(
+                    timeOut = Duration.ofSeconds(60),
+                    reasonName = "Waiting for async task to finish. Device: $deviceRef, reason: $reason",
+                    shouldReturnOnTimeout = true,
+                    retryInterval = Duration.ofMillis(50),
+                    logger = logger,
+                    marker = marker
+                ) {
+                    task.isDone
+                }
+
+                val durationWaitingTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startWaitingTime)
+                marker.add(MapEntriesAppendingMarker(mapOf("cancellation_wait_duration" to durationWaitingTime)))
+                logger.error(marker, "Waited for async task to cancel and finish for Simulator $deviceRef while performing $reason. Waiting time took $durationWaitingTime ms")
+
             }
-            prepareTasks.remove(deviceRef)
         }
+        prepareTasks.remove(deviceRef)
     }
+
 
     override fun resetAsync(deviceRef: DeviceRef) {
         getDeviceFor(deviceRef).resetAsync().let { resetProc ->

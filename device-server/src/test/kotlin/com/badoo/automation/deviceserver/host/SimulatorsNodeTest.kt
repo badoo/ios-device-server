@@ -23,16 +23,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
-import java.io.File
 import java.net.URI
 import java.nio.file.Paths
-import java.util.concurrent.locks.ReentrantLock
 
 @Ignore
 class SimulatorsNodeTest {
     private val iRemote: IRemote = mockThis()
     private val fbSimctl: FBSimctl = mockThis()
-    private val locationPermissionsLock: ReentrantLock = mockThis()
 
     init {
         whenever(iRemote.fbsimctl).thenReturn(fbSimctl)
@@ -85,7 +82,7 @@ class SimulatorsNodeTest {
             "Udid2",
             "Os")
 
-    private val portAllocator = PortAllocator(1, 20)
+    private val portAllocator = PortAllocator(iRemote, 1, 20)
 
     private val configuredSimulatorLimit = 3
 
