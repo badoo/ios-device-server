@@ -131,7 +131,6 @@ class SimulatorHostChecker(
             logger.error(logMarker, "Expecting Xcode $REQUIRED_XCODE_VERSION or higher, but it is $xcodeVersion")
         }
 
-
         val fbsimctlPath = remote.execIgnoringErrors(listOf("readlink", remote.fbsimctl.fbsimctlBinary )).stdOut
         val match = Regex("/fbsimctl/([-.\\w]+)/bin/fbsimctl").find(fbsimctlPath)
                 ?: throw RuntimeException("Could not read fbsimctl version from $fbsimctlPath")
@@ -236,6 +235,14 @@ class SimulatorHostChecker(
     }
 
     override fun setupHost() {
+        val runtimesResult: CommandResult = remote.exec("/usr/bin/xcrun simctl runtime list".split(" "), mapOf(), true, 600)
+
+        if (runtimesResult.isSuccess) {
+            logger.info(logMarker, "iOS Simulator Runtimes available: ${runtimesResult.stdErr.trim() + runtimesResult.stdOut.trim()}")
+        } else {
+            logger.error(logMarker, "Failed to get iOS Simulator Runtimes runtimes: ${runtimesResult.stdErr.trim() + runtimesResult.stdOut.trim()}")
+        }
+
         // disable node hardware keyboard, i.e. use on-screen one
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false".split(" "))
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator EnableKeyboardSync -bool false".split(" "))
