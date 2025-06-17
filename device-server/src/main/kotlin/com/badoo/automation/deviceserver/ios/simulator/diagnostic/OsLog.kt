@@ -74,7 +74,15 @@ class OsLog(
     }
 
     override fun stopWritingLog() {
-        osLogWriterProcess?.destroy()
+        osLogWriterProcess?.let {
+            ShellCommand.destroyProcess(
+                it,
+                logMarker,
+                "xcrun simctl spawn $udid log stream",
+                it.pid(),
+                logger
+            )
+        }
         outWritingTask?.cancel(true)
         errWritingTask?.cancel(true)
     }
@@ -103,10 +111,8 @@ class OsLog(
 
         val process: Process = remote.remoteExecutor.startProcess(cmd, mapOf(), logMarker)
 
-        val executor = Executors.newFixedThreadPool(2)
-        outWritingTask = executor.submit(write(process.inputStream, osLogFile.toPath()))
-        errWritingTask = executor.submit(write(process.errorStream, osLogStderr.toPath()))
-        executor.shutdown()
+        outWritingTask = ShellCommand.outErrReaderExecutor.submit(write(process.inputStream, osLogFile.toPath()))
+        errWritingTask = ShellCommand.outErrReaderExecutor.submit(write(process.errorStream, osLogStderr.toPath()))
 
         osLogWriterProcess = process
     }
@@ -114,8 +120,17 @@ class OsLog(
     private fun write(inputStream: InputStream, path: Path): Runnable {
         logger.debug("Writing log file to ${path.toFile().absolutePath}")
         return Runnable {
-            inputStream.use { stream ->
-                Files.copy(stream, path, StandardCopyOption.REPLACE_EXISTING)
+            try {
+                inputStream.use { stream ->
+                    Files.copy(stream, path, StandardCopyOption.REPLACE_EXISTING)
+                }
+            } catch (e: IOException) {
+                logger.error(logMarker, "Got IOException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
+            } catch (e: InterruptedException) {
+                logger.error(logMarker, "Got InterruptedException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
+                Thread.currentThread().interrupt()
+            } catch (e: Exception) {
+                logger.error(logMarker, "Error while writing log file. Error: ${e.javaClass} ${e.message}", e)
             }
         }
     }
