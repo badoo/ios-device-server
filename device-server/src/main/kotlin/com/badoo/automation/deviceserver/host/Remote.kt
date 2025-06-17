@@ -69,6 +69,21 @@ class Remote(
         }
     }
 
+    private fun getRemoteTempDirWithRetry(): String {
+        1.rangeTo(3).forEach { attempt ->
+            try {
+                val mktempResult = remoteExecutor.exec(command = listOf("/usr/bin/mktemp", "--dry-run"), environment = mapOf(), returnFailure = false)
+                if (mktempResult.isSuccess && mktempResult.stdOut.isNotBlank() && mktempResult.stdOut.trim().startsWith("/var/folders/")) {
+                    return mktempResult.stdOut.trim()
+                }
+            } catch (e: Exception) {
+                logger.error(logMarker, "Failed to get remote temp dir on attempt $attempt. Retrying...", e)
+            }
+        }
+
+        return "/tmp/"
+    }
+
     private fun getEnvironment(): Map<String, String> {
         if (isLocalhost()) {
             return System.getenv()
@@ -77,9 +92,25 @@ class Remote(
         val envDelimiter = "="
         val result = remoteExecutor.exec(command = listOf("/usr/bin/printenv"), environment = mapOf(), returnFailure = false)
 
-        return result.stdOut.lines().associate {
-            it.substringBefore(envDelimiter) to it.substringAfter(envDelimiter)
+        val envMap = mutableMapOf<String, String>()
+        result.stdOut.lines().forEach { line ->
+            envMap[line.substringBefore(envDelimiter)] = line.substringAfter(envDelimiter)
         }
+
+        if (envMap["TMPDIR"] == null || envMap["TMPDIR"]!!.isBlank()) {
+            // If TMPDIR is not set, we guess temp directory
+            val mktempResult = getRemoteTempDirWithRetry()
+            mktempResult.let { tmpDirPath ->
+                if (tmpDirPath.isNotBlank() && tmpDirPath.startsWith("/var/folders/")) {
+                    envMap["TMPDIR"] = File(tmpDirPath).parent + "/"
+                } else {
+                    logger.warn(logMarker, "Failed to determine TMPDIR for remote host $hostName. Using default /tmp")
+                    envMap["TMPDIR"] = "/tmp/"
+                }
+            }
+        }
+
+        return envMap
     }
 
     override fun isReachable(): Boolean {
