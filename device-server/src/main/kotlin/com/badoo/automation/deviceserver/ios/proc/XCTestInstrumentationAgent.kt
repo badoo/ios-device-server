@@ -31,10 +31,9 @@ class XCTestInstrumentationAgent(
     ) -> SubProcess = SubProcess.Companion::fromCommand
 ) : LongRunningProc(deviceInfo.udid, remote.hostName) {
     private val udid = deviceInfo.udid
-    private val derivedDataDir =
-        remote.shell("/usr/bin/mktemp -d -t derivedDataDir_$udid", returnOnFailure = false).stdOut.trim()
-    private val xctestrunDir =
-        remote.shell("/usr/bin/mktemp -d -t xctestRunDir_$udid", returnOnFailure = false).stdOut.trim()
+    private val derivedDataDir = File(remote.tmpDir, "derivedData_$udid").absolutePath
+    private val xctestrunDir = File(remote.tmpDir, "xctestRunDir_$udid").absolutePath
+
     val xctestrunSuffix = "WebDriverAgent_$udid.xctestrun"
     private val xctestrunFile = File(xctestrunDir, xctestrunSuffix)
     private val commonLogMarkerDetails = mapOf(
