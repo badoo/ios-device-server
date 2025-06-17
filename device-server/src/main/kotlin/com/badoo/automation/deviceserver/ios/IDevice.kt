@@ -31,7 +31,7 @@ interface IDevice {
     fun endpointFor(port: Int): URL
     fun release(reason: String)
     fun delete(reason: String)
-    fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File)
+    fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File, bundleId: String)
     fun getInstallTask(): Future<InstallResult>?
 
     fun appInstallationStatus(): Map<String, Any> {

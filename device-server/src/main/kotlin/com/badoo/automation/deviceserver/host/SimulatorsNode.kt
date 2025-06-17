@@ -73,7 +73,7 @@ class SimulatorsNode(
             ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
 
         val device: ISimulator = getDeviceFor(deviceRef)
-        device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath)
+        device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath, appBundleDto.bundleId)
     }
 
     override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Any> {
@@ -81,10 +81,29 @@ class SimulatorsNode(
     }
 
     override fun deployApplication(appBundle: ApplicationBundle) {
-        val appDirectory = if (remote.isLocalhost()) {
+        val appDirectory: File = if (remote.isLocalhost()) {
             appBundle.appDirectory!!
         } else {
-            copyAppToRemoteHost(appBundle)
+            var deployedFile: File? = null
+
+            (0..10).forEach {
+                if (deployedFile == null) {
+                    try {
+                        deployedFile = copyAppToRemoteHost(appBundle)
+                    } catch (e: RuntimeException) {
+                        logger.warn(
+                            logMarker, "Attempt # $it failed to deploy application to remote host ${remote.hostName}", e
+                        )
+                    }
+                }
+            }
+
+            if (deployedFile == null) {
+                logger.error(logMarker, "Failed to deploy application to remote host ${remote.hostName}")
+                throw RuntimeException("Unable to copy application ${appBundle.appUrl} to $this")
+            } else {
+                deployedFile!!
+            }
         }
         val key = appBundle.appUrl.toExternalForm()
         appBinariesCache[key] = appDirectory

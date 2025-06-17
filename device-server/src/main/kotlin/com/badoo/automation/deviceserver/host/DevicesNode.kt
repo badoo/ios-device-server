@@ -92,7 +92,7 @@ class DevicesNode(
 
         val device: Device = slotByExternalRef(deviceRef).device
 
-        device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath)
+        device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath, appBundleDto.bundleId)
     }
 
     private val commonLogMarkerDetails = mapOf(
