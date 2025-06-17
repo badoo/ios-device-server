@@ -30,21 +30,22 @@ open class ShellCommand(
         processBuilder.environment().putAll(commonEnvironment)
         processBuilder.environment().putAll(environment)
 
+        val process: Process = processBuilder.start()
+        val pid = process.pid()
+        val processLogMarker = MapEntriesAppendingMarker(mapOf("PID" to pid, "command" to commandString))
+        logMarker?.let { processLogMarker.add(it) }
+        logger.debug(processLogMarker, "Executing command: $commandString, PID: $pid")
+
+        val stdOutBuilder = StringBuilder()
+        val stdErrBuilder = StringBuilder()
+
+        val stdOutReader = outErrReaderExecutor.submit(streamReader(process.inputStream, stdOutBuilder))
+        val stdErrReader = outErrReaderExecutor.submit(streamReader(process.errorStream, stdErrBuilder))
+
         try {
-            val process: Process = processBuilder.start()
-            val pid = process.pid()
-            val pidLogMarker = MapEntriesAppendingMarker(mapOf("PID" to pid))
-            logMarker?.let { pidLogMarker.add(it) }
-            logger.debug(pidLogMarker, "Executing command: $commandString, PID: $pid")
-            val stdOutBuilder = StringBuilder()
-            val stdErrBuilder = StringBuilder()
-
-            val outputReaderExecutor = Executors.newVirtualThreadPerTaskExecutor()
-
-            val stdOutReader = outputReaderExecutor.submit(readStream(process.inputStream, stdOutBuilder))
-            val stdErrReader = outputReaderExecutor.submit(readStream(process.errorStream, stdErrBuilder))
-
+            val startTime = System.nanoTime()
             val hasExited = process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
+            val elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
 
             val exitCode = if (hasExited) {
                 process.exitValue()
@@ -52,22 +53,23 @@ open class ShellCommand(
                 Int.MIN_VALUE
             }
 
-            if (!hasExited) {
-                logger.error(pidLogMarker, "Command has failed to complete in time. Timeout: ${timeOut.toSeconds()} seconds. Command: $commandString, PID: $pid")
-                destroyProcess(process, pidLogMarker, commandString, pid)
+            processLogMarker.add(MapEntriesAppendingMarker(mapOf("exit_code" to exitCode, "elapsed_time_ms" to elapsedTime)))
+
+            if (hasExited) {
+                if (exitCode == 0) {
+                    logger.debug(processLogMarker, "Command completed successfully. Command: $commandString, PID: $pid. Took: ${elapsedTime}ms")
+                } else {
+                    logger.error(processLogMarker, "Command completed with non-zero exit code. Command: $commandString, PID: $pid. Took: ${elapsedTime}ms. Exit Code: $exitCode")
+                }
+            } else {
+                val stackTrace = Thread.currentThread().stackTrace.joinToString("\n")
+                processLogMarker.add(MapEntriesAppendingMarker(mapOf("stack_trace" to stackTrace)))
+                logMarker?.let { processLogMarker.add(it) }
+                logger.error(processLogMarker, "Command has failed to complete in time. Timeout: ${timeOut.toSeconds()} seconds. Command: $commandString, PID: $pid")
+                destroyProcess(process, processLogMarker, commandString, pid, logger)
                 stdOutReader.cancel(true)
                 stdErrReader.cancel(true)
             }
-
-            outputReaderExecutor.shutdown()
-
-            try {
-                outputReaderExecutor.awaitTermination(5, TimeUnit.SECONDS)
-            } catch (e: InterruptedException) {
-                outputReaderExecutor.shutdownNow()
-                Thread.currentThread().interrupt()
-            }
-
 
             val result = CommandResult(
                 stdOut = stdOutBuilder.toString(),
@@ -78,66 +80,43 @@ open class ShellCommand(
             )
             ensure(exitCode == 0 || returnFailure) {
                 val errorMessage = "Error while running command: $commandString Result=$result"
-                logger.error(pidLogMarker, errorMessage)
+                logger.error(processLogMarker, errorMessage)
                 ShellCommandException(errorMessage)
             }
             return result
-        } catch (e: IOException) {
-            logger.error(logMarker, "Failed to execute command $command. Error: ${e.javaClass} ${e.message}", e)
-            val message = e.message ?: "Failed to execute command. ${e.javaClass}"
+        } catch (e: InterruptedException) {
+            logger.error(logMarker, "Got InterruptedException, while executing command $command. Will destroy process $pid. Error: ${e.javaClass} ${e.message}", e)
+
+            destroyProcess(process, processLogMarker, commandString, pid, logger)
+            stdOutReader.cancel(true)
+            stdErrReader.cancel(true)
+
+            Thread.currentThread().interrupt()
+
             return CommandResult(
-                stdOut = message,
-                stdErr = message,
-                exitCode = -1,
+                stdOut = stdOutBuilder.toString(),
+                stdErr = stdErrBuilder.toString(),
+                exitCode = Int.MIN_VALUE,
                 cmd = command,
-                pid = -1
+                pid = pid
             )
         }
     }
 
-    private fun destroyProcess(
-        process: Process,
-        logMarker: Marker?,
-        commandString: String,
-        pid: Long,
-        destroyTimeOutNanos: Long = Duration.ofSeconds(5).toNanos(),
-    ) {
-        logger.debug(logMarker, "Trying to kill failed command with SIGTERM. Command: $commandString, PID: $pid")
-        process.destroy()
 
-        val isDestroyedSuccess: Boolean = process.waitFor(destroyTimeOutNanos, TimeUnit.NANOSECONDS)
-
-        if (isDestroyedSuccess) {
-            logger.debug(logMarker, "SIGTERM was a success. Process exited OK. Command: $commandString, PID: $pid")
-        } else {
-            logger.debug(logMarker, "SIGTERM was ignored. Process has NOT exited. Command: $commandString, PID: $pid. Will send SIGKILL")
-
-            process.destroyForcibly().waitFor()
-
-            val forceDestroyStartTime = System.nanoTime()
-
-            while (process.isAlive && (System.nanoTime() - forceDestroyStartTime) < destroyTimeOutNanos) {
-                Thread.sleep(50)
-            }
-
-            if (process.isAlive) {
-                logger.error(logMarker, "Process did not terminate after SIGKILL PID: $pid")
-            } else {
-                logger.debug(logMarker, "Process destroyed with SIGKILL PID: $pid.")
-            }
-        }
-    }
-
-    private fun readStream(inputStream: InputStream, stringBuilder: StringBuilder): FutureTask<Unit> {
+    private fun streamReader(inputStream: InputStream, stringBuilder: StringBuilder): FutureTask<Unit> {
         return FutureTask(Callable<Unit> {
             try {
                 BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8), 1045696).use { reader ->
-                    var line: String
+                    var line: String?
                     while ((reader.readLine().also { line = it }) != null) {
-                        stringBuilder.append(line).append("\n")
+                        stringBuilder.append(line).append(System.lineSeparator())
                     }
                 }
+            } catch (e: IOException) {
+                logger.error(logMarker, "Got IOException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
             } catch (e: InterruptedException) {
+                logger.error(logMarker, "Got InterruptedException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
                 Thread.currentThread().interrupt()
             }
         })
@@ -159,5 +138,43 @@ open class ShellCommand(
 
     override fun escape(value: String): String {
         return value
+    }
+
+    companion object {
+        val outErrReaderExecutor: ExecutorService = Executors.newVirtualThreadPerTaskExecutor()
+
+        fun destroyProcess(
+            process: Process,
+            logMarker: Marker?,
+            commandString: String,
+            pid: Long,
+            logger: Logger,
+            destroyTimeOutNanos: Long = Duration.ofSeconds(5).toNanos(),
+        ) {
+            logger.debug(logMarker, "Trying to kill failed command with SIGTERM. Command: $commandString, PID: $pid")
+            process.destroy()
+
+            val isDestroyedGracefully: Boolean = process.waitFor(destroyTimeOutNanos, TimeUnit.NANOSECONDS)
+
+            if (isDestroyedGracefully) {
+                logger.debug(logMarker, "SIGTERM was a success. Process exited OK. Command: $commandString, PID: $pid")
+            } else {
+                logger.debug(logMarker, "SIGTERM was ignored. Process has NOT exited. Command: $commandString, PID: $pid. Will send SIGKILL")
+
+                process.destroyForcibly().waitFor()
+
+                val forceDestroyStartTime = System.nanoTime()
+
+                while (process.isAlive && (System.nanoTime() - forceDestroyStartTime) < destroyTimeOutNanos) {
+                    Thread.sleep(50)
+                }
+
+                if (process.isAlive) {
+                    logger.error(logMarker, "Process did not terminate after SIGKILL PID: $pid")
+                } else {
+                    logger.debug(logMarker, "Process destroyed with SIGKILL PID: $pid.")
+                }
+            }
+        }
     }
 }

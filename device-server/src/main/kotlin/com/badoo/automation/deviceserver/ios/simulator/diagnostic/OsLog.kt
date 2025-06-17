@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.ios.simulator.diagnostic
 
 import com.badoo.automation.deviceserver.LogMarkers
+import com.badoo.automation.deviceserver.command.ShellCommand
 import com.badoo.automation.deviceserver.data.SysLogCaptureOptions
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
@@ -9,11 +10,11 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
 class OsLog(
