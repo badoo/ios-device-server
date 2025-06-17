@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.ios.proc
 
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.command.ChildProcess
+import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.host.IRemote
@@ -28,7 +28,7 @@ class XCTestInstrumentationAgent(
         commandEnvironment: Map<String, String>,
         out_reader: ((line: String) -> Unit)?,
         err_reader: ((line: String) -> Unit)?
-    ) -> ChildProcess = ChildProcess.Companion::fromCommand
+    ) -> SubProcess = SubProcess.Companion::fromCommand
 ) : LongRunningProc(deviceInfo.udid, remote.hostName) {
     private val udid = deviceInfo.udid
     private val derivedDataDir =
@@ -136,8 +136,8 @@ class XCTestInstrumentationAgent(
     var useWebDriverAgent: Boolean = true // use WebDriverAgent for Appium or DeviceAgent for Calabash
 
     fun start(useAppium: Boolean) {
-        val wdaProcess = childProcess
-        ensure(wdaProcess == null || wdaProcess.isAlive() == false) { WebDriverAgentError("Previous WebDriverAgent childProcess $childProcess has not been killed") }
+        val wdaProcess = subProcess
+        ensure(wdaProcess == null || wdaProcess.isAlive() == false) { WebDriverAgentError("Previous WebDriverAgent childProcess $subProcess has not been killed") }
 
         useWebDriverAgent = useAppium
         val instrumentationBundle = getInstrumentationBundle(useAppium)
@@ -168,7 +168,7 @@ class XCTestInstrumentationAgent(
             { message -> deviceAgentLog.appendText(message + "\n") }
         )
 
-        childProcess = process
+        subProcess = process
 
         try {
             pollFor(
@@ -188,7 +188,7 @@ class XCTestInstrumentationAgent(
         }
 
         Thread.sleep(2000) // 2 extra should be ok
-        logger.debug(logMarker, "$this WDA: $childProcess")
+        logger.debug(logMarker, "$this WDA: $subProcess")
     }
 
     private fun truncateAgentLog() {
