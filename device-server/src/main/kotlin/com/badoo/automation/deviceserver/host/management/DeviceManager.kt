@@ -513,7 +513,7 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).appInstallationStatus(ref)
     }
 
-    fun deployApplication(dto: AppBundleDto) {
+    fun deployApplication(dto: AppBundleDeployDto) {
         val marker = MapEntriesAppendingMarker(mapOf("operation" to "app_deploy"))
         val appBundle = acquireBundle(dto, marker)
 
@@ -545,7 +545,7 @@ class DeviceManager(
         logger.debug(marker, "Successfully deployed application ${dto.appUrl}")
     }
 
-    private fun acquireBundle(dto: AppBundleDto, marker: MapEntriesAppendingMarker): ApplicationBundle {
+    private fun acquireBundle(dto: AppBundleDeployDto, marker: MapEntriesAppendingMarker): ApplicationBundle {
         val appBundle = ApplicationBundle(URL(dto.appUrl))
         downloadApplicationBinary(marker, appBundle)
         appBundle.unpack(logger, marker)

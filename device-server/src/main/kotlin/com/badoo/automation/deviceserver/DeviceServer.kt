@@ -30,7 +30,8 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
 import java.net.NetworkInterface
-import java.util.*
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission
 
 
 private fun jsonContent(call: ApplicationCall): JsonNode {

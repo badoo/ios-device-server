@@ -129,6 +129,11 @@ class AppInstaller(
                     val applicationContainer = fileSystem.applicationContainer(bundleId)
                     val fileName = applicationContainer.listFiles(Path.of("Info.plist")).first().trim()
                     isAppInstalled = fileName.isNotBlank() && fileName.endsWith("/Info.plist")
+
+                    if (isAppInstalled) {
+                        logger.warn(logMarker, "App is not installed on simulator $udid yet ${remote.publicHostName}")
+                    }
+
                     isAppInstalled
                 } catch (e: DataContainerException) {
                     logger.error(logMarker, "Error while checking if app is installed on simulator $udid", e)

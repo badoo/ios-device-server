@@ -230,7 +230,8 @@ class Device(
     override fun installApplication(
         appInstaller: AppInstaller,
         appBundleId: String,
-        appBinaryPath: File
+        appBinaryPath: File,
+        bundleId: String
     ) {
         deviceLock.withLock {
             installTask?.let { oldInstallTask ->
@@ -242,7 +243,7 @@ class Device(
                 }
             }
 
-            installTask = appInstaller.installApplication(udid, appBundleId, appBinaryPath, true)
+            installTask = appInstaller.installApplication(udid, appBundleId, appBinaryPath, true, bundleId)
         }
     }
 

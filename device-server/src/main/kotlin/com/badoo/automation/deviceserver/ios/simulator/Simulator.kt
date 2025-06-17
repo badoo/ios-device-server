@@ -17,23 +17,16 @@ import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.*
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.*
 import java.net.URI
 import java.net.URL
-import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.time.Duration
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Future
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.concurrent.TimeUnit.NANOSECONDS
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -158,7 +151,8 @@ class Simulator(
     override fun installApplication(
         appInstaller: AppInstaller,
         appBundleId: String,
-        appBinaryPath: File
+        appBinaryPath: File,
+        bundleId: String
     ) {
         deviceLock.withLock {
             installTask?.let { oldInstallTask ->
@@ -169,7 +163,7 @@ class Simulator(
                 }
             }
 
-            installTask = appInstaller.installApplication(udid, appBundleId, appBinaryPath, false)
+            installTask = appInstaller.installApplication(udid, appBundleId, appBinaryPath, false, bundleId)
         }
     }
 
