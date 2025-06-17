@@ -1074,19 +1074,19 @@ class Simulator(
 
     //region release
     override fun release(reason: String) {
-        logger.info(logMarker, "Releasing device $this because $reason")
-        ignoringErrors({ shutdown() })
-        ignoringErrors({ disposeResources() })
-        logger.info(logMarker, "Released device $this")
+        logTiming("Full set of actions to release simulator $udid on host ${remote.publicHostName}") {
+            logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ shutdown() })}
+            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ disposeResources() })}
+        }
     }
 
     override fun delete(reason: String) {
-        logger.info(logMarker, "Deleting device $this because $reason")
-        ignoringErrors({ backup.delete() })
-        ignoringErrors({ shutdown() })
-        ignoringErrors({ deleteSimulator() })
-        ignoringErrors({ disposeResources(keepMetadata = false) })
-        logger.info(logMarker, "Deleted device $this because $reason")
+        logTiming("Full set of actions to delete simulator $udid on host ${remote.publicHostName}") {
+            logTiming("Delete backup for simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ backup.delete() })}
+            logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ shutdown() })}
+            logTiming("Delete simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ deleteSimulator() })}
+            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ disposeResources(keepMetadata = false) })}
+        }
     }
 
     private fun deleteSimulatorFolder(keepMetadata: Boolean) {
