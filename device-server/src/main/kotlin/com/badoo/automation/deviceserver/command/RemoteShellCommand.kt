@@ -10,8 +10,8 @@ class RemoteShellCommand(
     private val remoteHost: String,
     userName: String,
     commonEnvironment: Map<String, String> = mapOf(),
-    private val isVerboseMode: Boolean = false,
-    private val connectionTimeout: Int = 60
+    isVerboseMode: Boolean = false,
+    connectionTimeout: Int = 60
 ) : ShellCommand(commonEnvironment) {
     private val userAtHost: String = if (userName.isBlank()) { remoteHost } else { "$userName@$remoteHost" }
     override val logMarker: Marker get() = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
@@ -20,18 +20,21 @@ class RemoteShellCommand(
     init {
         //ssh command prefix
         val sshPrefix = arrayListOf<String>()
-        sshPrefix.addAll(listOf(
+        sshPrefix.addAll(
+            listOf(
                 SSH_COMMAND,
+                "-p", "2222",
+//                "-p", "22",
                 "-o", "ConnectTimeout=$connectionTimeout",
-                "-o", "PreferredAuthentications=publickey",
-                "-o", "VerifyHostKeyDNS=no",
-                QUIET_MODE
-        ))
+            )
+        )
 
         sshPrefix.addAll(FORCE_PSEUDO_TERMINAL_ALLOCATION)
 
         if (isVerboseMode) {
             sshPrefix.add("-vvv")
+        } else {
+            sshPrefix.add(QUIET_MODE)
         }
 
         sshCommandPrefix = ArrayList<String>(sshPrefix)
@@ -53,18 +56,36 @@ class RemoteShellCommand(
         val startTime = System.nanoTime()
         val remoteShellLogMarker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remoteHost))
         logMarker?.let { remoteShellLogMarker.add(it) }
-        val result = super.exec(cmd, getEnvironmentForSSH(environment), timeOut, returnFailure, remoteShellLogMarker, processBuilder)
+        val result = super.exec(cmd, getEnvironmentForSSH(environment), timeOut, true, remoteShellLogMarker, processBuilder)
         val elapsedTime = System.nanoTime() - startTime
         val elapsedMillis = TimeUnit.NANOSECONDS.toMillis(elapsedTime)
-        remoteShellLogMarker.add(MapEntriesAppendingMarker(mapOf(LogMarkers.SSH_PROFILING_MS to elapsedMillis)))
-        logger.debug(remoteShellLogMarker,
-            "Execution of SSH command took $elapsedMillis ms. Command: ${cmd.joinToString(" ")}, PID: ${result.pid}")
+
+        remoteShellLogMarker.add(
+            MapEntriesAppendingMarker(
+                mapOf(
+                    LogMarkers.SSH_PROFILING_MS to elapsedMillis,
+                    "is_success" to result.isSuccess,
+                    "ssh_exit_code" to result.exitCode,
+                    "ssh_command" to command.joinToString(" "),
+                    "ssh_command_state" to "finished",
+                    "initial_duration" to timeOut.seconds
+                )
+            )
+        )
+
+        logger.debug(remoteShellLogMarker, "Execution of SSH command took $elapsedMillis ms. Command: ${cmd.joinToString(" ")}, PID: ${result.pid}. is_success : ${result.isSuccess}, ssh_exit_code : ${result.exitCode}")
 
         if (result.exitCode == SSH_ERROR) {
             // FIXME: Check stdout and stderr, if they are empty – ssh timeout, otherwise, it is likely to be command error
             val message = "Probably SSH could not connect to node $remoteHost. Result: $result"
             logger.error(remoteShellLogMarker, message)
             throw SshConnectionException(message)
+        }
+
+        if (!result.isSuccess && !returnFailure) {
+            val errorMessage = "Error while running command. Result=$result"
+            logger.error(remoteShellLogMarker, errorMessage)
+            ShellCommandException(errorMessage)
         }
 
         return result
@@ -88,23 +109,11 @@ class RemoteShellCommand(
 
     private fun getCommandWithSSHPrefix(command: List<String>, environmentVariables: Set<String>): ArrayList<String> {
         val commandWithSshPrefix = ArrayList<String>()
-        commandWithSshPrefix.addAll(listOf(
-            SSH_COMMAND,
-            "-o", "ConnectTimeout=$connectionTimeout",
-            "-o", "PreferredAuthentications=publickey"
-        ))
+        commandWithSshPrefix.addAll(sshCommandPrefix)
 
         environmentVariables.forEach {
             commandWithSshPrefix.add("-o")
             commandWithSshPrefix.add("SendEnv=$it")
-        }
-
-        commandWithSshPrefix.addAll(FORCE_PSEUDO_TERMINAL_ALLOCATION)
-
-        if (isVerboseMode) {
-            commandWithSshPrefix.add("-vvv")
-        } else {
-            commandWithSshPrefix.add(QUIET_MODE)
         }
 
         commandWithSshPrefix.add(userAtHost)
