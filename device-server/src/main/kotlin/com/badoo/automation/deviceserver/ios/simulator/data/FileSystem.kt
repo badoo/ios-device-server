@@ -56,6 +56,7 @@ class FileSystem(
                 val logMarker = MapEntriesAppendingMarker(metaData)
                 logger.warn(logMarker, "Attempt $attempt to get container path for bundle id $bundleId on simulator $udid failed: ${e.message}")
                 if (attempt == 3) {
+                    logger.error(logMarker, "Failed to get container path for $containerType for bundle id $bundleId on simulator $udid failed: ${e.message}")
                     throw e
                 }
             }
