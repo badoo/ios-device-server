@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.ios.device.diagnostic
 
 import com.badoo.automation.deviceserver.LogMarkers
+import com.badoo.automation.deviceserver.command.ShellCommand
 import com.badoo.automation.deviceserver.data.SysLogCaptureOptions
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
@@ -9,11 +10,11 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
 class RealDeviceSysLog(
@@ -61,7 +62,15 @@ class RealDeviceSysLog(
     }
 
     override fun stopWritingLog() {
-        osLogWriterProcess?.destroy()
+        osLogWriterProcess?.let {
+            ShellCommand.destroyProcess(
+                it,
+                logMarker,
+                "idevicesyslog $udid",
+                it.pid(),
+                logger
+            )
+        }
         outWritingTask?.cancel(true)
         errWritingTask?.cancel(true)
     }
@@ -92,10 +101,8 @@ class RealDeviceSysLog(
 
         val process: Process = remote.localExecutor.startProcess(cmd, mapOf(), logMarker)
 
-        val executor = Executors.newFixedThreadPool(2)
-        outWritingTask = executor.submit(write(process.inputStream, osLogFile.toPath()))
-        errWritingTask = executor.submit(write(process.errorStream, osLogStderr.toPath()))
-        executor.shutdown()
+        outWritingTask = ShellCommand.outErrReaderExecutor.submit(write(process.inputStream, osLogFile.toPath()))
+        errWritingTask = ShellCommand.outErrReaderExecutor.submit(write(process.errorStream, osLogStderr.toPath()))
 
         osLogWriterProcess = process
     }
@@ -103,8 +110,17 @@ class RealDeviceSysLog(
     private fun write(inputStream: InputStream, path: Path): Runnable {
         logger.debug("Writing log file to ${path.toFile().absolutePath}")
         return Runnable {
-            inputStream.use { stream ->
-                Files.copy(stream, path, StandardCopyOption.REPLACE_EXISTING)
+            try {
+                inputStream.use { stream ->
+                    Files.copy(stream, path, StandardCopyOption.REPLACE_EXISTING)
+                }
+            } catch (e: IOException) {
+                logger.error(logMarker, "Got IOException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
+            } catch (e: InterruptedException) {
+                logger.error(logMarker, "Got InterruptedException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
+                Thread.currentThread().interrupt()
+            } catch (e: Exception) {
+                logger.error(logMarker, "Error while writing log file. Error: ${e.javaClass} ${e.message}", e)
             }
         }
     }
