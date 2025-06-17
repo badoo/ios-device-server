@@ -67,7 +67,7 @@ class XCRunSimctl(
     override fun eraseSimulator(udid: UDID): String {
         val command: List<String> = listOf("xcrun", "simctl", "erase", udid)
 
-        val timeOut = Duration.ofSeconds(30)
+        val timeOut = Duration.ofSeconds(90)
 
         val result = try {
             shellCommand.exec(command, timeOut = timeOut, returnFailure = true)
