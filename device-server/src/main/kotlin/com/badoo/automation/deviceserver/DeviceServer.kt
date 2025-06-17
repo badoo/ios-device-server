@@ -174,6 +174,8 @@ fun Application.module() {
         // FIXME: See anonymousAuthentication
     }
 
+    install(IgnoreTrailingSlash)
+
     logger.info("Server: Installing routing...")
     install(RoutingRoot) {
         get {
