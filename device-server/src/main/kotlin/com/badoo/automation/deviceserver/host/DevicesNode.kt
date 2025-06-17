@@ -31,7 +31,7 @@ import kotlin.system.measureNanoTime
 class DevicesNode(
     private val remote: IRemote,
     override val publicHostName: String,
-    portAllocator: PortAllocator = PortAllocator(),
+    portAllocator: PortAllocator = PortAllocator(remote),
     configuredDevices: Set<ConfiguredDevice>,
     private val whitelistedApps: Set<String>,
     private val uninstallApps: Boolean,
@@ -255,6 +255,10 @@ class DevicesNode(
 
     override fun isReachable(): Boolean {
         return remote.isReachable()
+    }
+
+    override fun isLocalhost(): Boolean {
+        return remote.isLocalhost()
     }
 
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {

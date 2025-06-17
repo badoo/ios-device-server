@@ -2,8 +2,10 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.data.DeviceAllocatedPorts
 import com.badoo.automation.deviceserver.host.IRemote
+import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -31,11 +33,18 @@ class PortAllocator(private val remote: IRemote, min: Int = PORT_RANGE_START, ma
     }
 
     fun deallocateDAP(allocatedPorts: DeviceAllocatedPorts) {
+        val startTime = System.nanoTime()
         lock.withLock {
             allocatedPorts.toSet().forEach { port ->
                 ports.add(port)
             }
         }
+        val elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
+        val logMarker = MapEntriesAppendingMarker(mapOf(
+                "remoteHost" to remote.publicHostName,
+                "duration" to elapsedTime,
+                ))
+        logger.info(logMarker, "Deallocated ports on host ${remote.publicHostName} in $elapsedTime ms")
     }
 
     fun available(): Int {
