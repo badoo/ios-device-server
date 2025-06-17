@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.host.management
 import com.badoo.automation.deviceserver.NodeConfig
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
@@ -51,7 +52,7 @@ class NodeRegistrar(
         }
 
         logger.debug("Going to auto register ${unregistered.map(NodeWrapper::toString)}")
-        val executor = Executors.newFixedThreadPool(unregistered.size)
+        val executor: ExecutorService = Executors.newVirtualThreadPerTaskExecutor()
         val results: List<Future<*>> = unregistered.map { nodeWrapper ->
             executor.submit {
                 nodeWrapper.stop()
