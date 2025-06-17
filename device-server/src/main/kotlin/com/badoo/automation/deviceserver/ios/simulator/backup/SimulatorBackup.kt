@@ -74,7 +74,7 @@ class SimulatorBackup(
     //region create backup
     override fun create() {
         remote.execIgnoringErrors(listOf("rm", "-rf", backupPath))
-        val result = remote.execIgnoringErrors(listOf("cp", "-Rp", simulatorDirectory.absolutePath, backupPath), timeOutSeconds = 120)
+        val result = remote.execIgnoringErrors(listOf("cp", "-a", simulatorDirectory.absolutePath, backupPath), timeOutSeconds = 180)
 
         if (!result.isSuccess) {
             val stdOutLines = result.stdOut.lines().map { it.trim() }.filter { it.isNotBlank() }
