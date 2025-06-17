@@ -46,12 +46,14 @@ fun pollFor(timeOut: Duration, reasonName: String, shouldReturnOnTimeout: Boolea
         isSuccess = action() // what if this hangs on IO ??
 
         if (isSuccess) {
-            logger.trace(marker, "Awaited successfully for: $reasonName")
+            val finishTime = System.nanoTime()
+            val successElapsedTime = TimeUnit.NANOSECONDS.toMillis(finishTime - startTime)
+            logger.debug(marker, "Awaited successfully for: $reasonName. Took: $successElapsedTime ms")
             break
         } else {
             Thread.sleep(retryInterval.toMillis())
         }
-    } while (!isSuccess && System.nanoTime() - startTime < timeOutNanos)
+    } while (!Thread.currentThread().isInterrupted && !isSuccess && System.nanoTime() - startTime < timeOutNanos)
 
     if (!isSuccess && !shouldReturnOnTimeout) {
         val message = "$reasonName failed after waiting ${timeOut.seconds} seconds"
