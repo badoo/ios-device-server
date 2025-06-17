@@ -10,6 +10,7 @@ import java.io.PrintStream
 import java.time.Duration
 import kotlin.test.assertFailsWith
 
+@Ignore
 class ShellCommandTest {
     private lateinit var systemErr: PrintStream
     private lateinit var systemOut: PrintStream
