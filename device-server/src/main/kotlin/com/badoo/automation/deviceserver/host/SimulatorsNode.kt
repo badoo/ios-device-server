@@ -140,6 +140,7 @@ class SimulatorsNode(
             HOSTNAME to remote.publicHostName
     ))
 
+    @Volatile
     private var macOSVersion: String = "0"
 
     override fun prepareNode() {
@@ -159,6 +160,7 @@ class SimulatorsNode(
 
         hostChecker.cleanup()
         hostChecker.setupHost()
+        portAllocator.refreshPortAvailability()
 
         macOSVersion = getMacOSVersion()
         logger.info(logMarker, "Prepared node ${remote.hostName}. macOS version $macOSVersion")
@@ -174,7 +176,7 @@ class SimulatorsNode(
     private val allocatedPorts = HashMap<DeviceRef, DeviceAllocatedPorts>()
 
     override fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO {
-        synchronized(this) { // FIXME: synchronize in some other place?
+        synchronized(this) {
             if (createdSimulators.size >= simulatorLimit) {
                 val message = "$this was asked for a newSimulator, but is already at capacity $simulatorLimit"
                 logger.error(logMarker, message)
@@ -191,20 +193,19 @@ class SimulatorsNode(
             }
 
             val ref = deviceRefFromUDID(fbSimctlDevice.udid, remote.publicHostName)
-            val ports = portAllocator.allocateDAP()
-            allocatedPorts[ref] = ports
-
             val simLogMarker = MapEntriesAppendingMarker(mapOf(
-                    HOSTNAME to remote.hostName,
-                    UDID to fbSimctlDevice.udid,
-                    DEVICE_REF to ref
+                HOSTNAME to remote.hostName,
+                UDID to fbSimctlDevice.udid,
+                DEVICE_REF to ref
             ))
 
             logger.debug(simLogMarker, "Will create simulator $ref")
 
+            val ports = portAllocator.allocateDAP()
+            allocatedPorts[ref] = ports
+
             val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, simulatorProvider.deviceSetPath,
                     wdaSimulatorBundles, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, desiredCaps.useAppium)
-
             cancelRunningSimulatorTask(ref, "createDeviceAsync")
 
             prepareTasks[ref] = simulatorsBootExecutorService.submit {
