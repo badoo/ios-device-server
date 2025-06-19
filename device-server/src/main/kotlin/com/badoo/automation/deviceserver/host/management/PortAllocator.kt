@@ -1,13 +1,12 @@
 package com.badoo.automation.deviceserver.host.management
 
+import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.DeviceAllocatedPorts
 import com.badoo.automation.deviceserver.host.IRemote
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
+import org.slf4j.Marker
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 class PortAllocator(private val remote: IRemote, min: Int = PORT_RANGE_START, max: Int = PORT_RANGE_END) {
     companion object {
@@ -17,15 +16,16 @@ class PortAllocator(private val remote: IRemote, min: Int = PORT_RANGE_START, ma
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
+    private val logMarker: Marker = MapEntriesAppendingMarker(mapOf(
+        LogMarkers.HOSTNAME to remote.hostName
+    ))
+
     private val ports = ConcurrentHashMap.newKeySet<Int>()
-    private val lock = ReentrantLock(true)
 
     init {
         // Initialize the set with all ports in the range
         ports.addAll(IntRange(min, max).toSet())
-        logger.info("PortAllocator initialized with ports from $min to $max")
     }
-
 
     fun allocateDAP(): DeviceAllocatedPorts {
         val take = allocate(5)
@@ -33,25 +33,32 @@ class PortAllocator(private val remote: IRemote, min: Int = PORT_RANGE_START, ma
     }
 
     fun deallocateDAP(allocatedPorts: DeviceAllocatedPorts) {
-        val startTime = System.nanoTime()
-        lock.withLock {
-            allocatedPorts.toSet().forEach { port ->
-                ports.add(port)
-            }
-        }
-        val elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
-        val logMarker = MapEntriesAppendingMarker(mapOf(
-                "remoteHost" to remote.publicHostName,
-                "duration" to elapsedTime,
-                ))
-        logger.info(logMarker, "Deallocated ports on host ${remote.publicHostName} in $elapsedTime ms")
+        ports.addAll(allocatedPorts.toSet())
     }
 
     fun available(): Int {
         return ports.size
     }
 
-    fun getOccupiedPorts(): Set<Int> {
+    private fun allocate(entries: Int): List<Int> {
+        synchronized(this) {
+            if (ports.size < entries) {
+                throw RuntimeException("No more ports to allocate")
+            }
+            val takenPorts = ports.take(entries)
+            ports.removeAll(takenPorts)
+            return takenPorts
+        }
+    }
+
+    fun refreshPortAvailability() {
+        val occupiedPorts = getOccupiedPortsWithRetry()
+        occupiedPorts.forEach { port ->
+            ports.remove(port)
+        }
+    }
+
+    private fun getOccupiedPorts(): Set<Int> {
         val result = remote.shell("/usr/sbin/netstat -anv")
 
         if (result.isSuccess) {
@@ -65,6 +72,8 @@ class PortAllocator(private val remote: IRemote, min: Int = PORT_RANGE_START, ma
                 }
                 .toSet()
 
+            logger.info(logMarker, "Received occupied ports: ${occupiedPorts.joinToString(", ")}")
+
             return occupiedPorts
         } else {
             throw IllegalStateException("Failed to get occupied ports: ${result.stdErr}")
@@ -76,29 +85,13 @@ class PortAllocator(private val remote: IRemote, min: Int = PORT_RANGE_START, ma
             try {
                 return getOccupiedPorts()
             } catch (e: IllegalStateException) {
-                logger.warn("Attempt $attempt to get occupied ports failed: ${e.message}")
+                logger.warn(logMarker, "Attempt $attempt to get occupied ports failed: ${e.message}")
                 if (attempt == 3) {
+                    logger.error(logMarker, "Failed to get occupied ports for host ${remote.publicHostName}: ${e.message}")
                     throw e
                 }
             }
         }
         throw IllegalStateException("Failed to get occupied ports after 3 attempts")
-    }
-
-    private fun allocate(entries: Int): List<Int> {
-        val occupiedPorts = getOccupiedPortsWithRetry()
-        lock.withLock {
-            occupiedPorts.forEach { port ->
-                ports.remove(port)
-            }
-
-            if (ports.size < entries) {
-                throw RuntimeException("No more ports to allocate")
-            }
-
-            val takenPorts = ports.take(entries)
-            ports.removeAll(takenPorts)
-            return takenPorts
-        }
     }
 }
