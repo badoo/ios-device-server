@@ -13,13 +13,12 @@ import io.ktor.server.netty.*
 fun main(args: Array<String>) {
     System.setProperty("io.netty.eventLoopThreads", "200")
     val server = EngineMain.createServer(args)
+    val workers = 300
 
     with(server.engine.configuration) {
-        this.tcpKeepAlive = true
-        this.runningLimit = 300
-        this.connectionGroupSize = 200
-        this.workerGroupSize = 200
-        this.callGroupSize = 200
+        this.connectionGroupSize = workers
+        this.workerGroupSize = workers
+        this.callGroupSize = workers
     }
 
     server.start(wait = true)
