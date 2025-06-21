@@ -9,9 +9,6 @@ data class SimulatorStatusDTO(
     @JsonProperty("wda_status")
     val wdaStatus: Boolean,
 
-    @JsonProperty("fbsimctl_status")
-    val fbsimctlStatus: Boolean,
-
     @JsonProperty("state")
     val state: String,
 

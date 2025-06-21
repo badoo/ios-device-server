@@ -45,8 +45,6 @@ class Device(
 
     override val osLog = RealDeviceSysLog(remote, udid)
 
-    private val useFbsimctlProc = ApplicationConfiguration().useFbsimctlProc
-
     private val calabashProxy = usbProxyFactory.create(
         udid = deviceInfo.udid,
         localPort = userPorts.calabashPort
@@ -87,7 +85,6 @@ class Device(
             logger.debug(logMarker, "$this $oldState -> $value")
         }
 
-    private val fbsimctlProc: DeviceFbsimctlProc = DeviceFbsimctlProc(remote, deviceInfo.udid, fbsimctlEndpoint, false)
     private val instrumentationAgent = XCTestInstrumentationAgent(
         remote = remote,
         wdaBundles = wdaDeviceBundles,
@@ -128,15 +125,11 @@ class Device(
             ready = status.isReady,
             state = deviceState.value, // FIXME: why get rid of type here
             wdaStatus = status.wdaStatus,
-            fbsimctlStatus = status.fbsimctlStatus,
             lastError = lastException?.toDTO()
         )
     }
 
     private fun refreshStatus() {
-        val previousFbSimctlStatus = status.fbsimctlStatus
-
-        status.fbsimctlStatus = false
         status.wdaStatus = false
 
         if (deviceState != DeviceState.CREATED) {
@@ -151,7 +144,6 @@ class Device(
         }
 
         val isWdaHealty = instrumentationAgent.isHealthy()
-        val fbsimctlStatus = if (useFbsimctlProc) fbsimctlProc.isHealthy() else true
 
         // check if WDA or fbsimctl crashed after being ok for some time
 
@@ -168,14 +160,6 @@ class Device(
             lastException = RuntimeException(message)
         }
 
-        if (previousFbSimctlStatus && !fbsimctlStatus) {
-            deviceState = DeviceState.FAILED
-            val message = "$this fbsimctl crashed"
-            logger.error(logMarker, message)
-            lastException = RuntimeException(message)
-        }
-
-        status.fbsimctlStatus = fbsimctlStatus
         status.wdaStatus = isWdaHealty
     }
 
@@ -228,9 +212,6 @@ class Device(
 
     private fun disposeResources() {
         stopPeriodicHealthCheck()
-        if (useFbsimctlProc) {
-            ignoringDisposeErrors { fbsimctlProc.kill() }
-        }
         ignoringDisposeErrors { instrumentationAgent.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
@@ -355,13 +336,9 @@ class Device(
     private fun prepare(timeout: Duration = PREPARE_TIMEOUT) {
         lastException = null
         status.wdaStatus = false
-        status.fbsimctlStatus = false
 
         logger.info(logMarker, "Starting to prepare $this")
 
-        if (useFbsimctlProc) {
-            fbsimctlProc.kill()
-        }
         instrumentationAgent.kill()
 
         wdaProxy.stop()
@@ -385,10 +362,6 @@ class Device(
 
             if (!calabashProxy.isHealthy()) {
                 throw DeviceException("Failed to start $calabashProxy")
-            }
-
-            if (useFbsimctlProc) {
-                startFbsimctl()
             }
 
             startWdaWithRetry()
@@ -445,26 +418,6 @@ class Device(
 
     private fun stopPeriodicHealthCheck() {
         healthChecker?.cancel(true)
-    }
-
-    private fun startFbsimctl() {
-        logger.info(logMarker, "Starting fbsimctl on $this")
-
-        if (useFbsimctlProc) {
-            fbsimctlProc.kill()
-            fbsimctlProc.start()
-
-            Thread.sleep(5000)
-            pollFor(
-                Duration.ofSeconds(60),
-                reasonName = "$this Fbsimctl health check",
-                retryInterval = Duration.ofSeconds(2),
-                logger = logger,
-                marker = logMarker
-            ) {
-                fbsimctlProc.isHealthy()
-            }
-        }
     }
 
     private fun startWda() {

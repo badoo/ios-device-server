@@ -23,7 +23,6 @@ interface ISimulatorHostChecker {
     fun copyWdaBundleToHost()
     fun copyTestHelperBundleToHost()
     fun copyVideoRecorderHelperToHost()
-    fun copyFbsimctlScriptToHost()
     fun copyXcrunSimctlHelperToHost()
 }
 
@@ -32,11 +31,9 @@ class SimulatorHostChecker(
         private val diskCleanupInterval: Duration = Duration.ofMinutes(15),
         private val wdaSimulatorBundles: WdaSimulatorBundles,
         private val remoteTestHelperAppRoot: File,
-        private val fbsimctlVersion: String,
         private val shutdownSimulators: Boolean,
         private val remoteVideoRecorder: File,
         private val remoteXcrunSimctl: File,
-        private val remoteFbsimctl: File,
 ) : ISimulatorHostChecker {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
@@ -102,20 +99,6 @@ class SimulatorHostChecker(
         remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteXcrunSimctl.absolutePath))
     }
 
-    override fun copyFbsimctlScriptToHost() {
-        logger.debug(logMarker, "Setting up remote node: Copying fbsimctl helper to node ${remote.hostName}")
-
-        if (!remoteFbsimctl.exists()) {
-            logger.error(logMarker, "Failed to copy fbsimctl to node ${remote.hostName}. fbsimctl script does not exist")
-            return
-        }
-
-        remote.rm(remoteFbsimctl.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteFbsimctl.parent))
-        remote.scpToRemoteHost(remoteFbsimctl.absolutePath, remoteFbsimctl.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteFbsimctl.absolutePath))
-    }
-
     override fun killDiskCleanupThread() {
         if (::cleanUpTask.isInitialized) {
             cleanUpTask.cancel(true)
@@ -129,14 +112,6 @@ class SimulatorHostChecker(
 
         if (xcodeVersion < REQUIRED_XCODE_VERSION) {
             logger.error(logMarker, "Expecting Xcode $REQUIRED_XCODE_VERSION or higher, but it is $xcodeVersion")
-        }
-
-        val fbsimctlPath = remote.execIgnoringErrors(listOf("readlink", remote.fbsimctl.fbsimctlBinary )).stdOut
-        val match = Regex("/fbsimctl/([-.\\w]+)/bin/fbsimctl").find(fbsimctlPath)
-                ?: throw RuntimeException("Could not read fbsimctl version from $fbsimctlPath")
-        val actualFbsimctlVersion = match.groupValues[1]
-        if (actualFbsimctlVersion != fbsimctlVersion) {
-            throw RuntimeException("Expecting fbsimctl $fbsimctlVersion, but it was $actualFbsimctlVersion ${match.groupValues}")
         }
     }
 

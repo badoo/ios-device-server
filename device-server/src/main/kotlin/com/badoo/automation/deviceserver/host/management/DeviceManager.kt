@@ -143,32 +143,6 @@ class DeviceManager(
         logger.info("Successfully copied remote xcrun simctl script ${remoteXcrunSimctlFile.name} from resources to ${remoteXcrunSimctlFile.absolutePath}")
     }
 
-    fun extractFBSimCtlScript() {
-        val fbsimctlScript = appConfig.remoteFbsimctl
-        fbsimctlScript.delete()
-        fbsimctlScript.parentFile.mkdirs()
-
-        logger.info("Start to copy fbsimctl script ${fbsimctlScript.name} from resources to ${fbsimctlScript.absolutePath}")
-
-        val fbsimctlFileStream = DeviceManager::class.java.classLoader.getResourceAsStream(fbsimctlScript.name)
-
-        if (fbsimctlFileStream == null) {
-            logger.error("Failed to find fbsimctl script ${fbsimctlScript.name} in resources")
-            return
-        }
-
-        fbsimctlFileStream.use { inputStream ->
-            fbsimctlScript.outputStream().use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-        }
-
-        fbsimctlScript.setWritable(false)
-        fbsimctlScript.setExecutable(true)
-
-        logger.info("Successfully copied fbsimctl script ${fbsimctlScript.name} from resources to ${fbsimctlScript.absolutePath}")
-    }
-
     private fun File.isOlderThan(maxCreationTime: Long): Boolean {
         val attributes = Files.readAttributes(toPath(), BasicFileAttributes::class.java)
         return attributes.lastModifiedTime().toMillis() < maxCreationTime

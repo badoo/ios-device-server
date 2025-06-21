@@ -360,7 +360,7 @@ class SimulatorsNodeTest {
     @Ignore @Test
     fun state() {
         createDeviceForTest()
-        val expected = SimulatorStatusDTO(false, false, false, DeviceState.CREATING.value, null)
+        val expected = SimulatorStatusDTO(false, false, DeviceState.CREATING.value, null)
 
         whenever(simulatorMock.status()).thenReturn(expected)
 

@@ -90,7 +90,6 @@ class Simulator(
     @Volatile override var lastException: Exception? = null // writing from separate thread
         private set
 
-    private val fbsimctlProc: FbsimctlProcAsync = FbsimctlProcAsync(remote, deviceInfo.udid, fbsimctlEndpoint, headless, deviceRef)
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
     private val instrumentationAgent = XCTestInstrumentationAgentAsync(
@@ -213,8 +212,6 @@ class Simulator(
                 installTestHelperApp()
             }
 
-            fbsimctlProc.start()
-
             if (useWda) {
                 logTiming("starting WebDriverAgent") { startWdaWithRetry() }
             }
@@ -284,14 +281,11 @@ class Simulator(
     private fun startPeriodicHealthCheck() {
         stopPeriodicHealthCheck()
 
-        val fbsimctlFailCount = 0
         val wdaFailCount = 0
         val maxFailCount = 3
         val healthCheckInterval = Duration.ofSeconds(15).toMillis()
 
         healthChecker = periodicTasksPool.scheduleWithFixedDelay({
-            performFBSimctlHealthCheck(fbsimctlFailCount, maxFailCount)
-
             if (useWda) {
                 performInstrumentationAgentHealthCheck(wdaFailCount, maxFailCount)
             }
@@ -333,47 +327,6 @@ class Simulator(
                     startWdaWithRetry()
                 } catch (e: RuntimeException) {
                     logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
-                    deviceState = DeviceState.FAILED
-                    throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
-                }
-            }
-        }
-    }
-
-    private fun performFBSimctlHealthCheck(fbsimctlFailCount: Int, maxFailCount: Int) {
-        var fbsimctlFailCount1 = fbsimctlFailCount
-        if (fbsimctlProc.isHealthy()) {
-            fbsimctlFailCount1 = 0
-        } else {
-            (1..5).forEach {
-                if (Thread.currentThread().isInterrupted) {
-                    logger.error(logMarker, "Health check interrupted")
-                    return
-                }
-                if (fbsimctlProc.isHealthy()) {
-                    fbsimctlFailCount1 = 0
-                    return@forEach
-                } else {
-                    val message = "Fbsimctl health check failed $fbsimctlFailCount1 times."
-                    logger.error(logMarker, message)
-                    fbsimctlFailCount1 += 1
-                    Thread.sleep(Duration.ofSeconds(2).toMillis())
-                }
-            }
-
-            if (fbsimctlFailCount1 >= maxFailCount) {
-                logger.error(logMarker, "Fbsimctl health check failed $fbsimctlFailCount1 times. Restarting fbsimctl")
-
-                try {
-                    fbsimctlProc.stop()
-                } catch (e: RuntimeException) {
-                    logger.error(logMarker, "Failed to kill Fbsimctl. ${e.message}", e)
-                }
-
-                try {
-                    fbsimctlProc.start()
-                } catch (e: RuntimeException) {
-                    logger.error(logMarker, "Failed to restart Fbsimctl. ${e.message}", e)
                     deviceState = DeviceState.FAILED
                     throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
                 }
@@ -583,7 +536,6 @@ class Simulator(
        val tasks = setOf(
            {ignoringErrors({ videoRecorder.dispose() })},
            {ignoringErrors({ instrumentationAgent.kill() })},
-           {ignoringErrors({ fbsimctlProc.stop() })},
        ).map { executor.submit(it) }
 
         val result = remote.fbsimctl.shutdown(udid)
@@ -874,20 +826,17 @@ class Simulator(
 
     //region simulator status
     override fun status(): SimulatorStatusDTO {
-        var isFbsimctlReady = false
         var isWdaReady = false
 
         if (deviceState == DeviceState.CREATED) {
-            isFbsimctlReady = fbsimctlProc.isHealthy()
             isWdaReady = (if (useWda) { instrumentationAgent.isHealthy() } else true)
         }
 
-        val isSimulatorReady = deviceState == DeviceState.CREATED && isFbsimctlReady && isWdaReady
+        val isSimulatorReady = deviceState == DeviceState.CREATED && isWdaReady
 
         return SimulatorStatusDTO(
             ready = isSimulatorReady,
             wdaStatus = isWdaReady,
-            fbsimctlStatus = isFbsimctlReady,
             state = deviceState.value,
             lastError = lastException?.toDTO()
         )
