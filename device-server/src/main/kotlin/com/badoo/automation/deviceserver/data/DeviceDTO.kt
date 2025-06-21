@@ -6,7 +6,6 @@ import java.net.URI
 data class DeviceDTO(
         val ref: DeviceRef,
         val state: DeviceState,
-        val fbsimctl_endpoint: URI,
         val wda_endpoint: URI,
         val calabash_port: Int,
         val calabash_endpoint: URI,

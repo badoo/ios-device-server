@@ -30,7 +30,6 @@ fun json(json: String) = JsonMapper().readTree(json.byteInputStream())
 fun deviceDTOStub(ref: DeviceRef): DeviceDTO {
     return DeviceDTO(
         ref, DeviceState.NONE,
-        URI("http://fbsimctl/endpoint/for/testing"),
         URI("http://wda/endpoint/for/testing"),
         0,
         URI("http://calabash/endpoint/for/testing"),

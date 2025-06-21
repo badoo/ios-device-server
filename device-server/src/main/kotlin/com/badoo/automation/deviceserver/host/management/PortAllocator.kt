@@ -28,8 +28,8 @@ class PortAllocator(private val remote: IRemote, min: Int = PORT_RANGE_START, ma
     }
 
     fun allocateDAP(): DeviceAllocatedPorts {
-        val take = allocate(4)
-        return DeviceAllocatedPorts(take[0], take[1], take[2], take[3])
+        val take = allocate(3)
+        return DeviceAllocatedPorts(take[0], take[1], take[2])
     }
 
     fun deallocateDAP(allocatedPorts: DeviceAllocatedPorts) {

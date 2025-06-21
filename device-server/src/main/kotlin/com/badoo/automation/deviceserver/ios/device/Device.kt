@@ -61,7 +61,6 @@ class Device(
         localPort = mjpegServerPort
     )
 
-    override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}/$udid/")
     override val calabashEndpoint = URI("http://${remote.publicHostName}:${userPorts.calabashPort}")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     override val calabashPort = calabashProxy.localPort

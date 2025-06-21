@@ -110,7 +110,6 @@ class SimulatorsNodeTest {
     private val expectedDeviceDTO = DeviceDTO(
             "someref0",
             DeviceState.CREATING,
-            URI("http://fbsimctl"),
             URI("http://wda"),
             4444,
             URI("http://calabash"),
@@ -160,7 +159,7 @@ class SimulatorsNodeTest {
                 eq("Udid1-rem-ote-node"),
                 eq(iRemote),
                 eq(fbsimulatorDevice),
-                eq(DeviceAllocatedPorts(1, 2, 3, 4)),
+                eq(DeviceAllocatedPorts(1, 2, 3)),
                 eq("/node/specific/device/set"),
                 eq(wdaSimulatorBundles),
                 any(),
@@ -203,7 +202,6 @@ class SimulatorsNodeTest {
             whenever(it.ref).thenReturn("someref$index")
             whenever(it.deviceState).thenReturn(DeviceState.CREATING)
             whenever(it.deviceInfo).thenReturn(DeviceInfo("","","iOS 16.4.1","",""))
-            whenever(it.fbsimctlEndpoint).thenReturn(URI("http://fbsimctl"))
             whenever(it.wdaEndpoint).thenReturn(URI("http://wda"))
             whenever(it.calabashPort).thenReturn(4444 + index)
             whenever(it.mjpegServerPort).thenReturn(3333 + index)
@@ -299,7 +297,6 @@ class SimulatorsNodeTest {
         assertThat(actual, equalTo(DeviceDTO(
                 "someref0",
                 DeviceState.CREATING,
-                URI("http://fbsimctl"),
                 URI("http://wda"),
                 4444,
                 URI("http://calabash"),

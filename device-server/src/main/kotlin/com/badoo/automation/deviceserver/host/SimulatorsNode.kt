@@ -216,7 +216,6 @@ class SimulatorsNode(
             return DeviceDTO(
                 ref,
                 deviceState,
-                fbsimctlEndpoint,
                 wdaEndpoint,
                 calabashPort,
                 calabashEndpoint,
