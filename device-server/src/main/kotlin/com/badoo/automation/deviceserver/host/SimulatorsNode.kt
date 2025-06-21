@@ -47,7 +47,7 @@ class SimulatorsNode(
 
     override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
         val applicationContainer = getDeviceFor(ref).applicationContainer(plistEntry.bundleId)
-        val path = File(plistEntry.file_name).toPath()
+        val path = File(plistEntry.fileName).toPath()
         val key = plistEntry.key
         val value = plistEntry.value
 

@@ -126,9 +126,9 @@ class Device(
         return SimulatorStatusDTO(
             ready = status.isReady,
             state = deviceState.value, // FIXME: why get rid of type here
-            wda_status = status.wdaStatus,
-            fbsimctl_status = status.fbsimctlStatus,
-            last_error = lastException?.toDTO()
+            wdaStatus = status.wdaStatus,
+            fbsimctlStatus = status.fbsimctlStatus,
+            lastError = lastException?.toDTO()
         )
     }
 

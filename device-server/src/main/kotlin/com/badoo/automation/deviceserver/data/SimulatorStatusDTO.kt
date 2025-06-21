@@ -1,11 +1,22 @@
 package com.badoo.automation.deviceserver.data
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 data class SimulatorStatusDTO(
+    @JsonProperty("ready")
     val ready: Boolean,
-    val wda_status: Boolean,
-    val fbsimctl_status: Boolean,
+
+    @JsonProperty("wda_status")
+    val wdaStatus: Boolean,
+
+    @JsonProperty("fbsimctl_status")
+    val fbsimctlStatus: Boolean,
+
+    @JsonProperty("state")
     val state: String,
-    val last_error: ExceptionDTO?
+
+    @JsonProperty("last_error")
+    val lastError: ExceptionDTO?
 )
 
 data class ExceptionDTO(val type: String, val message: String, val stackTrace: List<String>)

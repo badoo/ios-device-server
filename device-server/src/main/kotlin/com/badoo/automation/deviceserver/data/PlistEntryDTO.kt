@@ -7,7 +7,7 @@ data class PlistEntryDTO(
     val bundleId: String,
 
     @JsonProperty("file_name")
-    val file_name: String,
+    val fileName: String,
 
     @JsonProperty("property_name")
     val key: String,

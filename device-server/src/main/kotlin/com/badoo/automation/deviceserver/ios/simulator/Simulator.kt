@@ -886,10 +886,10 @@ class Simulator(
 
         return SimulatorStatusDTO(
             ready = isSimulatorReady,
-            wda_status = isWdaReady,
-            fbsimctl_status = isFbsimctlReady,
+            wdaStatus = isWdaReady,
+            fbsimctlStatus = isFbsimctlReady,
             state = deviceState.value,
-            last_error = lastException?.toDTO()
+            lastError = lastException?.toDTO()
         )
     }
     //endregion
