@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
+    alias(libs.plugins.graalvm.buildtools)
+    id("com.github.ben-manes.versions") version "0.52.0"
 }
 
 group = "com.badoo.automation"
@@ -31,10 +33,10 @@ dependencies {
     implementation(libs.logback.classic)
 
 
-    implementation("org.apache.commons:commons-configuration2:2.11.0")
+    implementation("org.apache.commons:commons-configuration2:2.12.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.3")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.1")
 
     implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation("net.logstash.logback:logstash-logback-encoder:8.1")
@@ -49,7 +51,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:2.18.0")
     testImplementation("org.mockito:mockito-inline:2.18.0")
 
-    testImplementation("com.nhaarman:mockito-kotlin:1.5.0")
+    testImplementation("com.nhaarman:mockito-kotlin:1.6.0")
     testImplementation("org.hamcrest:hamcrest-junit:2.0.0.0")
 }
 
