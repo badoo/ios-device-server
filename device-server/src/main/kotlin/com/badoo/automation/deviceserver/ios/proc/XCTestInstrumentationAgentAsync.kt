@@ -151,7 +151,7 @@ class XCTestInstrumentationAgentAsync(
         val result = remote.shell(command)
 
         if (result.isSuccess) {
-            logger.info(logMarker, "Started xctest ${xcrunSimctlLogFileName}")
+            logger.info(logMarker, "Started xctest $xcrunSimctlLogFileName")
         } else {
             val errorMessage =
                 "Failed to start video xctest ${xcrunSimctlLogFileName}. Exit code: ${result.exitCode} StdOut: ${result.stdOut} StdErr: ${result.stdErr}. Log contents: ${getRemoteXcrunSimctlLog()}"
@@ -230,7 +230,7 @@ class XCTestInstrumentationAgentAsync(
     }
 
     fun stop() {
-        logger.debug(logMarker, "Stopping remote xcrun simctl ${derivedDataDir}")
+        logger.debug(logMarker, "Stopping remote xcrun simctl $derivedDataDir")
 
         val pkillResult = remote.pkill(xctestrunFile, false)
         when (pkillResult.exitCode) {

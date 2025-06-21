@@ -86,30 +86,6 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).dataContainer(bundleId).delete()
     }
 
-    private fun shaSum(url: String): String {
-        return MessageDigest.getInstance("SHA-256").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }
-    }
-
-    private fun copyAppToRemoteHost(appBundle: ApplicationBundle): File {
-        val marker = MapEntriesAppendingMarker(mapOf(HOSTNAME to remote.publicHostName, "action_name" to "scp_application"))
-        logger.debug(marker, "Copying application ${appBundle.appUrl} to $this")
-
-        val sha = shaSum(appBundle.appUrl.toExternalForm())
-
-        val remoteDirectory = File(applicationConfiguration.appBundleCacheRemotePath, sha).absolutePath
-        remote.exec(listOf("/bin/rm", "-rf", remoteDirectory), mapOf(), false, 90).stdOut.trim()
-        remote.exec(listOf("/bin/mkdir", "-p", remoteDirectory), mapOf(), false, 90).stdOut.trim()
-
-        val nanos = measureNanoTime {
-            remote.scpToRemoteHost(appBundle.appDirectory!!.absolutePath, remoteDirectory)
-        }
-        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
-        val measurement = mapOf(HOSTNAME to remote.publicHostName, "action_name" to "scp_application", "duration" to seconds)
-
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.appUrl} to $this. Took $seconds seconds")
-        return File(remoteDirectory, appBundle.appDirectory!!.name)
-    }
-
     override val remoteAddress: String get() = publicHostName
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)

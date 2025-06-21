@@ -51,19 +51,6 @@ class SimulatorProcess(
         throw RuntimeException(errorMessage)
     }
 
-    fun terminateMainSimulatorProcess() {
-        val simulatorPid = getSimulatorMainProcessPid()
-        if (simulatorPid == null) {
-            logger.error(logMarker, "No launchd_sim process is found for Simulator $deviceRef. Unable to terminate process.")
-        } else {
-            val result = remote.execIgnoringErrors(listOf("/bin/kill", "-15", "$simulatorPid"))
-
-            if (!result.isSuccess) {
-                logger.error(logMarker, "Failed to send TERM signal to launchd_sim process for Simulator $deviceRef. Result: $result")
-            }
-        }
-    }
-
     fun terminateChildProcess(processName: String) {
         val mainProcessPid = getSimulatorMainProcessPid()
 

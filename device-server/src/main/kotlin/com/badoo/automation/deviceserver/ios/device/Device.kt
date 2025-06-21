@@ -165,14 +165,14 @@ class Device(
 
         if (status.wdaStatusRetries >= MAX_WDA_STATUS_CHECKS) {
             deviceState = DeviceState.FAILED
-            val message = "${this} WebDriverAgent crashed. Last $MAX_WDA_STATUS_CHECKS health checks failed"
+            val message = "$this WebDriverAgent crashed. Last $MAX_WDA_STATUS_CHECKS health checks failed"
             logger.error(logMarker, message)
             lastException = RuntimeException(message)
         }
 
         if (previousFbSimctlStatus && !fbsimctlStatus) {
             deviceState = DeviceState.FAILED
-            val message = "${this} fbsimctl crashed"
+            val message = "$this fbsimctl crashed"
             logger.error(logMarker, message)
             lastException = RuntimeException(message)
         }
@@ -510,7 +510,7 @@ class Device(
                 break
             } catch (e: Exception) {
                 if (e is WebDriverAgentError || e is WaitTimeoutError) {
-                    logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for ${this} timed out: $e")
+                    logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for $this timed out: $e")
                     if (attempt == maxRetries) {
                         throw e
                     }
@@ -525,7 +525,6 @@ class Device(
 
     private companion object {
         private const val CALABASH_PORT = 37265
-        private const val WDA_PORT = 8100
         private const val DA_PORT = 27753
         private val PREPARE_TIMEOUT = Duration.ofMinutes(5)
         private const val DEVICE_AGENT_START_TIME = 15_000L

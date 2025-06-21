@@ -763,18 +763,10 @@ class Simulator(
     }
 
     sealed class RequiredService(val identifier: String, @Volatile var booted: Boolean = false) {
-        class SpringBoard() : RequiredService("com.apple.SpringBoard")
-        class TextInput() : RequiredService("com.apple.TextInput.kbd")
-        class AccessibilityUIServer() : RequiredService("com.apple.accessibility.AccessibilityUIServer")
-        class Spotlight() : RequiredService("com.apple.Spotlight")
-        class Locationd() : RequiredService("com.apple.locationd")
-
         override fun toString(): String {
             return identifier
         }
     }
-
-    val simulatorServices = mutableSetOf<RequiredService>()
 
     private fun waitUntilSimulatorBooted(bootTime: Long) {
         Thread.sleep(5000L) // make sure enough time for initial boot before any other actions
@@ -799,9 +791,6 @@ class Simulator(
         remote.shell("/usr/bin/xcrun simctl openurl $udid $url", true)
     }
 
-    private fun readSimulatorDefaults(): String {
-        return remote.execIgnoringErrors("/usr/bin/xcrun simctl spawn $udid defaults read".split(" ")).stdOut
-    }
 
     private fun logTiming(actionName: String, action: () -> Unit) {
         logger.info(logMarker, "Device ${this@Simulator} starting action <$actionName>")
@@ -906,8 +895,7 @@ class Simulator(
             wda_status = isWdaReady,
             fbsimctl_status = isFbsimctlReady,
             state = deviceState.value,
-            last_error = lastException?.toDTO(),
-            simulator_services = simulatorServices.toSet()
+            last_error = lastException?.toDTO()
         )
     }
     //endregion

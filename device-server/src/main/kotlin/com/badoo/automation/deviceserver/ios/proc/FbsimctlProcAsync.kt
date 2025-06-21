@@ -43,7 +43,7 @@ open class FbsimctlProcAsync(
     private val remoteFbsimctlPidPath = File(remote.tmpDir, "${fbsimctlLogFileName}.pid").absolutePath
 
     fun start() {
-        logger.debug(logMarker, "Starting fbsimctl process - log: ${fbsimctlLogFileName}")
+        logger.debug(logMarker, "Starting fbsimctl process - log: $fbsimctlLogFileName")
         val command = listOf(
             config.remoteFbsimctl.absolutePath,
             udid,
@@ -55,7 +55,7 @@ open class FbsimctlProcAsync(
         val result = remote.shell(command)
 
         if (result.isSuccess) {
-            logger.info(logMarker, "Started fbsimctl async ${fbsimctlLogFileName}")
+            logger.info(logMarker, "Started fbsimctl async $fbsimctlLogFileName")
         } else {
             val errorMessage =
                 "Failed to start fbsimcl async ${fbsimctlLogFileName}. Exit code: ${result.exitCode} StdOut: ${result.stdOut} StdErr: ${result.stdErr}. Log contents: ${getFbsimctlLog()}"
@@ -70,8 +70,8 @@ open class FbsimctlProcAsync(
 
 
     fun stop() {
-        logger.debug(logMarker, "Stopping remote fbsimctl ${fbsimctlLogFileName}")
-        val pidResult = remote.shell("cat ${remoteFbsimctlPidPath}")
+        logger.debug(logMarker, "Stopping remote fbsimctl $fbsimctlLogFileName")
+        val pidResult = remote.shell("cat $remoteFbsimctlPidPath")
         if (pidResult.isSuccess) {
             val pid = pidResult.stdOut.trim()
             logger.debug(logMarker, "Stopping fbsimctl process ${fbsimctlLogFileName}. Got PID $pid")
@@ -83,13 +83,13 @@ open class FbsimctlProcAsync(
             }
         }
 
-        val findResult = remote.shell("pgrep -f \"fbsimctl ${udid} listen\"")
+        val findResult = remote.shell("pgrep -f \"fbsimctl $udid listen\"")
 
         if (findResult.isSuccess) {
             logger.debug(logMarker, "Found fbsimctl ${fbsimctlLogFileName}. Found processes with pgrep. $findResult")
             findResult.stdOut.lines().filter { it.isNotBlank() }.forEach { line ->
                 val pid = line.trim()
-                val pidResult = remote.shell("ps -o command -p ${pid}")
+                val pidResult = remote.shell("ps -o command -p $pid")
 
                 if (pidResult.isSuccess) {
                     pidResult.stdOut.trim().lines().forEach { line ->

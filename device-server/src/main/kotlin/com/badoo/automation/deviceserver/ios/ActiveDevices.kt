@@ -83,14 +83,14 @@ class ActiveDevices(
     }
 
     fun releaseDevice(ref: DeviceRef, reason: String) {
-        logger.debug("Releasing a device due to reason: ${reason}")
+        logger.debug("Releasing a device due to reason: $reason")
         val session = sessionByRef(ref)
         session.node.deleteRelease(session.ref, reason)
         unregisterDeleteDevice(session.ref)
     }
 
     fun deleteDevice(ref: DeviceRef, reason: String) {
-        logger.debug("Deleting a device due to reason: ${reason}")
+        logger.debug("Deleting a device due to reason: $reason")
         val session = sessionByRef(ref)
         session.node.deleteDevice(session.ref, reason)
         unregisterDeleteDevice(session.ref)

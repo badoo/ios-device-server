@@ -21,10 +21,9 @@ class SimulatorProviderTest {
     private val provider = SimulatorProvider(remote, "/Users/qa/asdf")
     private val dev1 = FBSimctlDevice("arch", "State", "model", "name", "udid-B", "iOS 11")
     private val dev2 = FBSimctlDevice("arch", "State", "model", "name", "udid-A", "os")
-    val anyListType = listOf<String>("", "")::class
+    val anyListType = listOf("", "")::class
     val anyMapType = mapOf<String, String>()::class
     val anyBooleanType = false::class
-    val anyLongType = 1L::class
 
     @Before
     fun setup() {
