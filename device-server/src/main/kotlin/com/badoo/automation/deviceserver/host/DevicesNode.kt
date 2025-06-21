@@ -94,14 +94,6 @@ class DevicesNode(
         Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    override fun appiumServerLog(deviceRef: DeviceRef): File {
-        return slotByExternalRef(deviceRef).device.appiumServerLog
-    }
-
-    override fun deleteAppiumServerLog(deviceRef: DeviceRef) {
-        slotByExternalRef(deviceRef).device.deleteAppiumServerLog()
-    }
-
     override fun syslog(deviceRef: DeviceRef): File {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -406,15 +398,12 @@ class DevicesNode(
             calabash_port = device.calabashPort,
             calabash_endpoint = device.calabashEndpoint,
             mjpeg_server_port = device.mjpegServerPort,
-            appium_port = device.appiumPort,
-            appium_endpoint = device.appiumEndpoint,
             info = device.deviceInfo,
             last_error = device.lastException?.toDto(),
             capabilities = ActualCapabilities(
                 setLocation = false,
                 terminateApp = false,
                 remoteNotifications = true,
-                isAppiumEnabled = device.isAppiumEnabled,
                 videoCapture = true
             )
         )
@@ -462,7 +451,6 @@ class DevicesNode(
         remote.pkill("/opt/homebrew/bin/iproxy", true)
         remote.pkill("/usr/local/bin/socat", true)
         remote.pkill("/opt/homebrew/bin/socat", true)
-        remote.pkill("appium_tmpdir_", true)
     }
 
     override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {

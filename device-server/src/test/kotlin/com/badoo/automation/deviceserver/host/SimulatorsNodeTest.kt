@@ -116,11 +116,9 @@ class SimulatorsNodeTest {
             4444,
             URI("http://calabash"),
             3333,
-            5555,
-            URI("http://appium"),
             DeviceInfo("", "", "iOS 16.4.1", "", ""),
             null,
-            ActualCapabilities(true, true, false, false, true)
+            ActualCapabilities(true, true, false, true)
     )
     private val expectedDeviceDTOJson = JsonMapper().toJson(expectedDeviceDTO)
 
@@ -163,11 +161,10 @@ class SimulatorsNodeTest {
                 eq("Udid1-rem-ote-node"),
                 eq(iRemote),
                 eq(fbsimulatorDevice),
-                eq(DeviceAllocatedPorts(1, 2, 3, 4,5)),
+                eq(DeviceAllocatedPorts(1, 2, 3, 4)),
                 eq("/node/specific/device/set"),
                 eq(wdaSimulatorBundles),
                 any(),
-                eq(false),
                 eq(false),
                 eq(false)
         )
@@ -197,7 +194,7 @@ class SimulatorsNodeTest {
             fbsimmock = fbsimmock.thenReturn(pair.second)
         }
 
-        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        var simfac = whenever(simulatorFactory.newSimulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
         simulatorMocks.forEach { pair ->
             simfac = simfac.thenReturn(pair.first)
         }
@@ -211,9 +208,7 @@ class SimulatorsNodeTest {
             whenever(it.wdaEndpoint).thenReturn(URI("http://wda"))
             whenever(it.calabashPort).thenReturn(4444 + index)
             whenever(it.mjpegServerPort).thenReturn(3333 + index)
-            whenever(it.appiumPort).thenReturn(5555 + index)
             whenever(it.calabashEndpoint).thenReturn(URI("http://calabash"))
-            whenever(it.appiumEndpoint).thenReturn(URI("http://appium"))
         }
     }
 
@@ -310,11 +305,9 @@ class SimulatorsNodeTest {
                 4444,
                 URI("http://calabash"),
                 3333,
-                5555,
-                URI("http://appium"),
                 DeviceInfo("", "", "iOS 16.4.1", "", ""),
                 null,
-                ActualCapabilities(true, true, false, false, true)
+                ActualCapabilities(true, true, false, false)
         )))
     }
 
@@ -368,7 +361,7 @@ class SimulatorsNodeTest {
     @Ignore @Test
     fun state() {
         createDeviceForTest()
-        val expected = SimulatorStatusDTO(false, false, false, false, DeviceState.CREATING.value, null)
+        val expected = SimulatorStatusDTO(false, false, false, DeviceState.CREATING.value, null)
 
         whenever(simulatorMock.status()).thenReturn(expected)
 

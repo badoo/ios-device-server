@@ -40,8 +40,8 @@ class XCTestInstrumentationAgent(
     private val instrumentationDaBundle = getWdaBundle("sh.calaba.DeviceAgent")
     private val instrumentationWdaBundle = getWdaBundle("com.facebook.WebDriverAgentRunner")
 
-    private fun getInstrumentationBundle(useAppium: Boolean): WdaBundle {
-        return if (useAppium) instrumentationWdaBundle else instrumentationDaBundle
+    private fun getInstrumentationBundle(): WdaBundle {
+        return instrumentationDaBundle
     }
 
     private fun getWdaBundle(instrumentationBundleId: String): WdaBundle {
@@ -96,7 +96,7 @@ class XCTestInstrumentationAgent(
     }
 
     private val uri: URI get() {
-        val statusPath = if (useWebDriverAgent) "status" else "1.0/status"
+        val statusPath = "1.0/status"
         return uriWithPath(wdaEndpoint, statusPath)
     }
 
@@ -115,18 +115,10 @@ class XCTestInstrumentationAgent(
     private var wdaRunnerStarted = false
 
     override fun start() {
-        TODO("Not implemented. Use start(useAppium: Boolean)")
-    }
-
-    @Volatile
-    var useWebDriverAgent: Boolean = true // use WebDriverAgent for Appium or DeviceAgent for Calabash
-
-    fun start(useAppium: Boolean) {
         val wdaProcess = subProcess
         ensure(wdaProcess == null || wdaProcess.isAlive() == false) { WebDriverAgentError("Previous WebDriverAgent childProcess $subProcess has not been killed") }
 
-        useWebDriverAgent = useAppium
-        val instrumentationBundle = getInstrumentationBundle(useAppium)
+        val instrumentationBundle = getInstrumentationBundle()
         ensure(remote.isDirectory(instrumentationBundle.bundlePath().absolutePath)) { WebDriverAgentError("WebDriverAgent ${instrumentationBundle.bundlePath().absolutePath} does not exist or is not a directory") }
         logger.debug(logMarker, "$this — Starting child process WebDriverAgent on: $wdaEndpoint with bundle id: ${instrumentationBundle.bundleId}")
 

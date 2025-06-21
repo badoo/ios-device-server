@@ -39,7 +39,6 @@ class Device(
     wdaDeviceBundles: List<WdaDeviceBundle>,
     usbProxyFactory: UsbProxyFactory = UsbProxyFactory(remote)
 ) : IDevice {
-    override val appiumPort: Int get() = userPorts.appiumPort
     override val udid: String = deviceInfo.udid
     override val ref: DeviceRef by lazy {
         val unsafe = Regex("[^\\-_a-zA-Z\\d]")
@@ -49,11 +48,6 @@ class Device(
     override val osLog = RealDeviceSysLog(remote, udid)
 
     private val useFbsimctlProc = ApplicationConfiguration().useFbsimctlProc
-
-    @Volatile
-    private var useAppium: Boolean = false
-
-    override val isAppiumEnabled get() = useAppium
 
     private val calabashProxy = usbProxyFactory.create(
         udid = deviceInfo.udid,
@@ -73,7 +67,6 @@ class Device(
 
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}/$udid/")
     override val calabashEndpoint = URI("http://${remote.publicHostName}:${userPorts.calabashPort}")
-    override val appiumEndpoint = URI("http://${remote.publicHostName}:${userPorts.appiumPort}")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     override val calabashPort = calabashProxy.localPort
 
@@ -107,16 +100,7 @@ class Device(
         isRealDevice = true
     )
 
-    private val appiumServer: AppiumServer = AppiumServer(
-        remote,
-        udid,
-        appiumPort,
-        userPorts.wdaPort
-    )
-
     override val instrumentationAgentLog get() = instrumentationAgent.deviceAgentLog
-    override val appiumServerLog get() = appiumServer.appiumServerLog
-    override fun deleteAppiumServerLog() = appiumServer.deleteAppiumServerLog()
 
     private val status = SimulatorStatus()
 
@@ -146,7 +130,6 @@ class Device(
             ready = status.isReady,
             state = deviceState.value, // FIXME: why get rid of type here
             wda_status = status.wdaStatus,
-            appium_status = status.appiumStatus,
             fbsimctl_status = status.fbsimctlStatus,
             last_error = lastException?.toDTO()
         )
@@ -157,7 +140,6 @@ class Device(
 
         status.fbsimctlStatus = false
         status.wdaStatus = false
-        status.appiumStatus = false
 
         if (deviceState != DeviceState.CREATED) {
             return
@@ -195,7 +177,6 @@ class Device(
             lastException = RuntimeException(message)
         }
 
-        status.appiumStatus = (if (useAppium) { appiumServer.isHealthy() } else true)
         status.fbsimctlStatus = fbsimctlStatus
         status.wdaStatus = isWdaHealty
     }
@@ -252,7 +233,6 @@ class Device(
         if (useFbsimctlProc) {
             ignoringDisposeErrors { fbsimctlProc.kill() }
         }
-        ignoringDisposeErrors { appiumServer.kill() }
         ignoringDisposeErrors { instrumentationAgent.kill() }
         ignoringDisposeErrors { calabashProxy.stop() }
         ignoringDisposeErrors { wdaProxy.stop() }
@@ -335,12 +315,6 @@ class Device(
     fun renewAsync(whitelistedApps: Set<String>, uninstallApps: Boolean, desiredCaps: DesiredCapabilities) {
         var prepareRequired = false
 
-        if (useAppium != desiredCaps.useAppium) {
-            useAppium = desiredCaps.useAppium
-            prepareRequired = true
-            deviceState = DeviceState.CREATING
-        }
-
         if (status().state == DeviceState.FAILED.value) {
             prepareRequired = true
             deviceState = DeviceState.REVIVING
@@ -390,14 +364,12 @@ class Device(
         lastException = null
         status.wdaStatus = false
         status.fbsimctlStatus = false
-        status.appiumStatus = false
 
         logger.info(logMarker, "Starting to prepare $this")
 
         if (useFbsimctlProc) {
             fbsimctlProc.kill()
         }
-        appiumServer.kill()
         instrumentationAgent.kill()
 
         wdaProxy.stop()
@@ -405,7 +377,7 @@ class Device(
         calabashProxy.stop()
 
         executeWithTimeout(timeout, name = "Preparing devices") {
-            wdaProxy.start(if (useAppium) WDA_PORT else DA_PORT)
+            wdaProxy.start(DA_PORT)
 
             if (!wdaProxy.isHealthy()) {
                 throw DeviceException("Failed to start $wdaProxy")
@@ -429,10 +401,6 @@ class Device(
 
             startWdaWithRetry()
 
-            if (useAppium) {
-                appiumServer.start()
-            }
-
             startPeriodicHealthCheck()
             logger.info(logMarker, "Finished preparing $this")
             deviceState = DeviceState.CREATED
@@ -449,10 +417,6 @@ class Device(
 
         val task: ScheduledFuture<*> = periodicTasksPool.scheduleWithFixedDelay(Runnable {
             performInstrumentationAgentHealthCheck(10)
-
-            if (useAppium) {
-                performAppiumServerHealthCheck()
-            }
         }, 0, healthCheckInterval, TimeUnit.MILLISECONDS)
 
         healthChecker = task
@@ -487,35 +451,6 @@ class Device(
         }
     }
 
-    private fun performAppiumServerHealthCheck() {
-        val maxFailCount = 5
-        var appiumFailCount = 0
-
-        while (!appiumServer.isHealthy() && appiumFailCount < maxFailCount) {
-            logger.error(logMarker, "Appium health check failed $appiumFailCount times.")
-            appiumFailCount += 1
-            Thread.sleep(Duration.ofSeconds(2).toMillis())
-        }
-
-        if (appiumFailCount >= maxFailCount) {
-            logger.error(logMarker, "Appium health check failed $appiumFailCount times. Restarting Appium")
-
-            try {
-                appiumServer.kill()
-            } catch (e: RuntimeException) {
-                logger.error(logMarker, "Failed to kill Appium. ${e.message}", e)
-            }
-
-            try {
-                appiumServer.start()
-            } catch (e: RuntimeException) {
-                logger.error(logMarker, "Failed to restart Appium. ${e.message}", e)
-                deviceState = DeviceState.FAILED
-                throw RuntimeException("${this@Device} Failed to restart Appium. Stopping health check")
-            }
-        }
-    }
-
     private fun stopPeriodicHealthCheck() {
         healthChecker?.let { checker ->
             checker.cancel(true)
@@ -543,7 +478,7 @@ class Device(
     }
 
     private fun startWda() {
-        instrumentationAgent.start(useAppium)
+        instrumentationAgent.start()
 
         Thread.sleep(DEVICE_AGENT_START_TIME)
 

@@ -172,7 +172,7 @@ class SimulatorsNode(
             allocatedPorts[ref] = ports
 
             val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, simulatorProvider.deviceSetPath,
-                    wdaSimulatorBundles, concurrentBoot, desiredCaps.headless, desiredCaps.useWda, desiredCaps.useAppium)
+                    wdaSimulatorBundles, concurrentBoot, desiredCaps.headless, desiredCaps.useWda)
             cancelRunningSimulatorTask(ref, "createDeviceAsync")
 
             prepareTasks[ref] = simulatorsBootExecutorService.submit {
@@ -216,14 +216,6 @@ class SimulatorsNode(
         Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
     }
 
-    override fun appiumServerLog(deviceRef: DeviceRef): File {
-        return getDeviceFor(deviceRef).appiumServerLog
-    }
-
-    override fun deleteAppiumServerLog(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).deleteAppiumServerLog()
-    }
-
     override fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
         getDeviceFor(deviceRef).osLog.startWritingLog(sysLogCaptureOptions)
     }
@@ -255,15 +247,12 @@ class SimulatorsNode(
                 calabashPort,
                 calabashEndpoint,
                 mjpegServerPort,
-                appiumPort,
-                appiumEndpoint,
                 device.deviceInfo,
                 device.lastException?.toDto(),
                 capabilities = ActualCapabilities(
                     setLocation = true,
                     terminateApp = true,
                     remoteNotifications = remoteNotificationsSupported(device.deviceInfo.osMajorVersion()),
-                    isAppiumEnabled = device.isAppiumEnabled,
                     videoCapture = true
                 )
             )

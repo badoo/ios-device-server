@@ -19,9 +19,8 @@ interface ISimulatorFactory {
         wdaSimulatorBundles: WdaSimulatorBundles,
         concurrentBoot: ExecutorService,
         headless: Boolean,
-        useWda: Boolean,
-        useAppium: Boolean
+        useWda: Boolean
     ): ISimulator {
-        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaSimulatorBundles, concurrentBoot, headless, useWda, useAppium)
+        return Simulator(ref, remote, DeviceInfo(fbdev), ports, deviceSetPath, wdaSimulatorBundles, concurrentBoot, headless, useWda)
     }
 }

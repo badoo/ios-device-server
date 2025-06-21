@@ -15,11 +15,9 @@ interface IDevice {
     val calabashPort: Int
     val deviceInfo: DeviceInfo
     val mjpegServerPort: Int
-    val appiumPort: Int
     val wdaEndpoint: URI
     val fbsimctlEndpoint: URI
     val calabashEndpoint: URI
-    val appiumEndpoint: URI
     val udid: UDID
     val ref: DeviceRef
     val deviceState: DeviceState
@@ -56,9 +54,6 @@ interface IDevice {
     }
 
     val instrumentationAgentLog: File
-    val appiumServerLog: File
-    fun deleteAppiumServerLog()
     val osLog: ISysLog
     fun listApps(): List<FBSimctlAppInfo>
-    val isAppiumEnabled: Boolean
 }

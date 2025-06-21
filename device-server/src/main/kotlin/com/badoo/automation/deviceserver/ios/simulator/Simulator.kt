@@ -41,7 +41,6 @@ class Simulator(
         private val concurrentBootsPool: ExecutorService,
         headless: Boolean,
         private val useWda: Boolean,
-        private val useAppium: Boolean,
         private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
         private val trustStoreFile: String = appConfig.trustStorePath,
         private val assetsPath: String = appConfig.assetsPath
@@ -59,13 +58,9 @@ class Simulator(
     override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.fbsimctlPort}/$udid/")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.wdaPort}/")
     override val calabashEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.calabashPort}/")
-    override val appiumEndpoint = URI("http://${remote.publicHostName}:${allocatedPorts.appiumPort}")
     override val calabashPort: Int = allocatedPorts.calabashPort
     override val mjpegServerPort: Int = allocatedPorts.mjpegServerPort
-    override val appiumPort: Int = allocatedPorts.appiumPort
     override val locationManager: LocationManager = LocationManager(remote, udid)
-
-    override val isAppiumEnabled get() = useAppium
 
     private fun createVideoRecorder(): VideoRecorder {
         val recorderClassName = appConfig.videoRecorderClassName
@@ -108,19 +103,7 @@ class Simulator(
             isRealDevice = false
         )
 
-    private val appiumServer: AppiumServer = AppiumServer(
-        remote,
-        udid,
-        appiumPort,
-        allocatedPorts.wdaPort
-    )
-
     override val instrumentationAgentLog get() = instrumentationAgent.deviceAgentLog
-
-    override val appiumServerLog get() = appiumServer.appiumServerLog
-
-    override fun deleteAppiumServerLog() = appiumServer.deleteAppiumServerLog()
-
     private val simulatorDirectory = File(deviceSetPath, udid)
     private val simulatorDataDirectory = File(simulatorDirectory, "data")
 
@@ -206,7 +189,6 @@ class Simulator(
         executeWithTimeout(timeout, "Preparing simulator") {
             // erase simulator if there is no existing backup, this is to ensure backup is created from a clean state
             logger.info(logMarker, "Launch prepare sequence for ${this@Simulator} asynchronously")
-            appiumServer.kill()
 
             if (backup.isExist()) {
                 if (clean) {
@@ -235,12 +217,6 @@ class Simulator(
 
             if (useWda) {
                 logTiming("starting WebDriverAgent") { startWdaWithRetry() }
-            }
-
-            if (useAppium) {
-                logTiming("starting Appium Server") {
-                    appiumServer.start()
-                }
             }
 
             logger.info(logMarker, "Finished preparing $this")
@@ -319,10 +295,6 @@ class Simulator(
             if (useWda) {
                 performInstrumentationAgentHealthCheck(wdaFailCount, maxFailCount)
             }
-
-            if (useAppium) {
-                performAppiumServerHealthCheck()
-            }
         }, 0, healthCheckInterval, TimeUnit.MILLISECONDS)
 
     }
@@ -364,35 +336,6 @@ class Simulator(
                     deviceState = DeviceState.FAILED
                     throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
                 }
-            }
-        }
-    }
-
-    private fun performAppiumServerHealthCheck() {
-        val maxFailCount = 5
-        var appiumFailCount = 0
-
-        while (!appiumServer.isHealthy() && appiumFailCount < maxFailCount) {
-            logger.error(logMarker, "Appium health check failed $appiumFailCount times.")
-            appiumFailCount += 1
-            Thread.sleep(Duration.ofSeconds(2).toMillis())
-        }
-
-        if (appiumFailCount >= maxFailCount) {
-            logger.error(logMarker, "Appium health check failed $appiumFailCount times. Restarting Appium")
-
-            try {
-                appiumServer.kill()
-            } catch (e: RuntimeException) {
-                logger.error(logMarker, "Failed to kill Appium. ${e.message}", e)
-            }
-
-            try {
-                appiumServer.start()
-            } catch (e: RuntimeException) {
-                logger.error(logMarker, "Failed to restart Appium. ${e.message}", e)
-                deviceState = DeviceState.FAILED
-                throw RuntimeException("${this@Simulator} Failed to restart Appium. Stopping health check")
             }
         }
     }
@@ -457,7 +400,7 @@ class Simulator(
                 logger.info(logMarker, "Starting WebDriverAgent on ${this@Simulator}")
 
                 instrumentationAgent.kill()
-                instrumentationAgent.start(useAppium)
+                instrumentationAgent.start()
 
                 Thread.sleep(8000)
 
@@ -639,7 +582,6 @@ class Simulator(
        val executor = Executors.newVirtualThreadPerTaskExecutor()
        val tasks = setOf(
            {ignoringErrors({ videoRecorder.dispose() })},
-           {ignoringErrors({ appiumServer.kill() })},
            {ignoringErrors({ instrumentationAgent.kill() })},
            {ignoringErrors({ fbsimctlProc.stop() })},
        ).map { executor.submit(it) }
@@ -951,12 +893,10 @@ class Simulator(
     override fun status(): SimulatorStatusDTO {
         var isFbsimctlReady = false
         var isWdaReady = false
-        var isAppiumReady = false
 
         if (deviceState == DeviceState.CREATED) {
             isFbsimctlReady = fbsimctlProc.isHealthy()
             isWdaReady = (if (useWda) { instrumentationAgent.isHealthy() } else true)
-            isAppiumReady = (if (useAppium) { appiumServer.isHealthy() } else true)
         }
 
         val isSimulatorReady = deviceState == DeviceState.CREATED && isFbsimctlReady && isWdaReady
@@ -964,7 +904,6 @@ class Simulator(
         return SimulatorStatusDTO(
             ready = isSimulatorReady,
             wda_status = isWdaReady,
-            appium_status = isAppiumReady,
             fbsimctl_status = isFbsimctlReady,
             state = deviceState.value,
             last_error = lastException?.toDTO(),

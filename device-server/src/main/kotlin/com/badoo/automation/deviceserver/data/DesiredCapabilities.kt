@@ -11,10 +11,7 @@ data class DesiredCapabilities(
         val arch: String? = null,
 
         @JsonProperty("use_wda")
-        val useWda: Boolean = true,
-
-        @JsonProperty("use_appium")
-        val useAppium: Boolean = false
+        val useWda: Boolean = true
 ) {
         override fun equals(other: Any?): Boolean {
                 if (this === other) return true
@@ -27,7 +24,6 @@ data class DesiredCapabilities(
                 if (os != other.os) return false
                 if (arch != other.arch) return false
                 if (useWda != other.useWda) return false
-                if (useAppium != other.useAppium) return false
 
                 return true
         }
@@ -38,7 +34,6 @@ data class DesiredCapabilities(
                 result = 31 * result + (os?.hashCode() ?: 0)
                 result = 31 * result + (arch?.hashCode() ?: 0)
                 result = 31 * result + useWda.hashCode()
-                result = 31 * result + useAppium.hashCode()
                 return result
         }
 }

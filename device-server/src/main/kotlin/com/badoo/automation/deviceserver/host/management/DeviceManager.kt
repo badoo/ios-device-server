@@ -55,7 +55,6 @@ class DeviceManager(
                 || name.contains("videoRecording_")
                 || name.contains("iOS_SysLog_")
                 || name.contains("device_agent_log_")
-                || name.contains("appium_server_log")
                 || name.endsWith(".xctestrun")
     }
 
@@ -475,14 +474,6 @@ class DeviceManager(
 
     fun deleteInstrumentationAgentLog(ref: DeviceRef) {
         nodeRegistry.activeDevices.getNodeFor(ref).deleteInstrumentationAgentLog(ref)
-    }
-
-    fun appiumServerLog(ref: DeviceRef): File {
-        return nodeRegistry.activeDevices.getNodeFor(ref).appiumServerLog(ref)
-    }
-
-    fun deleteAppiumServerLog(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).deleteAppiumServerLog(ref)
     }
 
     fun syslogDelete(ref: DeviceRef) {

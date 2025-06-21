@@ -41,8 +41,6 @@ interface IDeviceNode {
     fun syslog(deviceRef: DeviceRef): File
     fun instrumentationAgentLog(deviceRef: DeviceRef): File
     fun deleteInstrumentationAgentLog(deviceRef: DeviceRef)
-    fun appiumServerLog(deviceRef: DeviceRef): File
-    fun deleteAppiumServerLog(deviceRef: DeviceRef)
     fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions)
     fun syslogStop(deviceRef: DeviceRef)
     fun syslogDelete(deviceRef: DeviceRef)

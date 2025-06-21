@@ -162,8 +162,6 @@ class SimulatorHostChecker(
             logger.warn(logMarker, "Failed to shutdown simulator because: ${e.javaClass}: message: [${e.message}]")
         }
 
-        remote.pkill("appium_tmpdir_", true)
-
         if (shutdownSimulators) {
             cleanupSimulators()
             cleanupSimulatorServices()
@@ -180,7 +178,6 @@ class SimulatorHostChecker(
                 "/var/folders/*/*/*/derivedDataDir_*",
                 "/var/folders/*/*/*/xctestRunDir_*",
                 "/var/folders/*/*/*/device_agent_log_*",
-                "/var/folders/*/*/*/appium_tmpdir_*",
                 "/private/var/tmp/test-session-systemlogs-*.logarchive",
                 File(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, "*").absolutePath,
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"

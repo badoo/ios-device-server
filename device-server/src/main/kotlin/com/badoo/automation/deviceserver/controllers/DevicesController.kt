@@ -194,14 +194,6 @@ class DevicesController(private val deviceManager: DeviceManager) {
         deviceManager.deleteInstrumentationAgentLog(ref)
     }
 
-    fun appiumServerLog(ref: DeviceRef): File {
-        return deviceManager.appiumServerLog(ref)
-    }
-
-    fun deleteAppiumServerLog(ref: DeviceRef) {
-        deviceManager.deleteAppiumServerLog(ref)
-    }
-
     fun syslogDelete(ref: DeviceRef): EmptyMap {
         deviceManager.syslogDelete(ref)
         return happy

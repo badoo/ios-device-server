@@ -10,7 +10,7 @@ import java.time.Duration
 interface IRemote {
     companion object {
         private val asdfUserPath = File(System.getProperty("user.home"), ".asdf/shims").absolutePath
-        val DEFAULT_PATH = "$asdfUserPath:/Users/qa/.asdf/shims:/usr/local/opt/appium/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
+        val DEFAULT_PATH = "$asdfUserPath:/Users/qa/.asdf/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
     }
 
     val homeBrewPath: File
