@@ -412,7 +412,7 @@ class Device(
 
         val healthCheckInterval = Duration.ofSeconds(30).toMillis()
 
-        val task: ScheduledFuture<*> = periodicTasksPool.scheduleWithFixedDelay(Runnable {
+        val task: ScheduledFuture<*> = periodicTasksPool.scheduleWithFixedDelay({
             performInstrumentationAgentHealthCheck(10)
         }, 0, healthCheckInterval, TimeUnit.MILLISECONDS)
 

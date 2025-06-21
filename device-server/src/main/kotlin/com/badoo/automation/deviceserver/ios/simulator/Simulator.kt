@@ -289,7 +289,7 @@ class Simulator(
         val maxFailCount = 3
         val healthCheckInterval = Duration.ofSeconds(15).toMillis()
 
-        healthChecker = periodicTasksPool.scheduleWithFixedDelay(Runnable {
+        healthChecker = periodicTasksPool.scheduleWithFixedDelay({
             performFBSimctlHealthCheck(fbsimctlFailCount, maxFailCount)
 
             if (useWda) {

@@ -49,7 +49,7 @@ class SubProcess private constructor(
     }
 
     private fun readStream(inputStream: InputStream, writer: ((line: String) -> Unit)?): FutureTask<Unit> {
-        return FutureTask(Callable {
+        return FutureTask {
             try {
                 BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8), 1045696).use { reader ->
                     var line: String
@@ -63,7 +63,7 @@ class SubProcess private constructor(
                 logger.error(logMarker, "Got InterruptedException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
                 Thread.currentThread().interrupt()
             }
-        })
+        }
     }
 
     companion object {

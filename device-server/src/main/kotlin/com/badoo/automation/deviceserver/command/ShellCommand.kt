@@ -53,7 +53,13 @@ open class ShellCommand(
                 Int.MIN_VALUE
             }
 
-            processLogMarker.add(MapEntriesAppendingMarker(mapOf("exit_code" to exitCode, "elapsed_time_ms" to elapsedTime)))
+            processLogMarker.add(
+                MapEntriesAppendingMarker(
+                    mapOf(
+                        "exit_code" to exitCode, "elapsed_time_ms" to elapsedTime
+                    )
+                )
+            )
 
             if (hasExited) {
                 if (exitCode == 0) {
@@ -75,7 +81,7 @@ open class ShellCommand(
                 stdOut = stdOutBuilder.toString(),
                 stdErr = stdErrBuilder.toString(),
                 exitCode = exitCode,
-                cmd = command, // Store actual command - including ssh stuff.
+                cmd = command,
                 pid = pid
             )
             ensure(exitCode == 0 || returnFailure) {
@@ -105,7 +111,7 @@ open class ShellCommand(
 
 
     private fun streamReader(inputStream: InputStream, stringBuilder: StringBuilder): FutureTask<Unit> {
-        return FutureTask(Callable {
+        return FutureTask {
             try {
                 BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8), 1045696).use { reader ->
                     var line: String?
@@ -119,14 +125,11 @@ open class ShellCommand(
                 logger.error(logMarker, "Got InterruptedException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
                 Thread.currentThread().interrupt()
             }
-        })
+        }
     }
 
     override fun startProcess(
-        command: List<String>,
-        environment: Map<String, String>,
-        logMarker: Marker?,
-        processBuilder: ProcessBuilder
+        command: List<String>, environment: Map<String, String>, logMarker: Marker?, processBuilder: ProcessBuilder
     ): Process {
         logger.debug(this.logMarker, "Executing command: ${command.joinToString(" ")}")
         processBuilder.command(command)
