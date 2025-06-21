@@ -124,7 +124,7 @@ class AppiumServer(
     }
 
     private fun getAppiumServerStartCommand(): List<String> {
-        val logLevel: String = "info"
+        val logLevel = "info"
 
         val command = listOf(
             "appium",

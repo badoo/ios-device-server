@@ -323,7 +323,7 @@ class SimulatorsNode(
 
         Thread.sleep(Duration.ofSeconds(60).toMillis())
 
-        var isReachable: Boolean = false
+        var isReachable = false
 
         pollFor(
             Duration.ofSeconds(300),
