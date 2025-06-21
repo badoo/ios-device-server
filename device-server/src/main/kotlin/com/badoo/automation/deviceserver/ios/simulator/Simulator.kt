@@ -862,21 +862,6 @@ class Simulator(
         }
     }
 
-    private fun lineReader(inputStream: InputStream, readerProc: ((line: String) -> Unit)): java.lang.Runnable {
-        return Runnable {
-            inputStream.use { stream ->
-                val inputStreamReader = InputStreamReader(stream, StandardCharsets.UTF_8)
-                val reader = BufferedReader(inputStreamReader, 65356)
-                var line: String? = reader.readLine()
-
-                while (line != null) {
-                    readerProc.invoke(line)
-                    line = reader.readLine()
-                }
-            }
-        }
-    }
-
     private fun writeSimulatorDefaults(setting: String) {
         remote.shell("/usr/bin/xcrun simctl spawn $udid defaults write $setting", true)
     }
