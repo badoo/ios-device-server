@@ -37,7 +37,7 @@ class Simulator(
         override val deviceInfo: DeviceInfo,
         private val allocatedPorts: DeviceAllocatedPorts,
         private val deviceSetPath: String,
-        private val wdaSimulatorBundles: WdaSimulatorBundles,
+        wdaSimulatorBundles: WdaSimulatorBundles,
         private val concurrentBootsPool: ExecutorService,
         headless: Boolean,
         private val useWda: Boolean,

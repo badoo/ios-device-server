@@ -36,7 +36,7 @@ class Device(
     private val remote: IRemote,
     override val deviceInfo: DeviceInfo,
     val userPorts: DeviceAllocatedPorts,
-    private val wdaDeviceBundles: List<WdaDeviceBundle>,
+    wdaDeviceBundles: List<WdaDeviceBundle>,
     usbProxyFactory: UsbProxyFactory = UsbProxyFactory(remote)
 ) : IDevice {
     override val appiumPort: Int get() = userPorts.appiumPort

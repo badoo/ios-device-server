@@ -19,7 +19,7 @@ class XCTestInstrumentationAgent(
     private val deviceInfo: DeviceInfo,
     private val wdaEndpoint: URI,
     private val mjpegServerPort: Int,
-    private val deviceRef: DeviceRef,
+    deviceRef: DeviceRef,
     private val isRealDevice: Boolean,
     private val childFactory: (
         remoteHost: String,

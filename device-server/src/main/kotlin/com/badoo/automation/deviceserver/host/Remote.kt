@@ -21,7 +21,7 @@ class Remote(
     override val remoteExecutor: IShellCommand = ShellCommand(),
     override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(remoteExecutor), FBSimctlResponseParser()),
     override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor, hostName),
-    private val appConfig: ApplicationConfiguration = ApplicationConfiguration()
+    appConfig: ApplicationConfiguration = ApplicationConfiguration()
 ) : IRemote {
     companion object {
         fun getLocalCommandExecutor(): IShellCommand {
