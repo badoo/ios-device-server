@@ -8,10 +8,6 @@ import java.io.File
 import java.time.Duration
 
 interface IRemote {
-    companion object {
-        private val asdfUserPath = File(System.getProperty("user.home"), ".asdf/shims").absolutePath
-    }
-
     val homeBrewPath: File
     val tmpDir: File
     val hostName: String
