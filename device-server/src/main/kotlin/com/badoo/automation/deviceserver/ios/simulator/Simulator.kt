@@ -543,7 +543,7 @@ class Simulator(
             }
 
             val dict = "<dict><key>ConnectHardwareKeyboard</key><integer>0</integer></dict>"
-            val cmd = listOf("/usr/bin/defaults", "write", "com.apple.iphonesimulator", "DevicePreferences", "-dict-add", udid, if (remote.isLocalhost()) dict else "'$dict'")
+            val cmd = listOf("/usr/bin/defaults", "write", "com.apple.iphonesimulator", "DevicePreferences", "-dict-add", udid, dict)
             val result = remote.execIgnoringErrors(cmd)
 
             val simulatorApp = "/Simulator.app/"
@@ -579,11 +579,7 @@ class Simulator(
         val keyChainLocation = Paths.get(deviceSetPath, udid, "data", "Library", "Keychains").toFile().absolutePath
         remote.shell("mkdir -p $keyChainLocation", returnOnFailure = false)
 
-        if (remote.isLocalhost()) {
-            remote.shell("cp $trustStoreFile $keyChainLocation", returnOnFailure = false)
-        } else {
-            remote.scpToRemoteHost(trustStoreFile, keyChainLocation)
-        }
+        remote.shell("cp $trustStoreFile $keyChainLocation", returnOnFailure = false)
 
         logger.info(logMarker, "Copied trust store to ${this@Simulator}")
     }
@@ -822,17 +818,11 @@ class Simulator(
         logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
         val nanos = measureNanoTime {
             val task = concurrentBootsPool.submit { // using limited amount of workers to boot simulator
-                if (remote.isLocalhost()) {
-                    useSoftwareKeyboard()
-                }
+                useSoftwareKeyboard()
 
                 val bootTime = remote.exec(listOf("date", "+%s"), mapOf(), false, 30L).stdOut.trim().toLong()
 
                 bootSimulator()
-
-                if (remote.isLocalhost()) {
-                    openSimulatorApp()
-                }
 
                 waitUntilSimulatorBooted(bootTime)
             }
@@ -1030,14 +1020,7 @@ class Simulator(
             defer { pushNotificationFile.delete() }
             pushNotificationFile.writeBytes(notificationContent)
 
-            val pushNotificationPath: String = if (remote.isLocalhost()) {
-                pushNotificationFile.absolutePath
-            } else {
-                val remotePushNotificationDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
-                defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remotePushNotificationDir)) }
-                remote.scpToRemoteHost(pushNotificationFile.absolutePath, remotePushNotificationDir, Duration.ofMinutes(1))
-                File(remotePushNotificationDir, pushNotificationFile.name).absolutePath
-            }
+            val pushNotificationPath: String = pushNotificationFile.absolutePath
 
             val result = remote.execIgnoringErrors(listOf("/usr/bin/xcrun", "simctl", "push", udid, bundleId, pushNotificationPath))
 
@@ -1053,14 +1036,7 @@ class Simulator(
             defer { pasteboardPayloadFile.delete() }
             pasteboardPayloadFile.writeBytes(payload)
 
-            val pasteboardPayloadPath: String = if (remote.isLocalhost()) {
-                pasteboardPayloadFile.absolutePath
-            } else {
-                val remotePasteboardDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
-                defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remotePasteboardDir)) }
-                remote.scpToRemoteHost(pasteboardPayloadFile.absolutePath, remotePasteboardDir, Duration.ofMinutes(1))
-                File(remotePasteboardDir, pasteboardPayloadFile.name).absolutePath
-            }
+            val pasteboardPayloadPath: String = pasteboardPayloadFile.absolutePath
 
             val result = remote.shell("cat $pasteboardPayloadPath | /usr/bin/xcrun simctl pbcopy -v $udid")
 
@@ -1165,7 +1141,7 @@ class Simulator(
     }
 
     override fun openUrl(url: String) : Boolean {
-        val urlString = if (remote.isLocalhost()) url else "\"${url}\""
+        val urlString = url
         val command = listOf("/usr/bin/xcrun", "simctl", "openurl", udid, urlString)
         val result = remote.execIgnoringErrors(command)
 

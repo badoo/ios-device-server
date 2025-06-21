@@ -33,17 +33,7 @@ class AppiumServer(
 
     val appiumServerLog
         get(): File {
-            return if (remote.isLocalhost()) {
-                remoteAppiumServerLog
-            } else {
-                localAppiumServerLogCopy.delete()
-                remote.scpFromRemoteHost(
-                    remoteAppiumServerLog.absolutePath,
-                    localAppiumServerLogCopy.absolutePath,
-                    Duration.ofSeconds(120)
-                )
-                localAppiumServerLogCopy
-            }
+            return remoteAppiumServerLog
         }
 
     fun deleteAppiumServerLog() {
@@ -80,11 +70,7 @@ class AppiumServer(
         val outWriter: ((String) -> Unit)? = null // { message -> logger.info("[Appium Server INFO] $message") }
         val errWriter: (String) -> Unit = { message -> logger.error("[Appium Server ERROR] $message") }
 
-        val path = if (remote.isLocalhost()) {
-            "${System.getenv("PATH")}:${DEFAULT_PATH}"
-        } else {
-            DEFAULT_PATH
-        }
+        val path = "${System.getenv("PATH")}:${DEFAULT_PATH}"
 
         val command = getAppiumServerStartCommand()
 
@@ -138,7 +124,7 @@ class AppiumServer(
     }
 
     private fun getAppiumServerStartCommand(): List<String> {
-        val logLevel: String = if (remote.isLocalhost()) { "debug" } else { "info" }
+        val logLevel: String = "info"
 
         val command = listOf(
             "appium",
@@ -158,14 +144,6 @@ class AppiumServer(
             remoteAppiumTmpDir.absolutePath
         )
 
-        return if (remote.isLocalhost()) {
-            command
-        } else {
-            listOf(
-                "/bin/bash",
-                "-c",
-                "'/usr/bin/env PATH=${DEFAULT_PATH} ${command.joinToString(" ")}'" // important to send PATH in order to launch Appium correctly
-            )
-        }
+        return command
     }
 }

@@ -69,13 +69,13 @@ class XCTestInstrumentationAgent(
     )
 
     private fun prepareXctestrunFile(instrumentationBundle: WdaBundle) {
-        val xctestRunnerPath: File = instrumentationBundle.xctestRunnerPath(remote.isLocalhost())
+        val xctestRunnerPath: File = instrumentationBundle.xctestRunnerPath()
         val xctestRunnerRelativePath = File(xctestRunnerPath.parentFile.name, xctestRunnerPath.name).toString()
         val instrumentationPort = if (isRealDevice) instrumentationBundle.deviceInstrumentationPort else wdaEndpoint.port
         val xctestRunContents = xctestRunTemplate
             .replace("__DEVICE_AGENT_PORT__", "$instrumentationPort")
             .replace("__DEVICE_AGENT_MJPEG_PORT__", "$mjpegServerPort")
-            .replace("__DEVICE_AGENT_BINARY_PATH__", instrumentationBundle.bundlePath(remote.isLocalhost()).absolutePath)
+            .replace("__DEVICE_AGENT_BINARY_PATH__", instrumentationBundle.bundlePath().absolutePath)
             .replace("__DEVICE_AGENT_BUNDLE_ID__", instrumentationBundle.bundleId)
             .replace("__BLUEPRINT_NAME__", instrumentationBundle.bundleName)
             .replace("__PRODUCT_MODULE_NAME__", instrumentationBundle.bundleName)
@@ -83,17 +83,9 @@ class XCTestInstrumentationAgent(
             .replace("__TESTBUNDLE_DESTINATION_RELATIVE_PATH__", xctestRunnerRelativePath)
 
             // real device Xcode 15 and iOS 17
-            .replace("__DEVICE_AGENT_FULL_PATH_ON_MAC__", instrumentationBundle.bundlePath(remote.isLocalhost()).absolutePath)
+            .replace("__DEVICE_AGENT_FULL_PATH_ON_MAC__", instrumentationBundle.bundlePath().absolutePath)
 
-
-        if (remote.isLocalhost()) {
-            xctestrunFile.writeText(xctestRunContents)
-        } else {
-            val tmpFile = File.createTempFile("xctestRunDir_$udid.", ".xctestrun")
-            tmpFile.writeText(xctestRunContents)
-            remote.scpToRemoteHost(tmpFile.absolutePath, xctestrunFile.absolutePath)
-            tmpFile.delete()
-        }
+        xctestrunFile.writeText(xctestRunContents)
     }
 
     private val xctestRunTemplate: String by lazy {
@@ -116,7 +108,7 @@ class XCTestInstrumentationAgent(
     override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
 
     private fun installHostApp(instrumentationBundle: WdaBundle) {
-        remote.fbsimctl.installApp(udid, instrumentationBundle.bundlePath(remote.isLocalhost()))
+        remote.fbsimctl.installApp(udid, instrumentationBundle.bundlePath())
         val timeout = 3000L
         logger.debug("Waiting $timeout ms after install")
         Thread.sleep(timeout)
@@ -140,7 +132,7 @@ class XCTestInstrumentationAgent(
 
         useWebDriverAgent = useAppium
         val instrumentationBundle = getInstrumentationBundle(useAppium)
-        ensure(remote.isDirectory(instrumentationBundle.bundlePath(remote.isLocalhost()).absolutePath)) { WebDriverAgentError("WebDriverAgent ${instrumentationBundle.bundlePath(remote.isLocalhost()).absolutePath} does not exist or is not a directory") }
+        ensure(remote.isDirectory(instrumentationBundle.bundlePath().absolutePath)) { WebDriverAgentError("WebDriverAgent ${instrumentationBundle.bundlePath().absolutePath} does not exist or is not a directory") }
         logger.debug(logMarker, "$this — Starting child process WebDriverAgent on: $wdaEndpoint with bundle id: ${instrumentationBundle.bundleId}")
 
         cleanupLogs()

@@ -54,7 +54,6 @@ class SharedContainerTest {
             remote = remote,
             basePath = sharedContainerPathStub
         )
-        whenever(remote.isLocalhost()).thenReturn(false)
         doNothing().`when`(remote).scpToRemoteHost(any(), any(), any())
 
         val fakeFailLocation = File(sharedContainerPathStub.path.plus("/config.plist"))
@@ -78,7 +77,6 @@ class SharedContainerTest {
             remote = remote,
             basePath = sharedContainerPathStub
         )
-        whenever(remote.isLocalhost()).thenReturn(false)
         whenever(remote.captureFile(any())).thenReturn(ByteArray(2))
 
         val fakeFailLocation = File(sharedContainerPathStub.path.plus("/config.plist"))

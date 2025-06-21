@@ -77,30 +77,7 @@ class SimulatorsNode(
     }
 
     override fun deployApplication(appBundle: ApplicationBundle) {
-        val appDirectory: File = if (remote.isLocalhost()) {
-            appBundle.appDirectory!!
-        } else {
-            var deployedFile: File? = null
-
-            (0..10).forEach {
-                if (deployedFile == null) {
-                    try {
-                        deployedFile = copyAppToRemoteHost(appBundle)
-                    } catch (e: RuntimeException) {
-                        logger.warn(
-                            logMarker, "Attempt # $it failed to deploy application to remote host ${remote.hostName}", e
-                        )
-                    }
-                }
-            }
-
-            if (deployedFile == null) {
-                logger.error(logMarker, "Failed to deploy application to remote host ${remote.hostName}")
-                throw RuntimeException("Unable to copy application ${appBundle.appUrl} to $this")
-            } else {
-                deployedFile!!
-            }
-        }
+        val appDirectory: File = appBundle.appDirectory!!
         val key = appBundle.appUrl.toExternalForm()
         appBinariesCache[key] = appDirectory
     }
@@ -147,16 +124,6 @@ class SimulatorsNode(
         logger.info(logMarker, "Preparing node ${remote.hostName}")
         hostChecker.checkPrerequisites()
         hostChecker.createDirectories()
-
-        if (!remote.isLocalhost()) {
-            hostChecker.copyWdaBundleToHost()
-            if (applicationConfiguration.useTestHelperApp) {
-                hostChecker.copyTestHelperBundleToHost()
-            }
-            hostChecker.copyVideoRecorderHelperToHost()
-            hostChecker.copyXcrunSimctlHelperToHost()
-            hostChecker.copyFbsimctlScriptToHost()
-        }
 
         hostChecker.cleanup()
         hostChecker.setupHost()
@@ -438,7 +405,6 @@ class SimulatorsNode(
     }
 
     override fun isReachable(): Boolean = remote.isReachable()
-    override fun isLocalhost(): Boolean = remote.isLocalhost()
 
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
         val iSimulator = createdSimulators[deviceRef] ?: return false

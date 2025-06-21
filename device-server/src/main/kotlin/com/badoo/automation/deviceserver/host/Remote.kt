@@ -4,7 +4,6 @@ import XCRunSimctl
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.*
-import com.badoo.automation.deviceserver.host.IRemote.Companion.isLocalhost
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlResponseParser
 import com.badoo.automation.deviceserver.util.ensure
@@ -12,7 +11,6 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
-import java.lang.IllegalStateException
 import java.time.Duration
 
 class Remote(
@@ -20,20 +18,12 @@ class Remote(
     override val userName: String,
     override val publicHostName: String,
     override val localExecutor: IShellCommand = ShellCommand(),
-    override val remoteExecutor: IShellCommand = getRemoteCommandExecutor(hostName, userName),
+    override val remoteExecutor: IShellCommand = ShellCommand(),
     override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(remoteExecutor), FBSimctlResponseParser()),
-    override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor, isLocalhost(hostName, userName), hostName),
+    override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor, hostName),
     private val appConfig: ApplicationConfiguration = ApplicationConfiguration()
 ) : IRemote {
     companion object {
-        fun getRemoteCommandExecutor(hostName: String, userName: String): IShellCommand {
-            return if (isLocalhost(hostName, userName)) {
-                ShellCommand()
-            } else {
-                RemoteShellCommand(hostName, userName)
-            }
-        }
-
         fun getLocalCommandExecutor(): IShellCommand {
             return ShellCommand()
         }
@@ -59,15 +49,7 @@ class Remote(
         getHomeBrewPath(remoteExecutor)
     }
 
-    override val tmpDir: File by lazy {
-        if (isLocalhost()) {
-            appConfig.tempFolder
-        } else {
-            val tmpdirEnvironmentVariable = getEnvironment()["TMPDIR"]
-                ?: throw IllegalStateException("Environment variable TMPDIR is unknown for host $publicHostName")
-            File(tmpdirEnvironmentVariable)
-        }
-    }
+    override val tmpDir: File = appConfig.tempFolder
 
     private fun getRemoteTempDirWithRetry(): String {
         1.rangeTo(3).forEach { attempt ->
@@ -85,32 +67,7 @@ class Remote(
     }
 
     private fun getEnvironment(): Map<String, String> {
-        if (isLocalhost()) {
-            return System.getenv()
-        }
-
-        val envDelimiter = "="
-        val result = remoteExecutor.exec(command = listOf("/usr/bin/printenv"), environment = mapOf(), returnFailure = false)
-
-        val envMap = mutableMapOf<String, String>()
-        result.stdOut.lines().forEach { line ->
-            envMap[line.substringBefore(envDelimiter)] = line.substringAfter(envDelimiter)
-        }
-
-        if (envMap["TMPDIR"] == null || envMap["TMPDIR"]!!.isBlank()) {
-            // If TMPDIR is not set, we guess temp directory
-            val mktempResult = getRemoteTempDirWithRetry()
-            mktempResult.let { tmpDirPath ->
-                if (tmpDirPath.isNotBlank() && tmpDirPath.startsWith("/var/folders/")) {
-                    envMap["TMPDIR"] = File(tmpDirPath).parent + "/"
-                } else {
-                    logger.warn(logMarker, "Failed to determine TMPDIR for remote host $hostName. Using default /tmp")
-                    envMap["TMPDIR"] = "/tmp/"
-                }
-            }
-        }
-
-        return envMap
+        return System.getenv()
     }
 
     override fun isReachable(): Boolean {
@@ -133,10 +90,7 @@ class Remote(
     override fun escape(value: String) = remoteExecutor.escape(value)
 
     override fun shell(command: String, returnOnFailure: Boolean, environment: Map<String, String>): CommandResult {
-        val cmd = when {
-            isLocalhost() -> listOf("bash", "-c", command)
-            else -> listOf("bash", "-c", ShellUtils.escape(command)) // workaround for how ssh executor is designed
-        }
+        val cmd = listOf("bash", "-c", command)
 
         return try {
             remoteExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
@@ -148,20 +102,10 @@ class Remote(
 
     //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
     override fun captureFile(file: File): ByteArray {
-        if (isLocalhost()) {
-            if (!file.exists()) {
-                throw FileNotFoundException("File $file is not found.")
-            }
-            return file.readBytes()
+        if (!file.exists()) {
+            throw FileNotFoundException("File $file is not found.")
         }
-
-        val tempFile = File.createTempFile("remoteFile", ".bin")
-        try {
-            scpFromRemoteHost(file.absolutePath, tempFile.absolutePath, Duration.ofMinutes(2));
-            return tempFile.readBytes()
-        } finally {
-            tempFile.delete()
-        }
+        return file.readBytes()
     }
 
     private enum class Signal(val signal: Int) {

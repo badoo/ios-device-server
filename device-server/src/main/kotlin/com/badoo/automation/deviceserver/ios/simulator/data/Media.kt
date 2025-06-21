@@ -57,14 +57,7 @@ class Media(
 
     fun addMedia(media: List<File>) {
         withDefers(logger) {
-            val mediaPaths = if (remote.isLocalhost()) {
-                media.joinToString(" ")
-            } else {
-                val remoteMediaDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
-                defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remoteMediaDir)) }
-                media.forEach { remote.scpToRemoteHost(it.absolutePath, remoteMediaDir) }
-                media.joinToString(" ") { File(remoteMediaDir, it.name).absolutePath }
-            }
+            val mediaPaths = media.joinToString(" ")
 
             val result = remote.shell("/usr/bin/xcrun simctl addmedia $udid $mediaPaths")
 
@@ -80,14 +73,7 @@ class Media(
             defer { tmpFile.delete() }
             tmpFile.writeBytes(data)
 
-            val mediaPath: String = if (remote.isLocalhost()) {
-                tmpFile.absolutePath
-            } else {
-                val remoteMediaDir = remote.execIgnoringErrors(listOf("/usr/bin/mktemp", "-d")).stdOut.trim()
-                defer { remote.execIgnoringErrors(listOf("/bin/rm", "-rf", remoteMediaDir)) }
-                remote.scpToRemoteHost(tmpFile.absolutePath, remoteMediaDir)
-                File(remoteMediaDir, tmpFile.name).absolutePath
-            }
+            val mediaPath: String = tmpFile.absolutePath
 
             val result = remote.execIgnoringErrors(listOf("/usr/bin/xcrun", "simctl", "addmedia", udid, mediaPath))
 

@@ -4,8 +4,8 @@ import java.io.File
 
 interface WdaBundle {
     val bundleId: String
-    fun xctestRunnerPath(isLocalhost: Boolean): File
-    fun bundlePath(isLocalhost: Boolean): File
+    fun xctestRunnerPath(): File
+    fun bundlePath(): File
     val provisionedDevices: List<String>
     val deviceInstrumentationPort: Int
     val testIdentifier: String

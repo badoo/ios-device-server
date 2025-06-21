@@ -9,17 +9,6 @@ import java.time.Duration
 
 interface IRemote {
     companion object {
-        private const val LOCALHOST = "localhost"
-        private const val LOCALHOST_NET_PREFIX = "127."
-        fun isLocalhost(hostName: String, userName: String): Boolean {
-            if (userName.isNotBlank()) {
-                return false // Use ssh if user was specified explicitly
-            }
-
-            return hostName == LOCALHOST || hostName.startsWith(LOCALHOST_NET_PREFIX)
-        }
-
-        const val SSH_AUTH_SOCK = "SSH_AUTH_SOCK"
         private val asdfUserPath = File(System.getProperty("user.home"), ".asdf/shims").absolutePath
         val DEFAULT_PATH = "$asdfUserPath:/Users/qa/.asdf/shims:/usr/local/opt/appium/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
     }
@@ -32,7 +21,6 @@ interface IRemote {
     val localExecutor: IShellCommand
     val remoteExecutor: IShellCommand
     fun isReachable(): Boolean
-    fun isLocalhost(): Boolean = isLocalhost(hostName, userName)
 
     fun execIgnoringErrors(command: List<String>, env: Map<String, String> = emptyMap(), timeOutSeconds: Long = 60): CommandResult
             = exec(command, env, returnFailure = true, timeOutSeconds = timeOutSeconds)
@@ -59,7 +47,7 @@ interface IRemote {
     val fbsimctl: FBSimctl
     val xcrunSimctl: XCRunSimctl
     fun isDirectory(path: String): Boolean
-    fun scpToRemoteHost(from: String, to: String, timeOut: Duration = Duration.ofMinutes(3))
+    fun scpToRemoteHost(from: String, to: String, timeOut: Duration = Duration.ofMinutes(2))
     fun rm(path: String, timeOut: Duration = Duration.ofMinutes(3))
     fun scpFromRemoteHost(from: String, to: String, timeOut: Duration)
 }

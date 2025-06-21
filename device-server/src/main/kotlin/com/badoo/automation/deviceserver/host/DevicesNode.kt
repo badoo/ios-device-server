@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver.host
 
-import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
@@ -17,16 +16,13 @@ import com.badoo.automation.deviceserver.util.WdaDeviceBundle
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
-import org.slf4j.Marker
 import java.io.File
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.time.Duration
-import java.util.*
 import java.util.concurrent.*
-import kotlin.system.measureNanoTime
 
 class DevicesNode(
     private val remote: IRemote,
@@ -53,32 +49,9 @@ class DevicesNode(
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
 
     override fun deployApplication(appBundle: ApplicationBundle) {
-        val appDirectory = if (remote.isLocalhost()) {
-            appBundle.appDirectory!!
-        } else {
-            copyAppToRemoteHost(appBundle)
-        }
+        val appDirectory = appBundle.appDirectory!!
         val key = appBundle.appUrl.toExternalForm()
         appBinariesCache[key] = appDirectory
-    }
-
-    private fun copyAppToRemoteHost(appBundle: ApplicationBundle): File {
-        val marker = MapEntriesAppendingMarker(mapOf(LogMarkers.HOSTNAME to remote.publicHostName, "action_name" to "scp_application"))
-        logger.debug(marker, "Copying application ${appBundle.appUrl} to $this")
-
-        remote.exec(listOf("/bin/rm", "-rf", ApplicationConfiguration().appBundleCacheRemotePath.absolutePath), mapOf(), false, 90).stdOut.trim()
-
-        val remoteDirectory = File(ApplicationConfiguration().appBundleCacheRemotePath, UUID.randomUUID().toString()).absolutePath
-        remote.exec(listOf("/bin/mkdir", "-p", remoteDirectory), mapOf(), false, 90).stdOut.trim()
-
-        val nanos = measureNanoTime {
-            remote.scpToRemoteHost(appBundle.appDirectory!!.absolutePath, remoteDirectory)
-        }
-        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
-        val measurement = mapOf(LogMarkers.HOSTNAME to remote.publicHostName, "action_name" to "scp_application", "duration" to seconds)
-
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully copied application ${appBundle.appUrl} to $this. Took $seconds seconds")
-        return File(remoteDirectory, appBundle.appDirectory!!.name)
     }
 
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
@@ -240,25 +213,11 @@ class DevicesNode(
 
     override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
         val device = slotByExternalRef(deviceRef).device
-        val status = device.status()
-
-        return status
-//        return SimulatorStatusDTO(
-//            ready = status.ready,
-//            wda_status = status.wda_status,
-//            appium_status = status.appium_status,
-//            fbsimctl_status = status.fbsimctl_status,
-//            state = status.state,
-//            last_error = status.last_error
-//        )
+        return device.status()
     }
 
     override fun isReachable(): Boolean {
         return remote.isReachable()
-    }
-
-    override fun isLocalhost(): Boolean {
-        return remote.isLocalhost()
     }
 
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
@@ -314,9 +273,6 @@ class DevicesNode(
     override fun prepareNode() {
         logger.info(logMarker, "Preparing node ${remote.hostName}")
         checkPrerequisites()
-        if (!remote.isLocalhost()) {
-            copyWdaBundlesToHost()
-        }
         cleanup()
 
         // FIXME: We need to completely reset node state here due to changes in NodeWrapper logic
@@ -525,11 +481,11 @@ class DevicesNode(
 
     private fun copyWdaBundlesToHost() {
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
-        val remoteWdaBundleRoot = wdaDeviceBundles.first().bundlePath(remote.isLocalhost()).absolutePath
+        val remoteWdaBundleRoot = wdaDeviceBundles.first().bundlePath().absolutePath
         remote.rm(remoteWdaBundleRoot)
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteWdaBundleRoot))
         wdaDeviceBundles.forEach {
-            remote.scpToRemoteHost(it.bundlePath(true).absolutePath, remoteWdaBundleRoot)
+            remote.scpToRemoteHost(it.bundlePath().absolutePath, remoteWdaBundleRoot)
         }
     }
 

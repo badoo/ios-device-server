@@ -98,7 +98,6 @@ interface IDeviceNode {
     fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String)
     fun locationStartLocationSequence(deviceRef: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>)
     fun getNodeInfo(): NodeInfo
-    fun isLocalhost(): Boolean
 }
 
 data class NodeInfo(

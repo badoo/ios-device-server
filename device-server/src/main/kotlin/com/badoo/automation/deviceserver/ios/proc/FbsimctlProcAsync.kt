@@ -144,10 +144,6 @@ open class FbsimctlProcAsync(
     }
 
     fun getFbsimctlLog(): String {
-        if (!remote.isLocalhost()) {
-            downloadRemoteFile(remoteFbsimctlLogPath, fbsimctlLogFile)
-        }
-
         return if (fbsimctlLogFile.exists()) {
             fbsimctlLogFile.readText()
         } else {

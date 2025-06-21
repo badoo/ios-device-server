@@ -52,12 +52,12 @@ class SimulatorHostChecker(
     override fun copyWdaBundleToHost() {
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
 
-        val remoteBundleRoot = wdaSimulatorBundles.webDriverAgentBundle.bundlePath(remote.isLocalhost()).parent
+        val remoteBundleRoot = wdaSimulatorBundles.webDriverAgentBundle.bundlePath().parent
         remote.rm(remoteBundleRoot)
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteBundleRoot))
 
-        remote.scpToRemoteHost(wdaSimulatorBundles.deviceAgentBundle.bundlePath(true).absolutePath, remoteBundleRoot)
-        remote.scpToRemoteHost(wdaSimulatorBundles.webDriverAgentBundle.bundlePath(true).absolutePath, remoteBundleRoot)
+        remote.scpToRemoteHost(wdaSimulatorBundles.deviceAgentBundle.bundlePath().absolutePath, remoteBundleRoot)
+        remote.scpToRemoteHost(wdaSimulatorBundles.webDriverAgentBundle.bundlePath().absolutePath, remoteBundleRoot)
     }
 
     override fun copyTestHelperBundleToHost() {
@@ -171,11 +171,6 @@ class SimulatorHostChecker(
 
         val deviceSetsPath = remote.fbsimctl.defaultDeviceSet()
         check(!deviceSetsPath.isBlank()) { "Device sets must not be blank" } // fbsimctl.defaultDeviceSet will throw if empty. but paranoid mode on.
-
-        if (!remote.isLocalhost()) {
-            removeOldFiles(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, 0) // remove local caches
-            remote.shell("mkdir -p ${ApplicationConfiguration().appBundleCacheRemotePath.absolutePath}")
-        }
 
         // TODO: Use $TMPDIR instead of /private/var/folders/*/*/*
         val caches = listOf(

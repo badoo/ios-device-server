@@ -99,11 +99,7 @@ class OsLog(
             "--level", "debug")
 
         if (sysLogCaptureOptions.predicateString.isNotBlank()) {
-            val predicate = if (remote.isLocalhost()) {
-                sysLogCaptureOptions.predicateString
-            } else {
-                "\"${sysLogCaptureOptions.predicateString}\""
-            }
+            val predicate = sysLogCaptureOptions.predicateString
 
             cmd.add("--predicate")
             cmd.add(predicate)

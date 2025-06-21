@@ -75,28 +75,11 @@ class SubProcess private constructor(
             out_reader: ((line: String) -> Unit)?,
             err_reader: ((line: String) -> Unit)?
         ): SubProcess {
-            val executor = Remote.getRemoteCommandExecutor(hostName = remoteHost, userName = userName)
+            val executor = Remote.getLocalCommandExecutor()
             return SubProcess(
                 command = cmd,
                 commandEnvironment = commandEnvironment,
                 executor = executor,
-                remoteHostname = remoteHost,
-                outWriter = out_reader,
-                errWriter = err_reader
-            )
-        }
-        fun fromLocalCommand(
-            remoteHost: String,
-            userName: String,
-            cmd: List<String>,
-            commandEnvironment: Map<String, String>,
-            out_reader: ((line: String) -> Unit)?,
-            err_reader: ((line: String) -> Unit)?
-        ): SubProcess {
-            return SubProcess(
-                command = cmd,
-                commandEnvironment = commandEnvironment,
-                executor = Remote.getLocalCommandExecutor(),
                 remoteHostname = remoteHost,
                 outWriter = out_reader,
                 errWriter = err_reader

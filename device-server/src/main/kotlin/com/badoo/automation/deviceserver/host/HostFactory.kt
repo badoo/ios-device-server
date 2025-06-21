@@ -55,8 +55,8 @@ class HostFactory(
         val publicHostName = config.publicHost
         val remote: IRemote = remoteProvider(hostName, userName, publicHostName)
 
-        if (userName.isBlank() && !remote.isLocalhost()) {
-            throw RuntimeException("Config for non-localhost nodes must have non-empty 'user'. Current config: $config")
+        if (!userName.isBlank()) {
+            throw RuntimeException("Config for localhost nodes must have empty 'user'. Current config: $config")
         }
 
         val nodeTypeResult = remote.exec(listOf("/usr/bin/arch"), mapOf(),true, 60)

@@ -17,18 +17,8 @@ abstract class SimulatorFilesystemContainer(private val remote: IRemote) {
     ))
 
     open fun writeFile(file: File, data: ByteArray) {
-        if (remote.isLocalhost()) {
-            file.writeBytes(data)
-            logger.debug(logMarker, "Successfully wrote data to file ${file.absolutePath}")
-        } else {
-            withDefers(logger) {
-                val tmpFile = File.createTempFile("${file.nameWithoutExtension}.", ".${file.extension}")
-                defer { tmpFile.delete() }
-                tmpFile.writeBytes(data)
-                remote.scpToRemoteHost(tmpFile.absolutePath, file.absolutePath)
-                logger.debug(logMarker, "Successfully wrote data to remote file ${file.absolutePath}")
-            }
-        }
+        file.writeBytes(data)
+        logger.debug(logMarker, "Successfully wrote data to file ${file.absolutePath}")
     }
 
     fun readFile(path: String): ByteArray {
@@ -50,10 +40,6 @@ abstract class SimulatorFilesystemContainer(private val remote: IRemote) {
     }
 
     internal fun sshNoEscapingWorkaround(path: String): String {
-        // FIXME: fix escaping on ssh side and remove workarounds
-        return when {
-            remote.isLocalhost() -> path
-            else -> ShellUtils.escape(path)
-        }
+        return path
     }
 }

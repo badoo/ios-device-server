@@ -13,7 +13,6 @@ import java.time.Duration
 
 class XCRunSimctl(
     private val shellCommand: IShellCommand,
-    private val isRemoteHost: Boolean,
     private val hostName: String,
     override val fbsimctlBinary: String = "Unsupported here"
 ) : ISimulatorControl {
@@ -113,7 +112,7 @@ class XCRunSimctl(
         }
 
         val udid = result.stdOut.trim() // remove last new_line
-        val host = if (isRemoteHost)  hostName else "localhost"
+        val host = "localhost" // FIXME: should be the actual host name
         logger.info("Created iOS Simulator ${udid} on host ${host} ")
 
         return FBSimctlDevice(

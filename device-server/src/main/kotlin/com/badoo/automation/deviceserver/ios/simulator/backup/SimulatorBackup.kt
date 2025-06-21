@@ -101,27 +101,14 @@ class SimulatorBackup(
     private fun writeMeta() {
         val meta = BackupMeta(CURRENT_VERSION, dateNowUTC().withNano(0).toString())
         val content = JsonMapper().toJson(meta)
+        if (!File(metaFileDirectory).mkdirs()) {
+            throw SimulatorBackupError("$this could not create $metaFileDirectory directory")
+        }
 
-        when {
-            remote.isLocalhost() -> {
-                if (!File(metaFileDirectory).mkdirs()) {
-                    throw SimulatorBackupError("$this could not create $metaFileDirectory directory")
-                }
-
-                try {
-                    File(metaFilePath).writeText(content)
-                } catch (e: IOException) {
-                    throw SimulatorBackupError("$this could not write meta.json $e")
-                }
-            }
-            else -> {
-                remote.execIgnoringErrors(listOf("mkdir", "-p", metaFileDirectory))
-                val result = remote.shell(
-                    "echo ${ShellUtils.escape(content)} > $metaFilePath",
-                    returnOnFailure = true
-                )
-                ensureSuccess(result, "$this could not write meta.json: ${result.stdErr}")
-            }
+        try {
+            File(metaFilePath).writeText(content)
+        } catch (e: IOException) {
+            throw SimulatorBackupError("$this could not write meta.json $e")
         }
     }
     //endregion

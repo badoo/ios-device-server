@@ -21,11 +21,9 @@ data class WdaSimulatorBundle(
     override val deviceInstrumentationPort: Int,
     override val testIdentifier: String
 ) : WdaBundle {
-    override fun xctestRunnerPath(isLocalhost: Boolean): File =
-        if (isLocalhost) xctestRunnerPath.toFile() else remoteXctestRunnerPath.toFile()
+    override fun xctestRunnerPath(): File = xctestRunnerPath.toFile()
 
-    override fun bundlePath(isLocalhost: Boolean): File =
-        if (isLocalhost) bundlePath.toFile() else remoteBundlePath.toFile()
+    override fun bundlePath(): File = bundlePath.toFile()
 }
 
 data class WdaSimulatorBundles(

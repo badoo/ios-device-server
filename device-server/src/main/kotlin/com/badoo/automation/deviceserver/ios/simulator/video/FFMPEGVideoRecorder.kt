@@ -44,15 +44,6 @@ class FFMPEGVideoRecorder(
     override fun toString(): String = "${javaClass.simpleName} for $ref"
 
     override fun delete() {
-        if (!remote.isLocalhost()) {
-            val remoteVideoPaths = listOf(
-                remoteVideoPath,
-                remoteVideoLogPath,
-                remoteVideoPidPath
-            ).joinToString(" ")
-            remote.shell("rm -vf $remoteVideoPaths")
-        }
-
         listOf(
             videoFile,
             videoLogFile,
@@ -137,10 +128,6 @@ class FFMPEGVideoRecorder(
     }
 
     override fun getRecordingLog(): String {
-        if (!remote.isLocalhost()) {
-            downloadRemoteFile(remoteVideoLogPath, videoLogFile)
-        }
-
         return if (videoLogFile.exists()) {
             videoLogFile.readText()
         } else {
@@ -150,10 +137,6 @@ class FFMPEGVideoRecorder(
 
     override fun getRecording(): ByteArray {
         logger.info(logMarker, "Getting video recording ${videoFile.name}")
-
-        if (!remote.isLocalhost()) {
-            downloadRemoteFile(remoteVideoPath, videoFile)
-        }
 
         return if (videoFile.exists()) {
             videoFile.readBytes()
@@ -167,9 +150,5 @@ class FFMPEGVideoRecorder(
     override fun dispose() {
         stop()
         delete()
-    }
-
-    companion object {
-        private val whiteSpacesRegex = Regex("\\s+")
     }
 }
