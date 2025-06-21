@@ -21,9 +21,7 @@ data class DeviceInfo (
 
                 other as DeviceInfo
 
-                if (udid != other.udid) return false
-
-                return true
+            return udid == other.udid
         }
 
     fun osMajorVersion(): Int {

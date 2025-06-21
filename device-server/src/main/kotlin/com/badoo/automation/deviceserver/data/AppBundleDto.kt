@@ -42,9 +42,7 @@ data class AppBundleDeployDto(
 
         other as AppBundleDto
 
-        if (appUrl != other.appUrl) return false
-
-        return true
+        return appUrl == other.appUrl
     }
 
     override fun hashCode(): Int {

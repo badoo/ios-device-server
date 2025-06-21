@@ -51,9 +51,7 @@ data class NodeConfig(
 
         other as NodeConfig
 
-        if (publicHost != other.publicHost) return false
-
-        return true
+        return publicHost == other.publicHost
     }
 
     override fun hashCode(): Int {

@@ -562,9 +562,7 @@ class SimulatorsNode(
 
         other as SimulatorsNode
 
-        if (publicHostName != other.publicHostName) return false
-
-        return true
+        return publicHostName == other.publicHostName
     }
 
     override fun hashCode(): Int {

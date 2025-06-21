@@ -513,9 +513,7 @@ class DevicesNode(
 
         other as DevicesNode
 
-        if (publicHostName != other.publicHostName) return false
-
-        return true
+        return publicHostName == other.publicHostName
     }
 
     override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Any> {

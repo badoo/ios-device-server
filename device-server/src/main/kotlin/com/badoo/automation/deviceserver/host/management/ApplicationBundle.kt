@@ -40,9 +40,7 @@ class ApplicationBundle(
 
         other as ApplicationBundle
 
-        if (appUrl != other.appUrl) return false
-
-        return true
+        return appUrl == other.appUrl
     }
 
     override fun hashCode(): Int {
