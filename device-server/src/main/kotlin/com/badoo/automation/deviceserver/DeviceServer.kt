@@ -310,7 +310,7 @@ fun Application.module() {
                             throw IllegalArgumentException("Bundle id is not set. Have to set 'bundle_id' to aprropriate value.")
                         }
 
-                        call.respond(devicesController.pushFile(ref, dataPath.file_name, dataPath.data, dataPath.bundleId))
+                        call.respond(devicesController.pushFile(ref, dataPath.fileName, dataPath.data, dataPath.bundleId))
                     }
                     post("list_files") {
                         val ref = param(call, "ref")
@@ -361,7 +361,7 @@ fun Application.module() {
                     post {
                         val ref = param(call, "ref")
                         val dataPath = jsonContent<FileDto>(call)
-                        call.respond(devicesController.addMedia(ref, dataPath.file_name, dataPath.data))
+                        call.respond(devicesController.addMedia(ref, dataPath.fileName, dataPath.data))
                     }
                 }
 
