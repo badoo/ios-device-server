@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver
 
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import java.io.File
+import java.lang.Boolean
 import java.lang.IllegalStateException
 
 class ApplicationConfiguration {
@@ -16,21 +17,19 @@ class ApplicationConfiguration {
         ?: throw RuntimeException("Must set system property: -D$deviceServerConfigPathProperty=./config/.device_config")
 
     val fbsimctlVersion: String = System.getProperty("fbsimctl.version", "HEAD-d30c2a73")
-
-    val remoteWdaSimulatorBundleRoot = System.getProperty("remote.wda.simulator.bundle.path", "/usr/local/opt/web_driver_agent_simulator")
-
-    val remoteWdaDeviceBundleRoot = System.getProperty("remote.wda.device.bundle.path", "/usr/local/opt/web_driver_agent_device")
-    val remoteTestHelperAppBundleRoot = System.getProperty("remote.test.helper.app.bundle.path", "/usr/local/opt/ios-device-server/test_helper_app")
-    val useTestHelperApp = java.lang.Boolean.getBoolean("useTestHelperApp")
+    val remoteWdaSimulatorBundleRoot: String = System.getProperty("remote.wda.simulator.bundle.path", "/usr/local/opt/web_driver_agent_simulator")
+    val remoteWdaDeviceBundleRoot: String = System.getProperty("remote.wda.device.bundle.path", "/usr/local/opt/web_driver_agent_device")
+    val remoteTestHelperAppBundleRoot: String = System.getProperty("remote.test.helper.app.bundle.path", "/usr/local/opt/ios-device-server/test_helper_app")
+    val useTestHelperApp = Boolean.getBoolean("useTestHelperApp")
     val remoteVideoRecorder = File(System.getProperty("remote.video.recorder.path", "/usr/local/opt/ios-device-server-utils/record_video_x264.sh"))
     val remoteFbsimctl = File(System.getProperty("remote.fbsimctl.script.path", "/usr/local/opt/ios-device-server-utils/fbsimctl_async.sh"))
     val remoteXcrunSimctl = File(System.getProperty("remote.xcrun.simctl.script.path", "/usr/local/opt/ios-device-server-utils/remote_xcrun_simctl_async.sh"))
-    val useFbsimctlProc = java.lang.Boolean.getBoolean("useFbsimctlProc")
+    val useFbsimctlProc = Boolean.getBoolean("useFbsimctlProc")
     val tempFolder = File(System.getProperty("java.io.tmpdir") ?: throw IllegalStateException("Property java.io.tmpdir is not defined"))
     val trustStorePath: String = System.getProperty("trust.store.path", "")
     val assetsPath: String = System.getProperty("media.assets.path", "")
     val appBundleCachePath: File = File(System.getProperty("app.bundle.cache.path", System.getenv("HOME")), "app_bundle_cache")
     val appBundleCacheRemotePath: File = File(System.getProperty("app.bundle.cache.remote.path", "/Users/qa/app_bundle_cache"))
-    val videoRecorderClassName = System.getProperty("video.recorder", FFMPEGVideoRecorder::class.qualifiedName)
+    val videoRecorderClassName: String = System.getProperty("video.recorder", FFMPEGVideoRecorder::class.qualifiedName)
     val simulatorBackupPath: String? = System.getProperty("simulator.backup.path")
 }

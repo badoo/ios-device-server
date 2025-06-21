@@ -22,6 +22,7 @@ import java.net.URI
 import java.net.URL
 import java.nio.file.Files
 import java.time.Duration
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.ScheduledFuture
@@ -279,16 +280,10 @@ class Device(
         }
     }
 
-    val asyncExecutor = Executors.newFixedThreadPool(3)
+    val asyncExecutor: ExecutorService = Executors.newFixedThreadPool(3)
 
     private fun executeAsync(action: () -> Unit?): Future<*>? {
-//        val executor = Executors.newSingleThreadExecutor()
-//        val future = executor.submit(action)
-//        executor.shutdown()
-
-        val future = asyncExecutor.submit(action)
-
-        return future
+        return asyncExecutor.submit(action)
     }
 
     override fun prepareAsync() {
