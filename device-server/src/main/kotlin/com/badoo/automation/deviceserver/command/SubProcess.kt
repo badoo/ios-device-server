@@ -49,7 +49,7 @@ class SubProcess private constructor(
     }
 
     private fun readStream(inputStream: InputStream, writer: ((line: String) -> Unit)?): FutureTask<Unit> {
-        return FutureTask(Callable<Unit> {
+        return FutureTask(Callable {
             try {
                 BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8), 1045696).use { reader ->
                     var line: String

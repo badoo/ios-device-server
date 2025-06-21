@@ -252,7 +252,7 @@ class DeviceManager(
         val tasks = mutableListOf<Future<Pair<String, NodeInfo>>>()
 
         nodeWrappers.forEach { nodeWrapper ->
-            val task: Future<Pair<String, NodeInfo>> = executor.submit(Callable<Pair<String, NodeInfo>> {
+            val task: Future<Pair<String, NodeInfo>> = executor.submit(Callable {
                 return@Callable Pair(nodeWrapper.node.publicHostName, nodeWrapper.node.getNodeInfo())
             })
             tasks.add(task)

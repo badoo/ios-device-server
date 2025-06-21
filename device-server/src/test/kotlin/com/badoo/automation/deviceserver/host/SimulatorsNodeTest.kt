@@ -129,7 +129,7 @@ class SimulatorsNodeTest {
 
     @Test
     fun shouldPrepareNodeOnlyOnce() {
-        whenever(simulatorsNode1.remote.shell("/usr/bin/sw_vers -productVersion", returnOnFailure = false)).thenReturn(CommandResult("13.3.1", "", 0, true, ArrayList<String>(), 0L))
+        whenever(simulatorsNode1.remote.shell("/usr/bin/sw_vers -productVersion", returnOnFailure = false)).thenReturn(CommandResult("13.3.1", "", 0, true, ArrayList(), 0L))
         simulatorsNode1.prepareNode()
 
         val inOrder = inOrder(hostChecker)

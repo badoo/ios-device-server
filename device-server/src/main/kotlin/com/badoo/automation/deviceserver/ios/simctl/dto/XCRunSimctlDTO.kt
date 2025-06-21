@@ -47,13 +47,3 @@ data class Device(
     val name: String
 )
 
-data class RunTime(
-    val bundlePath: String,
-    val buildversion: String,
-    val runtimeRoot: String,
-    val identifier: String,
-    val version: String,
-    val isAvailable: Boolean,
-    val name: String,
-    val supportedDeviceTypes: List<DeviceType>
-)

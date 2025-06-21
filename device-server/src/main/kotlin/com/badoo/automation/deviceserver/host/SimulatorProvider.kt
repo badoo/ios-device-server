@@ -54,7 +54,7 @@ class SimulatorProvider(
     private fun backupExists(udid: UDID): Boolean {
         if (cachedBackupsList.isEmpty()) {
             val command = listOf("/bin/ls", "-1", simulatorBackupsPath.absolutePath)
-            val commandResult = remote.exec(command, mapOf<String, String>(), false, 60L)
+            val commandResult = remote.exec(command, mapOf(), false, 60L)
             val stdOut: String = commandResult.stdOut
             val lines: List<String> = stdOut.lines()
             cachedBackupsList = lines

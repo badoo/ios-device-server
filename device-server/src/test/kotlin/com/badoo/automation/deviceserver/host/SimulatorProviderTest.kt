@@ -36,7 +36,7 @@ class SimulatorProviderTest {
     @Test
     fun matchByUuid() {
         val result = CommandResult("udid-A_BACKUP\nudid-B_BACKUP\nudid-C_BACKUP\n", "", 0, true, listOf("/bin/ls"), 1)
-        whenever(remote.exec(command = listOf("/bin/ls", "-1", "/Users/qa/asdf"), env = mapOf<String, String>(), returnFailure = false, timeOutSeconds = 60L)).thenReturn(result)
+        whenever(remote.exec(command = listOf("/bin/ls", "-1", "/Users/qa/asdf"), env = mapOf(), returnFailure = false, timeOutSeconds = 60L)).thenReturn(result)
         whenever(fbSimctl.listSimulators()).thenReturn(listOf(dev1))
         whenever(remote.fbsimctl.defaultDeviceSet()).thenReturn("/Users/qa/CoreSimulator")
         val actual = provider.provideSimulator(DesiredCapabilities("udid-B", "model", "os", headless), emptySet())
@@ -47,7 +47,7 @@ class SimulatorProviderTest {
     fun matchByExistingDesiredCaps() {
         whenever(fbSimctl.listSimulators()).thenReturn(listOf(dev1))
         val result = CommandResult("udid-A_BACKUP\nudid-B_BACKUP\nudid-C_BACKUP\n", "", 0, true, listOf("/bin/ls"), 1)
-        whenever(remote.exec(command = listOf("/bin/ls", "-1", "/Users/qa/asdf"), env = mapOf<String, String>(), returnFailure = false, timeOutSeconds = 60L)).thenReturn(result)
+        whenever(remote.exec(command = listOf("/bin/ls", "-1", "/Users/qa/asdf"), env = mapOf(), returnFailure = false, timeOutSeconds = 60L)).thenReturn(result)
         val actual = provider.provideSimulator(DesiredCapabilities(null, "model", "iOS 11", true), emptySet())
         assertThat(actual, sameInstance(dev1))
     }

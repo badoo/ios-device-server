@@ -449,9 +449,7 @@ class Device(
     }
 
     private fun stopPeriodicHealthCheck() {
-        healthChecker?.let { checker ->
-            checker.cancel(true)
-        }
+        healthChecker?.cancel(true)
     }
 
     private fun startFbsimctl() {

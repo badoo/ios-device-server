@@ -27,7 +27,6 @@ data class FBSimctlAppInfoBundle(
 
 enum class FBSimctlDeviceState(val value: String) {
     BOOTED("Booted"),
-    SHUTDOWN("Shutdown")
 }
 
 data class FBSimctlDeviceDiagnosticInfo(

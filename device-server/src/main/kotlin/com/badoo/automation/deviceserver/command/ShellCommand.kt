@@ -105,7 +105,7 @@ open class ShellCommand(
 
 
     private fun streamReader(inputStream: InputStream, stringBuilder: StringBuilder): FutureTask<Unit> {
-        return FutureTask(Callable<Unit> {
+        return FutureTask(Callable {
             try {
                 BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8), 1045696).use { reader ->
                     var line: String?

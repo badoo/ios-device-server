@@ -762,12 +762,6 @@ class Simulator(
         logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
     }
 
-    sealed class RequiredService(val identifier: String, @Volatile var booted: Boolean = false) {
-        override fun toString(): String {
-            return identifier
-        }
-    }
-
     private fun waitUntilSimulatorBooted(bootTime: Long) {
         Thread.sleep(5000L) // make sure enough time for initial boot before any other actions
         val startTime = System.nanoTime()

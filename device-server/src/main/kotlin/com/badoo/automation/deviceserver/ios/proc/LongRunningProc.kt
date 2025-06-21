@@ -24,9 +24,7 @@ abstract class LongRunningProc(udid: UDID, remoteHostName: String) : ILongRunnin
         }
 
         logger.debug(logMarker, "$this — Killing child process $subProcess")
-        subProcess?.let {
-            it.kill()
-        }
+        subProcess?.kill()
         subProcess = null
     }
 
