@@ -263,7 +263,7 @@ class DeviceManager(
         val aliveNodesInfo: List<Pair<String, NodeInfo>> = tasks.map { it.get() }
 
         try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
         } catch (e: InterruptedException) {
             println("Failed to awaitTermination while retrieving NodeInfo due to issue. ${e.javaClass.name}, ${e.message}")
         }
@@ -528,7 +528,7 @@ class DeviceManager(
         tasks.forEach { it.get() }
 
         try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
         } catch (e: InterruptedException) {
             println("Failed to awaitTermination while deploying application binary simulator hosts due to issue. ${e.javaClass.name}, ${e.message}")
         }

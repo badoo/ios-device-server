@@ -22,7 +22,7 @@ data class NodeConfig(
     val concurrentBoots: Int = 3,
 
     @JsonProperty("type")
-    val type: NodeConfig.NodeType = NodeType.Simulators,
+    val type: NodeType = NodeType.Simulators,
 
     @JsonProperty("whitelist_apps")
     val whitelistApps: Set<String> = emptySet(),

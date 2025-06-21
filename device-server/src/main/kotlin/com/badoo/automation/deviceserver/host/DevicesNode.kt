@@ -91,7 +91,7 @@ class DevicesNode(
 
     override fun deleteInstrumentationAgentLog(deviceRef: DeviceRef) {
         val logFile = slotByExternalRef(deviceRef).device.instrumentationAgentLog
-        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING);
+        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
     }
 
     override fun syslog(deviceRef: DeviceRef): File {

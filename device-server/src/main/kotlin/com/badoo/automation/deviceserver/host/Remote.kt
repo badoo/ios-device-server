@@ -62,7 +62,7 @@ class Remote(
     }
 
     override fun exec(command: List<String>, env: Map<String, String>, returnFailure: Boolean, timeOutSeconds: Long): CommandResult {
-        return remoteExecutor.exec(command, env, returnFailure = returnFailure, timeOut = Duration.ofSeconds(timeOutSeconds))
+        return remoteExecutor.exec(command, env, returnFailure = returnFailure, timeOut = ofSeconds(timeOutSeconds))
     }
 
     override fun escape(value: String) = remoteExecutor.escape(value)

@@ -261,7 +261,7 @@ class Simulator(
             }
         }
 
-        val seconds = TimeUnit.NANOSECONDS.toSeconds(nanos)
+        val seconds = NANOSECONDS.toSeconds(nanos)
         val measurement = mutableMapOf(
             "action_name" to "install_TestHelperApp",
             "duration" to seconds

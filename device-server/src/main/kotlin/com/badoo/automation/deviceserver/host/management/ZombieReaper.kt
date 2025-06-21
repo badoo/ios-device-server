@@ -44,7 +44,7 @@ class ZombieReaper {
         tasks.forEach { it.get() }
 
         try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
         } catch (e: InterruptedException) {
             println("Failed to awaitTermination while reaping zombiez due to issue. ${e.javaClass.name}, ${e.message}")
         }

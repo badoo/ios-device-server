@@ -119,7 +119,7 @@ class ActiveDevices(
         tasks.forEach { it.get() }
 
         try {
-            executor.awaitTermination(120, TimeUnit.SECONDS);
+            executor.awaitTermination(120, TimeUnit.SECONDS)
         } catch (e: InterruptedException) {
             println("Failed to awaitTermination while releasing devices due to issue. ${e.javaClass.name}, ${e.message}")
             Thread.currentThread().interrupt()

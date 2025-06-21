@@ -44,7 +44,7 @@ class NodeRestarter(
             tasks.forEach { it.get() }
 
             try {
-                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
             } catch (e: InterruptedException) {
                 println("Failed to awaitTermination while reboot all simulator hosts due to issue. ${e.javaClass.name}, ${e.message}")
             }
