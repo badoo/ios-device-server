@@ -74,8 +74,8 @@ class WdaSimulatorBundlesProvider(
     }
 
     companion object {
-        val WDA_XCTEST = Paths.get("PlugIns/WebDriverAgentRunner.xctest")
-        val DA_XCTEST = Paths.get("PlugIns/DeviceAgent.xctest")
+        val WDA_XCTEST: Path = Paths.get("PlugIns/WebDriverAgentRunner.xctest")
+        val DA_XCTEST: Path = Paths.get("PlugIns/DeviceAgent.xctest")
         private const val WDA_PORT = 8100
         private const val DA_PORT = 27753
     }

@@ -32,8 +32,8 @@ class UsbProxy(
 
     override fun toString(): String = "<iproxy $localPort $udid>"
 
-    val iproxyBinary = File(remote.homeBrewPath, "iproxy").absolutePath
-    val socatBinary = File(remote.homeBrewPath, "socat").absolutePath
+    val iproxyBinary: String = File(remote.homeBrewPath, "iproxy").absolutePath
+    val socatBinary: String = File(remote.homeBrewPath, "socat").absolutePath
     private var iproxy: SubProcess? = null
     private var socat: SubProcess? = null
 
