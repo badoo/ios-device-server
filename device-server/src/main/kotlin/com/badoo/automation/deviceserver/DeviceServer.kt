@@ -253,7 +253,7 @@ fun Application.module() {
                 }
                 post("pasteboard") {
                     val pasteboard = jsonContent<PasteboardDto>(call)
-                    call.respond(devicesController.sendPasteboard(param(call, "ref"), pasteboard.pasteboardСontent))
+                    call.respond(devicesController.sendPasteboard(param(call, "ref"), pasteboard.pasteboardContent))
                 }
                 post("permissions") {
                     call.respond(devicesController.setPermissions(param(call, "ref"), jsonContent(call)))

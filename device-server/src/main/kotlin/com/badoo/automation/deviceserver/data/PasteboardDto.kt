@@ -4,5 +4,5 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class PasteboardDto(
     @JsonProperty("pasteboard_content")
-    val pasteboardСontent: ByteArray
+    val pasteboardContent: ByteArray
 )
