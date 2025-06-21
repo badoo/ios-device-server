@@ -18,6 +18,5 @@ class InfoPlist(file: File) {
     }
 
     fun bundleIdentifier(): String = config.getString("CFBundleIdentifier")
-    fun bundleExecutable(): String = config.getString("CFBundleExecutable")
     fun bundleName(): String = config.getString("CFBundleName")
 }

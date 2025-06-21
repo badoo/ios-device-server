@@ -1,12 +1,5 @@
 package com.badoo.automation.deviceserver.ios.simctl.dto
 
-data class ListResponseDTO(
-    val devicetypes: List<DeviceType>,
-    val runtimes: List<RunTime>,
-    val devices: Map<String, List<Any>>,
-    val pairs: Map<String, Any>
-)
-
 data class DeviceType(
     val bundlePath: String,
     val name: String,

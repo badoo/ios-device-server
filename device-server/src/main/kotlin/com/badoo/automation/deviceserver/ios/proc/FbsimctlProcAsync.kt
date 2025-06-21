@@ -134,15 +134,6 @@ open class FbsimctlProcAsync(
         }
     }
 
-
-    private fun downloadRemoteFile(remotePath: String, localFile: File) {
-        try {
-            remote.scpFromRemoteHost(remotePath, localFile.absolutePath, Duration.ofSeconds(60))
-        } catch (e: FileNotFoundException) {
-            logger.error("Failed to find $remotePath at ${remote.hostName}")
-        }
-    }
-
     fun getFbsimctlLog(): String {
         return if (fbsimctlLogFile.exists()) {
             fbsimctlLogFile.readText()

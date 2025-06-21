@@ -119,14 +119,6 @@ class FFMPEGVideoRecorder(
         }
     }
 
-    private fun downloadRemoteFile(remotePath: String, localFile: File) {
-        try {
-            remote.scpFromRemoteHost(remotePath, localFile.absolutePath, Duration.ofSeconds(60))
-        } catch (e: FileNotFoundException) {
-            logger.error("Failed to find $remotePath at ${remote.hostName}")
-        }
-    }
-
     override fun getRecordingLog(): String {
         return if (videoLogFile.exists()) {
             videoLogFile.readText()

@@ -69,17 +69,6 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
         return mapOf("total" to count)
     }
 
-    fun hasCapacity(desiredCapabilities: DesiredCapabilities): Boolean {
-        val remainingCapacity = nodeWrappers
-            .parallelStream()
-            .filter { it.isEnabled }
-            .filter { it.isAlive() }
-            .map { it.node.capacityRemaining(desiredCapabilities) }
-            .reduce(0F, java.lang.Float::sum)
-
-        return remainingCapacity > 0F
-    }
-
     fun createDeviceAsync(desiredCapabilities: DesiredCapabilities, deviceTimeout: Duration, userId: String?): DeviceDTO {
         if (getAll().isEmpty()) {
             throw NoNodesRegisteredException("No nodes are registered to create a device")

@@ -173,12 +173,6 @@ class FBSimctlResponseParser : IFBSimctlResponseParser {
             val event_type: String
     )
 
-    private data class FBSimctlDeviceListHttpResponse(
-            val status: String,
-            val subject: List<FBSimctlDeviceListResponse>,
-            val events: List<Any?>
-    )
-
     private data class FBSimctlCreateDeviceResponse(
             val event_name: String,
             val timestamp: String,

@@ -12,7 +12,6 @@ class NodeRestarter(
     private val nodeRegistry: NodeRegistry
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val activeSessionsCheckInterval = Duration.ofSeconds(30)
 
     fun restartNodeWrappers(
         nodes: Set<NodeWrapper>,

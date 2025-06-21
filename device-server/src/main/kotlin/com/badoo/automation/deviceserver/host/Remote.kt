@@ -4,6 +4,7 @@ import XCRunSimctl
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.*
+import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlResponseParser
 import com.badoo.automation.deviceserver.util.ensure
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
 import java.time.Duration
+import java.time.Duration.ofSeconds
 
 class Remote(
     override val hostName: String,
@@ -51,33 +53,9 @@ class Remote(
 
     override val tmpDir: File = appConfig.tempFolder
 
-    private fun getRemoteTempDirWithRetry(): String {
-        1.rangeTo(3).forEach { attempt ->
-            try {
-                val mktempResult = remoteExecutor.exec(command = listOf("/usr/bin/mktemp", "--dry-run"), environment = mapOf(), returnFailure = false)
-                if (mktempResult.isSuccess && mktempResult.stdOut.isNotBlank() && mktempResult.stdOut.trim().startsWith("/var/folders/")) {
-                    return mktempResult.stdOut.trim()
-                }
-            } catch (e: Exception) {
-                logger.error(logMarker, "Failed to get remote temp dir on attempt $attempt. Retrying...", e)
-            }
-        }
-
-        return "/tmp/"
-    }
-
-    private fun getEnvironment(): Map<String, String> {
-        return System.getenv()
-    }
-
     override fun isReachable(): Boolean {
-        //FIXME: We need a reliable way to determine if node is available. SSH request might just time-out if node is under heavy load.
-        return isReachableBySSH()
-    }
-
-    private fun isReachableBySSH(): Boolean {
         return try {
-            remoteExecutor.exec(listOf("echo", "1"), returnFailure = true, timeOut = Duration.ofSeconds(20)).isSuccess
+            remoteExecutor.exec(listOf("echo", "1"), returnFailure = true, timeOut = ofSeconds(20)).isSuccess
         } catch (e: SshConnectionException) {
             false
         }

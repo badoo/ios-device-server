@@ -520,19 +520,6 @@ class Simulator(
         backup.create()
     }
 
-    private fun openSimulatorApp() {
-        try {
-            val result = remote.execIgnoringErrors(listOf("/bin/ps", "axo", "pid,stat,command"))
-            val simulatorApp = "/Simulator.app/"
-
-            if (result.isSuccess && result.stdOut.lines().none { it.contains(simulatorApp) }) {
-                remote.shell("open -a Simulator.app")
-            }
-        } catch (t: Throwable) {
-            logger.error(logMarker, "Failed to launch Simulator.app application. Error ${t.javaClass.name} ${t.message}")
-        }
-    }
-
     private fun useSoftwareKeyboard() {
         try {
             val devicePreferencesResult = remote.execIgnoringErrors(listOf("/usr/bin/defaults", "read", "com.apple.iphonesimulator", "DevicePreferences"))
