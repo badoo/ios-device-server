@@ -3,7 +3,6 @@ package com.badoo.automation.deviceserver.host.management
 import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.ios.SessionEntry
 import org.slf4j.LoggerFactory
-import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit

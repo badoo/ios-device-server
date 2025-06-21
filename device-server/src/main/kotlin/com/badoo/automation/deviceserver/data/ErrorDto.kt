@@ -1,8 +1,5 @@
 package com.badoo.automation.deviceserver.data
 
-import com.badoo.automation.deviceserver.ios.simulator.data.DataContainerException
-import java.lang.RuntimeException
-
 data class ErrorDto(
         val type: String,
         val message: String?,

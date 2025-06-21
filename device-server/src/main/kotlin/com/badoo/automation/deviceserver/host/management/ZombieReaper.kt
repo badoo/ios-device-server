@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import kotlin.streams.toList
 
 class ZombieReaper {
     private val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)

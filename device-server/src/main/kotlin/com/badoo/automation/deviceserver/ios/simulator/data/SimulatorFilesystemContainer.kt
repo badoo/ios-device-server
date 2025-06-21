@@ -1,9 +1,7 @@
 package com.badoo.automation.deviceserver.ios.simulator.data
 
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.util.withDefers
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File

@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver.ios.proc
 
-import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.data.DeviceRef

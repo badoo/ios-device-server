@@ -2,7 +2,6 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.DeviceInfo
-import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
 
 class DesiredCapabilitiesMatcher {
 

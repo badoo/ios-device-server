@@ -4,7 +4,6 @@ import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.JsonMapper
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.CommandResult
-import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.util.dateNowUTC
