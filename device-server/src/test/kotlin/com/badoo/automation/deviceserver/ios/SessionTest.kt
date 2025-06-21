@@ -8,17 +8,13 @@ import org.hamcrest.Matchers.*
 import org.junit.Assert.assertThat
 import org.junit.Ignore
 import org.junit.Test
-import java.time.Duration
 
 @Ignore
 class SessionTest {
     private var host1: IDeviceNode = mockThis()
     private var host2: IDeviceNode = mockThis()
 
-    private var sillySeconds:  Long = 42L
-    private val session = ActiveDevices(currentTimeSeconds = { sillySeconds++ })
-
-    private val releaseAfterSecs = Duration.ofSeconds(5)
+    private val session = ActiveDevices()
 
     private val deviceRef1: DeviceRef = "hello-1"
     private val deviceRef2: DeviceRef = "hello-2"

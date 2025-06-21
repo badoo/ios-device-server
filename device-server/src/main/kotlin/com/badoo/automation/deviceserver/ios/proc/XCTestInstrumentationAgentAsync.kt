@@ -66,14 +66,6 @@ class XCTestInstrumentationAgentAsync(
             ?: throw DeviceNotFoundException("Device with $udid does not have any $instrumentationBundleId bundle that has it's udid provisioned")
     }
 
-    private fun downloadRemoteFile(remotePath: String, localFile: File) {
-        try {
-            remote.scpFromRemoteHost(remotePath, localFile.absolutePath, Duration.ofSeconds(60))
-        } catch (e: FileNotFoundException) {
-            logger.error(logMarker, "Failed to find $remotePath at ${remote.hostName}")
-        }
-    }
-
     fun getRemoteXcrunSimctlLog(): String {
         return if (localXcrunSimctlLogFile.exists()) {
             localXcrunSimctlLogFile.readText()

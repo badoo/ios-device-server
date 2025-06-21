@@ -36,11 +36,6 @@ class XCTestInstrumentationAgent(
 
     val xctestrunSuffix = "WebDriverAgent_$udid.xctestrun"
     private val xctestrunFile = File(xctestrunDir, xctestrunSuffix)
-    private val commonLogMarkerDetails = mapOf(
-        LogMarkers.DEVICE_REF to deviceRef,
-        LogMarkers.UDID to udid,
-        LogMarkers.HOSTNAME to remote.hostName
-    )
 
     private val instrumentationDaBundle = getWdaBundle("sh.calaba.DeviceAgent")
     private val instrumentationWdaBundle = getWdaBundle("com.facebook.WebDriverAgentRunner")

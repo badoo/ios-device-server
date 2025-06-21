@@ -13,7 +13,6 @@ import java.time.Duration
 
 class XCRunSimctl(
     private val shellCommand: IShellCommand,
-    private val hostName: String,
     override val fbsimctlBinary: String = "Unsupported here"
 ) : ISimulatorControl {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)

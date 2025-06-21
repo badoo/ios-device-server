@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.data.NodeRef
 import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import org.slf4j.LoggerFactory
-import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -20,15 +19,9 @@ data class SessionEntry(
 
 class ActiveDevices(
         private val sessionId: String = "defaultSessionId",
-        private val currentTimeSeconds: ()->Long = ::currentTimeSecondsProvider
 ) {
     private val devices: MutableMap<DeviceRef, SessionEntry> = ConcurrentHashMap()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-
-    companion object {
-        private val DEFAULT_RELEASE_TIMEOUT: Duration = Duration.ofSeconds(600)
-        fun currentTimeSecondsProvider(): Long = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime())
-    }
 
     fun deviceRefs(): Set<DeviceRef> {
         return devices.keys

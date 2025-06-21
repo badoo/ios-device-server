@@ -297,7 +297,7 @@ class SimulatorsNode(
     override fun dispose() {
         logger.info(logMarker, "Finalising simulator pool for ${remote.hostName}")
 
-        createdSimulators.toList().parallelStream().forEach { (deviceRef, simulator) ->
+        createdSimulators.toList().parallelStream().forEach { (_, simulator) ->
             cancelRunningSimulatorTask(simulator.ref, "dispose")
             simulator.release("Finalising pool for ${remote.hostName}")
         }

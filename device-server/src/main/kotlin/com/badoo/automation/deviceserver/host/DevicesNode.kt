@@ -31,9 +31,8 @@ class DevicesNode(
     configuredDevices: Set<ConfiguredDevice>,
     private val whitelistedApps: Set<String>,
     private val uninstallApps: Boolean,
-    private val wdaDeviceBundles: List<WdaDeviceBundle>,
-    private val fbsimctlVersion: String,
-    private val appInstallerExecutorService: ExecutorService = Executors.newFixedThreadPool(4)
+    wdaDeviceBundles: List<WdaDeviceBundle>,
+    private val fbsimctlVersion: String
 ) : IDeviceNode {
     override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
@@ -66,19 +65,6 @@ class DevicesNode(
         val device: Device = slotByExternalRef(deviceRef).device
 
         device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath, appBundleDto.bundleId)
-    }
-
-    private val commonLogMarkerDetails = mapOf(
-        LogMarkers.HOSTNAME to remote.hostName
-    )
-
-    private fun logMarkerDetails(udid: UDID): Map<String, String> {
-        return commonLogMarkerDetails + mapOf(
-            LogMarkers.DEVICE_REF to deviceRefFromUDID(
-                udid,
-                remote.publicHostName
-            ), LogMarkers.UDID to udid
-        )
     }
 
     private val deviceRegistrationInterval = Duration.ofMinutes(1)
@@ -117,8 +103,6 @@ class DevicesNode(
     }
 
     override fun syslog(deviceRef: DeviceRef): File {
-        val device = slotByExternalRef(deviceRef).device
-        val osLog: RealDeviceSysLog = device.osLog
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -201,14 +185,6 @@ class DevicesNode(
     override fun endpointFor(deviceRef: DeviceRef, port: Int): URL {
         val device = slotByExternalRef(deviceRef).device
         return device.endpointFor(port)
-    }
-
-    private fun exceptionToDto(exception: Exception): ExceptionDTO {
-        return ExceptionDTO(
-            type = exception.javaClass.name,
-            message = exception.message ?: "",
-            stackTrace = exception.stackTrace.map { it.toString() }
-        )
     }
 
     override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
@@ -476,16 +452,6 @@ class DevicesNode(
         val socatResult = remote.execIgnoringErrors((listOf(File(remote.homeBrewPath, "socat").absolutePath, "-V")))
         if (!socatResult.isSuccess) {
             throw RuntimeException("Expecting socat to be installed. Exit code: ${socatResult.exitCode}\nStdErr: ${socatResult.stdErr}. StdOut: ${socatResult.stdOut}")
-        }
-    }
-
-    private fun copyWdaBundlesToHost() {
-        logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
-        val remoteWdaBundleRoot = wdaDeviceBundles.first().bundlePath().absolutePath
-        remote.rm(remoteWdaBundleRoot)
-        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteWdaBundleRoot))
-        wdaDeviceBundles.forEach {
-            remote.scpToRemoteHost(it.bundlePath().absolutePath, remoteWdaBundleRoot)
         }
     }
 
