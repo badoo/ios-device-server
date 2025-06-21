@@ -775,10 +775,10 @@ class Simulator(
         val finishTime = System.nanoTime()
         val elapsedSeconds = NANOSECONDS.toSeconds(finishTime - startTime)
         if (bootResult.isSuccess) {
-            val message = "Simulator bootstatus $udid successfully booted to sufficient state. Was waiting for ${elapsedSeconds} seconds."
+            val message = "Simulator bootstatus $udid successfully booted to sufficient state. Was waiting for $elapsedSeconds seconds."
             logger.info(logMarker, message)
         } else {
-            val message = "Simulator bootstatus $udid failed to successfully boot to sufficient state. Was waiting for ${elapsedSeconds} seconds. Exit code: ${bootResult.exitCode}. StdErr: ${bootResult.stdErr}. StdOut: ${bootResult.stdOut}"
+            val message = "Simulator bootstatus $udid failed to successfully boot to sufficient state. Was waiting for $elapsedSeconds seconds. Exit code: ${bootResult.exitCode}. StdErr: ${bootResult.stdErr}. StdOut: ${bootResult.stdOut}"
             logger.error(logMarker, message)
         }
     }

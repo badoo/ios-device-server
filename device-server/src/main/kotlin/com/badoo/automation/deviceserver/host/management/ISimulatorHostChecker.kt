@@ -207,7 +207,7 @@ class SimulatorHostChecker(
                 returnOnFailure = true
             ) // find returns non zero if nothing found
             if (!r.isSuccess && r.exitCode != 1 && (r.stdErr.trim().isNotEmpty() || r.stdOut.trim().isNotEmpty())) {
-                logger.debug(logMarker, "[disc cleaner] @ ${remote.publicHostName} returned non-empty. Result: ${r}")
+                logger.debug(logMarker, "[disc cleaner] @ ${remote.publicHostName} returned non-empty. Result: $r")
             }
         } catch (e: RuntimeException) {
             logger.debug(logMarker, "[disc cleaner] $this got exception while cleaning caches: ${e.message}", e)

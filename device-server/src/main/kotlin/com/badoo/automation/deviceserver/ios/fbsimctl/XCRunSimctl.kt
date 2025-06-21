@@ -112,7 +112,7 @@ class XCRunSimctl(
 
         val udid = result.stdOut.trim() // remove last new_line
         val host = "localhost" // FIXME: should be the actual host name
-        logger.info("Created iOS Simulator ${udid} on host ${host} ")
+        logger.info("Created iOS Simulator $udid on host $host ")
 
         return FBSimctlDevice(
             arch = "x86_64",

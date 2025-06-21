@@ -89,7 +89,7 @@ class NodeRestarter(
         }
 
         val elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startTime)
-        logger.info("Successfully restarted simulator host ${nodeWrapper.node.publicHostName}. Took time ${elapsedSeconds} seconds")
+        logger.info("Successfully restarted simulator host ${nodeWrapper.node.publicHostName}. Took time $elapsedSeconds seconds")
     }
 
     private fun activeSessions(node: IDeviceNode): Collection<SessionEntry> {

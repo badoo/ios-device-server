@@ -79,7 +79,7 @@ class FFMPEGVideoRecorder(
 
     override fun stop() {
         logger.debug(logMarker, "Stopping video recording ${videoFile.name}")
-        val stopResult = remote.shell("/usr/bin/pkill -SIGINT -f ${remoteVideoPath}")
+        val stopResult = remote.shell("/usr/bin/pkill -SIGINT -f $remoteVideoPath")
 
         when (stopResult.exitCode) {
             0 -> {
