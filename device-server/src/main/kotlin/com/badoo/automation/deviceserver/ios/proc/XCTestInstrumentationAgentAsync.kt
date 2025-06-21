@@ -34,8 +34,8 @@ class XCTestInstrumentationAgentAsync(
         remote.shell("/usr/bin/mktemp -d -t derivedDataDir_$udid", returnOnFailure = false).stdOut.trim()
     private val xctestrunDir =
         remote.shell("/usr/bin/mktemp -d -t xctestRunDir_$udid", returnOnFailure = false).stdOut.trim()
-    val xctestrunSuffix = "WebDriverAgent_$udid.xctestrun"
-    private val xctestrunFile = File(xctestrunDir, xctestrunSuffix)
+    private val xctestrunFile = "WebDriverAgent_$udid.xctestrun"
+    private val xctestrunPath = File(xctestrunDir, xctestrunFile)
 
     private val xcrunSimctlLogFileName = "xcrun_simctl_log_${udid}"
     private val localXcrunSimctlLogFile = File(config.tempFolder, "${xcrunSimctlLogFileName}.log")
@@ -106,11 +106,11 @@ class XCTestInstrumentationAgentAsync(
 
 
         if (remote.isLocalhost()) {
-            xctestrunFile.writeText(xctestRunContents)
+            xctestrunPath.writeText(xctestRunContents)
         } else {
-            val tmpFile = File.createTempFile("xctestRunDir_$udid.", ".xctestrun")
+            val tmpFile = File.createTempFile("WebDriverAgent_$udid.", ".xctestrun")
             tmpFile.writeText(xctestRunContents)
-            remote.scpToRemoteHost(tmpFile.absolutePath, xctestrunFile.absolutePath)
+            remote.scpToRemoteHost(tmpFile.absolutePath, xctestrunPath.absolutePath)
             tmpFile.delete()
         }
     }
@@ -231,7 +231,7 @@ class XCTestInstrumentationAgentAsync(
     private fun cleanupLogs() {
         remote.shell("rm -rf $derivedDataDir", false)
         remote.shell("mkdir -p $derivedDataDir", true)
-        remote.shell("rm -f $xctestrunFile", false)
+        remote.shell("rm -f $xctestrunPath", false)
         remote.shell("rm -f $remoteXcrunSimctlLogPath", false)
         remote.localExecutor.exec(listOf("rm", "-f", localXcrunSimctlLogFile.absolutePath))
         truncateAgentLog()
@@ -244,7 +244,7 @@ class XCTestInstrumentationAgentAsync(
         }
 
         Thread.sleep(1000)
-        remote.pkill(xctestrunSuffix, false)
+        remote.pkill(xctestrunFile, false)
         Thread.sleep(3000)
     }
 
@@ -256,11 +256,11 @@ class XCTestInstrumentationAgentAsync(
     fun stop() {
         logger.debug(logMarker, "Stopping remote xcrun simctl ${derivedDataDir}")
 
-        val pkillResult = remote.pkill(xctestrunSuffix, false)
+        val pkillResult = remote.pkill(xctestrunFile, false)
         when (pkillResult.exitCode) {
-            0 -> logger.debug(logMarker, "Stop remote xcrun simctl ${xctestrunSuffix}. Successfully sent SIGTERM to all processes matching $xctestrunSuffix")
-            1 -> logger.warn(logMarker, "Stop remote xcrun simctl ${xctestrunSuffix}. No processes matching $xctestrunSuffix found")
-            else -> logger.error(logMarker, "Stop remote xcrun simctl ${xctestrunSuffix}. Failure while sending SIGTERM to processes matching $xctestrunSuffix. ${pkillResult.stdErr}")
+            0 -> logger.debug(logMarker, "Stop remote xcrun simctl ${xctestrunFile}. Successfully sent SIGTERM to all processes matching $xctestrunFile")
+            1 -> logger.warn(logMarker, "Stop remote xcrun simctl ${xctestrunFile}. No processes matching $xctestrunFile found")
+            else -> logger.error(logMarker, "Stop remote xcrun simctl ${xctestrunFile}. Failure while sending SIGTERM to processes matching $xctestrunFile. ${pkillResult.stdErr}")
         }
 
         var remoteXcrunSimctlExited = false
@@ -276,19 +276,19 @@ class XCTestInstrumentationAgentAsync(
         ) {
             val processList = remote.shell("ps ax")
             if (processList.isSuccess) {
-                remoteXcrunSimctlExited = processList.stdOut.trim().lines().none { it.contains(xctestrunSuffix) }
+                remoteXcrunSimctlExited = processList.stdOut.trim().lines().none { it.contains(xctestrunFile) }
                 remoteXcrunSimctlExited
             } else {
-                remote.pkill(xctestrunSuffix, false)
+                remote.pkill(xctestrunFile, false)
                 false
             }
         }
         val elapsedTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startTime)
 
         if (remoteXcrunSimctlExited) {
-            logger.info(logMarker, "Stopped xcrun simctl ${xctestrunSuffix}. Successfully waited for remote xcrun simctl to exit. Took $elapsedTime seconds")
+            logger.info(logMarker, "Stopped xcrun simctl ${xctestrunFile}. Successfully waited for remote xcrun simctl to exit. Took $elapsedTime seconds")
         } else {
-            logger.error(logMarker, "Failed to stop remote xcrun simctl ${xctestrunSuffix}. Remote xcrun simctl process is still running after waiting for $elapsedTime seconds")
+            logger.error(logMarker, "Failed to stop remote xcrun simctl ${xctestrunFile}. Remote xcrun simctl process is still running after waiting for $elapsedTime seconds")
         }
     }
 
