@@ -183,19 +183,8 @@ class XCTestInstrumentationAgent(
         truncateAgentLog()
     }
 
-    private fun terminateHostApp() {
-        wdaRunnerStarted = false
-        listOf(instrumentationDaBundle.bundleId, instrumentationWdaBundle.bundleId).forEach {
-            remote.fbsimctl.terminateApp(udid, bundleId = it, raiseOnError = false)
-        }
-
-        Thread.sleep(1000)
-        remote.pkill(xctestrunFileName, false)
-        Thread.sleep(3000)
-    }
-
     override fun kill() {
-        terminateHostApp()
+        wdaRunnerStarted = false
         super.kill()
     }
 
