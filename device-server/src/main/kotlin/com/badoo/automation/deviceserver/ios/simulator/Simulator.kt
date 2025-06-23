@@ -91,7 +91,7 @@ class Simulator(
 
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
-    private val instrumentationAgent = XCTestInstrumentationAgentAsync(
+    private val instrumentationAgent = XCTestInstrumentationAgent(
             remote,
             listOf(wdaSimulatorBundles.deviceAgentBundle, wdaSimulatorBundles.webDriverAgentBundle),
             deviceInfo,
