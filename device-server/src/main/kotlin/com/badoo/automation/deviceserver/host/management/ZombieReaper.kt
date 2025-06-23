@@ -65,7 +65,7 @@ class ZombieReaper {
 
     private fun findZombies(): List<Int> {
         return try {
-            val result = commandExecutor.exec(listOf("/bin/ps", "axo", "pid,stat,command"), returnFailure = true)
+            val result = commandExecutor.exec(listOf("/bin/ps", "axo", "pid,stat"), returnFailure = true)
             val zombies = result.stdOut.lines().filter { it.contains("Z") }
             val zombiesPids = zombies.map {
                 it.trim().split(" ").first().trim().toInt()
