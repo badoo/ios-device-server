@@ -30,11 +30,12 @@ class XCTestInstrumentationAgent(
     ) -> SubProcess = SubProcess.Companion::fromCommand
 ) : LongRunningProc(deviceInfo.udid, remote.hostName) {
     private val udid = deviceInfo.udid
-    private val derivedDataDir = File(remote.tmpDir, "derivedData_$udid").absolutePath
-    private val xctestrunDir = File(remote.tmpDir, "xctestRunDir_$udid").absolutePath
+    private val derivedDataDir = File(remote.tmpDir, "derivedData_$udid")
+    private val xctestrunDir = File(remote.tmpDir, "xctestRunDir_$udid")
+    val deviceAgentLog: File = File(remote.tmpDir, "web_driver_agent_log_$udid.txt")
 
-    val xctestrunSuffix = "WebDriverAgent_$udid.xctestrun"
-    private val xctestrunFile = File(xctestrunDir, xctestrunSuffix)
+    val xctestrunFileName = "WebDriverAgent_$udid.xctestrun"
+    private val xctestrunFile = File(xctestrunDir, xctestrunFileName)
 
     private val instrumentationDaBundle = getWdaBundle("sh.calaba.DeviceAgent")
     private val instrumentationWdaBundle = getWdaBundle("com.facebook.WebDriverAgentRunner")
@@ -59,7 +60,7 @@ class XCTestInstrumentationAgent(
         "-destination",
         "id=$udid",
         "-derivedDataPath",
-        derivedDataDir
+        derivedDataDir.absolutePath
     )
 
     private fun prepareXctestrunFile(instrumentationBundle: WdaBundle) {
@@ -108,14 +109,12 @@ class XCTestInstrumentationAgent(
         Thread.sleep(timeout)
     }
 
-    val deviceAgentLog: File = File.createTempFile("web_driver_agent_log_", ".txt")
-
     @Volatile
     private var wdaRunnerStarted = false
 
     override fun start() {
         val wdaProcess = subProcess
-        ensure(wdaProcess == null || wdaProcess.isAlive() == false) { WebDriverAgentError("Previous WebDriverAgent childProcess $subProcess has not been killed") }
+        ensure(wdaProcess == null || !wdaProcess.isAlive()) { WebDriverAgentError("Previous WebDriverAgent childProcess $subProcess has not been killed") }
 
         val instrumentationBundle = getInstrumentationBundle()
         ensure(remote.isDirectory(instrumentationBundle.bundlePath().absolutePath)) { WebDriverAgentError("WebDriverAgent ${instrumentationBundle.bundlePath().absolutePath} does not exist or is not a directory") }
@@ -169,13 +168,18 @@ class XCTestInstrumentationAgent(
     }
 
     private fun truncateAgentLog() {
-        Files.write(deviceAgentLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+        if (deviceAgentLog.exists()) {
+            Files.write(deviceAgentLog.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+        } else {
+            deviceAgentLog.createNewFile()
+        }
     }
 
     private fun cleanupLogs() {
-        remote.shell("rm -rf $derivedDataDir", false)
-        remote.shell("mkdir -p $derivedDataDir", true)
-        remote.shell("rm -f $xctestrunFile", false)
+        derivedDataDir.deleteRecursivelyIfExist(logger, logMarker)
+        derivedDataDir.ensureDirectoryExists(logger, logMarker)
+        xctestrunDir.deleteRecursivelyIfExist(logger, logMarker)
+        xctestrunDir.ensureDirectoryExists(logger, logMarker)
         truncateAgentLog()
     }
 
@@ -186,7 +190,7 @@ class XCTestInstrumentationAgent(
         }
 
         Thread.sleep(1000)
-        remote.pkill(xctestrunSuffix, false)
+        remote.pkill(xctestrunFileName, false)
         Thread.sleep(3000)
     }
 
