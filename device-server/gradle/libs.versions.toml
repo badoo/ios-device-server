@@ -2,7 +2,7 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 [versions]
 graalvm-buildtools-version = "0.10.6"
-kotlin-version = "2.1.21"
+kotlin-version = "2.2.0"
 ktor-version = "3.2.0"
 logback-version = "1.5.18"
 
