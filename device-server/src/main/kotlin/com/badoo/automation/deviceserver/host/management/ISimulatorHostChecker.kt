@@ -23,7 +23,6 @@ interface ISimulatorHostChecker {
     fun copyWdaBundleToHost()
     fun copyTestHelperBundleToHost()
     fun copyVideoRecorderHelperToHost()
-    fun copyXcrunSimctlHelperToHost()
 }
 
 class SimulatorHostChecker(
@@ -32,8 +31,7 @@ class SimulatorHostChecker(
         private val wdaSimulatorBundles: WdaSimulatorBundles,
         private val remoteTestHelperAppRoot: File,
         private val shutdownSimulators: Boolean,
-        private val remoteVideoRecorder: File,
-        private val remoteXcrunSimctl: File,
+        private val remoteVideoRecorder: File
 ) : ISimulatorHostChecker {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
@@ -83,20 +81,6 @@ class SimulatorHostChecker(
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteVideoRecorder.parent))
         remote.scpToRemoteHost(remoteVideoRecorder.absolutePath, remoteVideoRecorder.absolutePath)
         remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteVideoRecorder.absolutePath))
-    }
-
-    override fun copyXcrunSimctlHelperToHost() {
-        logger.debug(logMarker, "Setting up remote node: Copying xcrun simctl helper to node ${remote.hostName}")
-
-        if (!remoteXcrunSimctl.exists()) {
-            logger.error(logMarker, "Failed to copy xcrun simctl to node ${remote.hostName}. Remote xcrun simctl does not exist")
-            return
-        }
-
-        remote.rm(remoteXcrunSimctl.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteXcrunSimctl.parent))
-        remote.scpToRemoteHost(remoteXcrunSimctl.absolutePath, remoteXcrunSimctl.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteXcrunSimctl.absolutePath))
     }
 
     override fun killDiskCleanupThread() {

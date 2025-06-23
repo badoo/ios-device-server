@@ -117,32 +117,6 @@ class DeviceManager(
         logger.info("Successfully copied Video recorder script ${videoRecorderFile.name} from resources to ${videoRecorderFile.absolutePath}")
     }
 
-    fun extractXcrunSimctlScript() {
-        val remoteXcrunSimctlFile = appConfig.remoteXcrunSimctl
-        remoteXcrunSimctlFile.delete()
-        remoteXcrunSimctlFile.parentFile.mkdirs()
-
-        logger.info("Start to copy remote xcrun simctl script ${remoteXcrunSimctlFile.name} from resources to ${remoteXcrunSimctlFile.absolutePath}")
-
-        val remoteXcrunSimctlFileStream = DeviceManager::class.java.classLoader.getResourceAsStream(remoteXcrunSimctlFile.name)
-
-        if (remoteXcrunSimctlFileStream == null) {
-            logger.error("Failed to find remote xcrun simctl script ${remoteXcrunSimctlFile.name} in resources")
-            return
-        }
-
-        remoteXcrunSimctlFileStream.use { inputStream ->
-            remoteXcrunSimctlFile.outputStream().use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-        }
-
-        remoteXcrunSimctlFile.setWritable(false)
-        remoteXcrunSimctlFile.setExecutable(true)
-
-        logger.info("Successfully copied remote xcrun simctl script ${remoteXcrunSimctlFile.name} from resources to ${remoteXcrunSimctlFile.absolutePath}")
-    }
-
     private fun File.isOlderThan(maxCreationTime: Long): Boolean {
         val attributes = Files.readAttributes(toPath(), BasicFileAttributes::class.java)
         return attributes.lastModifiedTime().toMillis() < maxCreationTime
