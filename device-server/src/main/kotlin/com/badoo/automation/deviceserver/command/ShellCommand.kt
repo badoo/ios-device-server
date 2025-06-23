@@ -152,7 +152,7 @@ open class ShellCommand(
             commandString: String,
             pid: Long,
             logger: Logger,
-            destroyTimeOutNanos: Long = Duration.ofSeconds(5).toNanos(),
+            destroyTimeOutNanos: Long = Duration.ofSeconds(10).toNanos(),
         ) {
             logger.debug(logMarker, "Trying to kill failed command with SIGTERM. Command: $commandString, PID: $pid")
             process.destroy()
@@ -166,9 +166,9 @@ open class ShellCommand(
 
                 process.destroyForcibly().waitFor()
 
-                val forceDestroyStartTime = System.nanoTime()
+                val forceDestroyEndTime = System.nanoTime() + destroyTimeOutNanos
 
-                while (process.isAlive && (System.nanoTime() - forceDestroyStartTime) < destroyTimeOutNanos) {
+                while (process.isAlive && System.nanoTime() < forceDestroyEndTime ) {
                     Thread.sleep(50)
                 }
 
