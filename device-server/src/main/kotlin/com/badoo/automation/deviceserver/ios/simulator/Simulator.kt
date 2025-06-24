@@ -282,7 +282,7 @@ class Simulator(
 
         val wdaFailCount = 0
         val maxFailCount = 3
-        val healthCheckInterval = Duration.ofSeconds(15).toMillis()
+        val healthCheckInterval = Duration.ofSeconds(60).toMillis()
 
         healthChecker = periodicTasksPool.scheduleWithFixedDelay({
             if (useWda) {
