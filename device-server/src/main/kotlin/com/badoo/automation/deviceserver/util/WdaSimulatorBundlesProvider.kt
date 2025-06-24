@@ -15,8 +15,6 @@ data class WdaSimulatorBundle(
     override val bundleName: String,
     private val bundlePath: Path, // /app/wda/DeviceAgent.app
     private val xctestRunnerPath: Path, // /app/wda/DeviceAgent.app/PlugIns/WebDriverAgentRunner.xctest
-    private val remoteBundlePath: Path, // /opt/wda/DeviceAgent.app
-    private val remoteXctestRunnerPath: Path, // /opt/wda/DeviceAgent.app/PlugIns/WebDriverAgentRunner.xctest
     override val provisionedDevices: List<String>,
     override val deviceInstrumentationPort: Int,
     override val testIdentifier: String
@@ -24,6 +22,10 @@ data class WdaSimulatorBundle(
     override fun xctestRunnerPath(): File = xctestRunnerPath.toFile()
 
     override fun bundlePath(): File = bundlePath.toFile()
+
+    override fun toString(): String {
+        return "$bundleName $bundleId"
+    }
 }
 
 data class WdaSimulatorBundles(
@@ -65,8 +67,6 @@ class WdaSimulatorBundlesProvider(
             bundleName,
             bundlePath,
             xctestRunnerPath,
-            remoteBundlePath,
-            remoteXctestRunnerPath,
             listOf(),
             deviceInstrumentationPort,
             testIdentifier

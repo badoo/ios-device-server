@@ -41,8 +41,6 @@ class SimulatorsNodeTest {
         "DeviceAgent",
         Paths.get("some/file/from/wdaPathProc"),
         Paths.get("some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
-        Paths.get("/remote/some/file/from/wdaPathProc"),
-        Paths.get("/remote/some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
         listOf(),
         123,
         "DeviceAgent"
@@ -52,8 +50,6 @@ class SimulatorsNodeTest {
         "DeviceAgent",
         Paths.get("some/file/from/wdaPathProc"),
         Paths.get("some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
-        Paths.get("/remote/some/file/from/wdaPathProc"),
-        Paths.get("/remote/some/file/from/wdaPathProc/PlugIns/DeviceAgent.xctest"),
         listOf(),
         123,
         "DeviceAgent"
