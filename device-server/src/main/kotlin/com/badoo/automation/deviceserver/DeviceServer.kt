@@ -96,7 +96,6 @@ fun Application.module() {
 
     val hostFactory = HostFactory(
         remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile,
-        remoteVideoRecorder = appConfiguration.remoteVideoRecorder,
         appConfiguration = ApplicationConfiguration()
     )
     val deviceManager = DeviceManager(config, hostFactory)
@@ -104,7 +103,6 @@ fun Application.module() {
     if (appConfiguration.useTestHelperApp) {
         deviceManager.extractTestApp()
     }
-    deviceManager.extractVideoRecorder()
     deviceManager.startPeriodicFileCleanup()
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchZombieReaper()

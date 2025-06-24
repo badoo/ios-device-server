@@ -21,7 +21,6 @@ class HostFactory(
         )
     },
     private val remoteTestHelperAppRoot: File,
-    private val remoteVideoRecorder: File,
     private val appConfiguration: ApplicationConfiguration
 ) : IHostFactory {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -69,7 +68,6 @@ class HostFactory(
                 remote,
                 wdaSimulatorBundles = wdaSimulatorBundles,
                 remoteTestHelperAppRoot = remoteTestHelperAppRoot,
-                remoteVideoRecorder = remoteVideoRecorder,
                 shutdownSimulators = config.shutdownSimulators,
             )
             SimulatorsNode(

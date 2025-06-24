@@ -22,7 +22,6 @@ interface ISimulatorHostChecker {
     fun killDiskCleanupThread()
     fun copyWdaBundleToHost()
     fun copyTestHelperBundleToHost()
-    fun copyVideoRecorderHelperToHost()
 }
 
 class SimulatorHostChecker(
@@ -30,8 +29,7 @@ class SimulatorHostChecker(
         private val diskCleanupInterval: Duration = Duration.ofMinutes(15),
         private val wdaSimulatorBundles: WdaSimulatorBundles,
         private val remoteTestHelperAppRoot: File,
-        private val shutdownSimulators: Boolean,
-        private val remoteVideoRecorder: File
+        private val shutdownSimulators: Boolean
 ) : ISimulatorHostChecker {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(mapOf(
@@ -67,20 +65,6 @@ class SimulatorHostChecker(
         remote.rm(testHelperAppBundle.absolutePath)
         remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteTestHelperAppRoot.absolutePath))
         remote.scpToRemoteHost(testHelperAppBundle.absolutePath, remoteTestHelperAppRoot.absolutePath)
-    }
-
-    override fun copyVideoRecorderHelperToHost() {
-        logger.debug(logMarker, "Setting up remote node: Copying Video recorder helper to node ${remote.hostName}")
-
-        if (!remoteVideoRecorder.exists()) {
-            logger.error(logMarker, "Failed to copy Video recorder to node ${remote.hostName}. Video recorder does not exist")
-            return
-        }
-
-        remote.rm(remoteVideoRecorder.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteVideoRecorder.parent))
-        remote.scpToRemoteHost(remoteVideoRecorder.absolutePath, remoteVideoRecorder.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/chmod", "555", remoteVideoRecorder.absolutePath))
     }
 
     override fun killDiskCleanupThread() {

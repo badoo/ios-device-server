@@ -20,7 +20,6 @@ class ApplicationConfiguration {
     val remoteWdaDeviceBundleRoot: String = System.getProperty("remote.wda.device.bundle.path", "/usr/local/opt/web_driver_agent_device")
     val remoteTestHelperAppBundleRoot: String = System.getProperty("remote.test.helper.app.bundle.path", "/usr/local/opt/ios-device-server/test_helper_app")
     val useTestHelperApp = Boolean.getBoolean("useTestHelperApp")
-    val remoteVideoRecorder = File(System.getProperty("remote.video.recorder.path", "/usr/local/opt/ios-device-server-utils/record_video_x264.sh"))
     val tempFolder = File(System.getProperty("java.io.tmpdir") ?: throw IllegalStateException("Property java.io.tmpdir is not defined"))
     val trustStorePath: String = System.getProperty("trust.store.path", "")
     val assetsPath: String = System.getProperty("media.assets.path", "")
