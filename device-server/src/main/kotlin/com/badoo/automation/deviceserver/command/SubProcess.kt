@@ -58,7 +58,11 @@ class SubProcess private constructor(
                     }
                 }
             } catch (e: IOException) {
-                logger.error(logMarker, "Got IOException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
+                e.message?.let {
+                    if (!it.contains("Stream closed")) {
+                        logger.error(logMarker, "Got IOException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
+                    }
+                }
             } catch (e: InterruptedException) {
                 logger.error(logMarker, "Got InterruptedException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
                 Thread.currentThread().interrupt()
