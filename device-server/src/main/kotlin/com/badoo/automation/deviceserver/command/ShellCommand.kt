@@ -24,14 +24,19 @@ open class ShellCommand(
         command: List<String>, environment: Map<String, String>, timeOut: Duration,
         returnFailure: Boolean, logMarker: Marker?, processBuilder: ProcessBuilder
     ): CommandResult {
-        val commandString = command.joinToString(" ")
-        processBuilder.command(command)
+        val fullCommand = mutableListOf(
+            "/usr/bin/nice", "-n", "10"
+        )
+        fullCommand.addAll(command)
+        processBuilder.command(fullCommand)
         processBuilder.environment().clear()
         processBuilder.environment().putAll(commonEnvironment)
         processBuilder.environment().putAll(environment)
 
         val process: Process = processBuilder.start()
         val pid = process.pid()
+
+        val commandString = fullCommand.joinToString(" ")
         val processLogMarker = MapEntriesAppendingMarker(mapOf("PID" to pid, "command" to commandString))
         logMarker?.let { processLogMarker.add(it) }
         logger.debug(processLogMarker, "Executing command: $commandString, PID: $pid")
@@ -81,7 +86,7 @@ open class ShellCommand(
                 stdOut = stdOutBuilder.toString(),
                 stdErr = stdErrBuilder.toString(),
                 exitCode = exitCode,
-                cmd = command,
+                cmd = fullCommand,
                 pid = pid
             )
             ensure(exitCode == 0 || returnFailure) {
@@ -91,7 +96,7 @@ open class ShellCommand(
             }
             return result
         } catch (e: InterruptedException) {
-            logger.error(logMarker, "Got InterruptedException, while executing command $command. Will destroy process $pid. Error: ${e.javaClass} ${e.message}", e)
+            logger.error(logMarker, "Got InterruptedException, while executing command $commandString. Will destroy process $pid. Error: ${e.javaClass} ${e.message}", e)
 
             destroyProcess(process, processLogMarker, commandString, pid, logger)
             stdOutReader.cancel(true)
@@ -103,7 +108,7 @@ open class ShellCommand(
                 stdOut = stdOutBuilder.toString(),
                 stdErr = stdErrBuilder.toString(),
                 exitCode = Int.MIN_VALUE,
-                cmd = command,
+                cmd = fullCommand,
                 pid = pid
             )
         }
@@ -131,8 +136,12 @@ open class ShellCommand(
     override fun startProcess(
         command: List<String>, environment: Map<String, String>, logMarker: Marker?, processBuilder: ProcessBuilder
     ): Process {
-        logger.debug(this.logMarker, "Executing command: ${command.joinToString(" ")}")
-        processBuilder.command(command)
+        val fullCommand = mutableListOf(
+            "/usr/bin/nice", "-n", "10"
+        )
+        fullCommand.addAll(command)
+        logger.debug(this.logMarker, "Executing command: ${fullCommand.joinToString(" ")}")
+        processBuilder.command(fullCommand)
         processBuilder.environment().clear()
         processBuilder.environment().putAll(commonEnvironment)
         processBuilder.environment().putAll(environment)
