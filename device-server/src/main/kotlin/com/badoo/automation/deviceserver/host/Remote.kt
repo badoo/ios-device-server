@@ -21,7 +21,7 @@ class Remote(
     override val publicHostName: String,
     override val localExecutor: IShellCommand = ShellCommand(),
     override val remoteExecutor: IShellCommand = ShellCommand(),
-    override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(remoteExecutor), FBSimctlResponseParser()),
+    override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(), FBSimctlResponseParser()),
     override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor),
     appConfig: ApplicationConfiguration = ApplicationConfiguration()
 ) : IRemote {
@@ -30,10 +30,10 @@ class Remote(
             return ShellCommand()
         }
 
-        fun getHomeBrewPath(executor: IShellCommand): File {
+        fun getHomeBrewPath(): File {
             return when {
-                executor.exec(listOf("test", "-d", "/opt/homebrew/Cellar")).isSuccess -> File("/opt/homebrew/bin")
-                executor.exec(listOf("test", "-d", "/usr/local/Cellar")).isSuccess -> File("/usr/local/bin")
+                File("/opt/homebrew/Cellar").isDirectory -> File("/opt/homebrew/bin")
+                File("/usr/local/Cellar").isDirectory -> File("/usr/local/bin")
                 else -> throw RuntimeException("Failed to find Homebrew directory")
             }
         }
@@ -48,7 +48,7 @@ class Remote(
     override fun toString(): String = "<Remote user:$userName node:$hostName>"
 
     override val homeBrewPath: File by lazy {
-        getHomeBrewPath(remoteExecutor)
+        getHomeBrewPath()
     }
 
     override val tmpDir: File = appConfig.tempFolder
