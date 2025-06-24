@@ -100,7 +100,7 @@ class XCTestInstrumentationAgent(
         return uriWithPath(wdaEndpoint, statusPath)
     }
 
-    override fun toString(): String = "<$udid at ${remote.hostName}:${wdaEndpoint.port}>"
+    override fun toString(): String = "DeviceAgent at $udid at ${remote.hostName}:${wdaEndpoint.port}"
 
     private fun installHostApp(instrumentationBundle: WdaBundle) {
         remote.fbsimctl.installApp(udid, instrumentationBundle.bundlePath())
@@ -117,8 +117,8 @@ class XCTestInstrumentationAgent(
         ensure(wdaProcess == null || !wdaProcess.isAlive()) { WebDriverAgentError("Previous WebDriverAgent childProcess $subProcess has not been killed") }
 
         val instrumentationBundle = getInstrumentationBundle()
-        ensure(remote.isDirectory(instrumentationBundle.bundlePath().absolutePath)) { WebDriverAgentError("WebDriverAgent ${instrumentationBundle.bundlePath().absolutePath} does not exist or is not a directory") }
-        logger.debug(logMarker, "$this — Starting child process WebDriverAgent on: $wdaEndpoint with bundle id: ${instrumentationBundle.bundleId}")
+        ensure(remote.isDirectory(instrumentationBundle.bundlePath().absolutePath)) { WebDriverAgentError("$instrumentationBundle ${instrumentationBundle.bundlePath().absolutePath} does not exist or is not a directory") }
+        logger.debug(logMarker, "$this — Starting child process $this with bundle id: ${instrumentationBundle.bundleId} : $instrumentationBundle")
 
         cleanupLogs()
         prepareXctestrunFile(instrumentationBundle)
@@ -138,7 +138,7 @@ class XCTestInstrumentationAgent(
                 deviceAgentLog.appendText(message + "\n")
                 if (!wdaRunnerStarted && (message.contains("ServerURLHere") || message.contains("CalabashXCUITestServer started"))) {
                     wdaRunnerStarted = true
-                    logger.debug(logMarker, "$this — WebDriverAgent has reported that it has Started HTTP server on port: ${wdaEndpoint.port} with bundle id: ${instrumentationBundle.bundleId} . Message: $message")
+                    logger.debug(logMarker, "$this — $instrumentationBundle has reported that it has Started HTTP server on port: ${wdaEndpoint.port} with bundle id: ${instrumentationBundle.bundleId} . Message: $message")
                 }
             },
             { message -> deviceAgentLog.appendText(message + "\n") }
@@ -149,7 +149,7 @@ class XCTestInstrumentationAgent(
         try {
             pollFor(
                 Duration.ofSeconds(45),
-                reasonName = "$this Waiting for WebDriverAgent to start serving requests",
+                reasonName = "$this Waiting for $instrumentationBundle to start serving requests",
                 retryInterval = Duration.ofSeconds(1),
                 logger = logger,
                 marker = logMarker
@@ -158,13 +158,13 @@ class XCTestInstrumentationAgent(
             }
         } catch (e: Throwable) {
             wdaRunnerStarted = false
-            logger.error(logMarker, "$this — WebDriverAgent on: $wdaEndpoint with bundle id: ${instrumentationBundle.bundleId} failed to start. Detailed log follows:")
+            logger.error(logMarker, "$this — $instrumentationBundle on: $wdaEndpoint with bundle id: ${instrumentationBundle.bundleId} failed to start. Detailed log follows:")
             deviceAgentLog.readLines().forEach { logger.error("WDA OUT: $it") }
             throw e
         }
 
         Thread.sleep(2000) // 2 extra should be ok
-        logger.debug(logMarker, "$this WDA: $subProcess")
+        logger.debug(logMarker, "$this $instrumentationBundle: $subProcess")
     }
 
     private fun truncateAgentLog() {

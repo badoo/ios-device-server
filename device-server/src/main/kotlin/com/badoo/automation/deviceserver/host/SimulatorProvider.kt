@@ -13,8 +13,7 @@ class SimulatorProvider(
         simulatorBackupsConfiguration: String?,
         private val desiredCapsMatcher: DesiredCapabilitiesMatcher = DesiredCapabilitiesMatcher()
 ) {
-    val deviceSetPath: String by lazy { remote.fbsimctl.defaultDeviceSet() }
-    private val simulatorBackupsPath = File(simulatorBackupsConfiguration ?: deviceSetPath)
+    private val simulatorBackupsPath = File(simulatorBackupsConfiguration ?: remote.fbsimctl.defaultDeviceSet())
 
     private var cachedSimulatorList: List<FBSimctlDevice> = emptyList()
     private var cachedBackupsList: List<String> = emptyList()

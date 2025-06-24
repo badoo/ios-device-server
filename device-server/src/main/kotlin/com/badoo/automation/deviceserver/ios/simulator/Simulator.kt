@@ -212,7 +212,7 @@ class Simulator(
             }
 
             if (useWda) {
-                logTiming("starting WebDriverAgent") { startWdaWithRetry() }
+                logTiming("starting $instrumentationAgent") { startWdaWithRetry() }
             }
 
             logger.info(logMarker, "Finished preparing $this")
@@ -299,14 +299,14 @@ class Simulator(
         } else {
             (1..5).forEach {
                 if (Thread.currentThread().isInterrupted) {
-                    logger.error(logMarker, "Health check interrupted")
+                    logger.error(logMarker, "Health check interrupted for $instrumentationAgent")
                     return
                 }
                 if (instrumentationAgent.isHealthy()) {
                     wdaFailCount1 = 0
                     return@forEach
                 } else {
-                    val message = "WebDriverAgent health check failed $wdaFailCount1 times."
+                    val message = "$instrumentationAgent health check failed $wdaFailCount1 times."
                     logger.error(logMarker, message)
                     wdaFailCount1 += 1
                     Thread.sleep(Duration.ofSeconds(2).toMillis())
@@ -314,20 +314,20 @@ class Simulator(
             }
 
             if (wdaFailCount1 >= maxFailCount) {
-                logger.error(logMarker, "WebDriverAgent health check failed $wdaFailCount1 times. Restarting WebDriverAgent")
+                logger.error(logMarker, "$instrumentationAgent health check failed $wdaFailCount1 times. Restarting WebDriverAgent")
 
                 try {
                     instrumentationAgent.kill()
                 } catch (e: RuntimeException) {
-                    logger.error(logMarker, "Failed to kill WebDriverAgent. ${e.message}", e)
+                    logger.error(logMarker, "Failed to kill $instrumentationAgent. ${e.message}", e)
                 }
 
                 try {
                     startWdaWithRetry()
                 } catch (e: RuntimeException) {
-                    logger.error(logMarker, "Failed to restart WebDriverAgent. ${e.message}", e)
+                    logger.error(logMarker, "Failed to restart $instrumentationAgent. ${e.message}", e)
                     deviceState = DeviceState.FAILED
-                    throw RuntimeException("${this@Simulator} Failed to restart WebDriverAgent. Stopping health check")
+                    throw RuntimeException("${this@Simulator} Failed to restart $instrumentationAgent. Stopping health check")
                 }
             }
         }
@@ -344,12 +344,12 @@ class Simulator(
 
         for (attempt in 1..maxRetries) {
             if (Thread.currentThread().isInterrupted) {
-                logger.error(logMarker, "Start WDA with retry interrupted")
+                logger.error(logMarker, "Start $instrumentationAgent with retry interrupted")
                 return
             }
 
             try {
-                logger.info(logMarker, "Starting WebDriverAgent on ${this@Simulator}")
+                logger.info(logMarker, "Starting $instrumentationAgent")
 
                 instrumentationAgent.kill()
                 instrumentationAgent.start()
@@ -358,7 +358,7 @@ class Simulator(
 
                 pollFor(
                     pollTimeout,
-                    reasonName = "${this@Simulator} WebDriverAgent health check",
+                    reasonName = "${this@Simulator} $instrumentationAgent health check",
                     retryInterval = retryInterval,
                     logger = logger,
                     marker = logMarker
@@ -366,12 +366,12 @@ class Simulator(
                     instrumentationAgent.isHealthy()
                 }
 
-                logger.info(logMarker, "Started WebDriverAgent on ${this@Simulator}")
+                logger.info(logMarker, "Started $instrumentationAgent on ${this@Simulator}")
 
                 return
             }
             catch (e: RuntimeException) {
-                logger.warn(logMarker, "Attempt $attempt to start WebDriverAgent for ${this@Simulator} failed: $e")
+                logger.warn(logMarker, "Attempt $attempt to start $instrumentationAgent for ${this@Simulator} failed: $e")
 
                 val wdaLogLines = instrumentationAgent.deviceAgentLog.readLines().takeLast(200)
                 wdaLogLines.forEach { logLine ->
