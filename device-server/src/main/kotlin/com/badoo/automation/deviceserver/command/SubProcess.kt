@@ -25,15 +25,16 @@ class SubProcess private constructor(
     private val process: Process
     private val stdOutTask: Future<*>
     private val stdErrTask: Future<*>
+    private val commandString = command.joinToString(" ")
 
     init {
-        logger.debug(logMarker, "Starting long living process from command [$command]")
+        logger.debug(logMarker, "Starting long living process from command [$commandString]")
         process = executor.startProcess(command, commandEnvironment)
 
         stdOutTask = ShellCommand.outErrReaderExecutor.submit(readStream(process.inputStream, outWriter))
         stdErrTask = ShellCommand.outErrReaderExecutor.submit(readStream(process.errorStream, errWriter))
 
-        logger.debug(logMarker, "Started long living process $this from command [$command]")
+        logger.debug(logMarker, "Started long living process $this from command [$commandString]")
     }
 
     override fun toString(): String = "< PID: ${process.pid()}>"
@@ -42,7 +43,7 @@ class SubProcess private constructor(
 
     fun kill() {
         logger.debug(logMarker, "Sending SIGTERM to process $this")
-        ShellCommand.destroyProcess(process, logMarker, command.joinToString(" "), process.pid(), logger)
+        ShellCommand.destroyProcess(process, logMarker, commandString, process.pid(), logger)
         stdOutTask.cancel(true)
         stdErrTask.cancel(true)
     }
