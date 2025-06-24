@@ -117,14 +117,23 @@ class XCTestInstrumentationAgent(
         ensure(wdaProcess == null || !wdaProcess.isAlive()) { WebDriverAgentError("Previous WebDriverAgent childProcess $subProcess has not been killed") }
 
         val instrumentationBundle = getInstrumentationBundle()
-        ensure(remote.isDirectory(instrumentationBundle.bundlePath().absolutePath)) { WebDriverAgentError("$instrumentationBundle ${instrumentationBundle.bundlePath().absolutePath} does not exist or is not a directory") }
+
+        ensure(instrumentationBundle.bundlePath().ensureDirectoryExists(logger, logMarker)) {
+            WebDriverAgentError("$instrumentationBundle ${instrumentationBundle.bundlePath().absolutePath} does not exist or is not a directory")
+        }
+
         logger.debug(logMarker, "$this — Starting child process $this with bundle id: ${instrumentationBundle.bundleId} : $instrumentationBundle")
 
         cleanupLogs()
         prepareXctestrunFile(instrumentationBundle)
 
-        listOf(instrumentationDaBundle.bundleId, instrumentationWdaBundle.bundleId).forEach {
-            remote.fbsimctl.uninstallApp(udid, it, false)
+        val installedApps = remote.fbsimctl.listApps(udid).map { it.bundle.bundle_id }
+        val instrumentationBundleIds = listOf(instrumentationDaBundle.bundleId, instrumentationWdaBundle.bundleId)
+        installedApps.forEach { installedBundleId ->
+            if (instrumentationBundleIds.contains(installedBundleId)) {
+                logger.debug(logMarker, "$this — Uninstalling previously installed app with bundle id: $installedBundleId")
+                remote.fbsimctl.uninstallApp(udid, installedBundleId, false)
+            }
         }
 
         installHostApp(instrumentationBundle)
