@@ -7,6 +7,8 @@ import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.XcodeVersion.Companion.REQUIRED_XCODE_VERSION
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
+import com.badoo.automation.deviceserver.util.deleteRecursivelyIfExist
+import com.badoo.automation.deviceserver.util.ensureDirectoryExists
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -40,14 +42,20 @@ class SimulatorHostChecker(
     private val applicationConfiguration = ApplicationConfiguration()
 
     override fun createDirectories() {
-        remote.shell("mkdir -p ${applicationConfiguration.simulatorBackupPath}")
+        if (applicationConfiguration.simulatorBackupPath.isNotBlank()) {
+            File(applicationConfiguration.simulatorBackupPath).ensureDirectoryExists(logger, logMarker)
+        }
     }
+
     override fun copyWdaBundleToHost() {
         logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
 
         val remoteBundleRoot = wdaSimulatorBundles.webDriverAgentBundle.bundlePath().parent
-        remote.rm(remoteBundleRoot)
-        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteBundleRoot))
+
+        with(File(remoteBundleRoot)) {
+            deleteRecursivelyIfExist(logger, logMarker)
+            ensureDirectoryExists(logger, logMarker)
+        }
 
         remote.scpToRemoteHost(wdaSimulatorBundles.deviceAgentBundle.bundlePath().absolutePath, remoteBundleRoot)
         remote.scpToRemoteHost(wdaSimulatorBundles.webDriverAgentBundle.bundlePath().absolutePath, remoteBundleRoot)
