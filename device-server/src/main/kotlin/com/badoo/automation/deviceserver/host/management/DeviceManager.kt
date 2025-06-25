@@ -12,6 +12,7 @@ import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.net.URI
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
@@ -459,7 +460,7 @@ class DeviceManager(
     }
 
     private fun acquireBundle(dto: AppBundleDeployDto, marker: MapEntriesAppendingMarker): ApplicationBundle {
-        val appBundle = ApplicationBundle(URL(dto.appUrl))
+        val appBundle = ApplicationBundle(URI(dto.appUrl).toURL())
         downloadApplicationBinary(marker, appBundle)
         appBundle.unpack(logger, marker)
         return appBundle
