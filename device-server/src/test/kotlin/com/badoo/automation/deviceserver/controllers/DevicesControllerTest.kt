@@ -9,13 +9,13 @@ import com.nhaarman.mockito_kotlin.doNothing
 import com.nhaarman.mockito_kotlin.whenever
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
-import org.junit.Assert.assertThat
+import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import java.io.File
-import java.net.URL
+import java.net.URI
 
 private val happyEmpty: Map<Unit, Unit> = mapOf()
 
@@ -111,7 +111,7 @@ class DevicesControllerTest {
     @Test
     fun getEndpointFor() {
         val port = 1234
-        val expectedResult = URL("http://foo:$port")
+        val expectedResult = URI("http://foo:$port").toURL()
         whenever(deviceManager.getEndpointFor(deviceRef, port)).thenReturn(expectedResult)
         val actualResult = deviceServer.getEndpointFor(deviceRef, port)
         verify(deviceManager).getEndpointFor(deviceRef, port)

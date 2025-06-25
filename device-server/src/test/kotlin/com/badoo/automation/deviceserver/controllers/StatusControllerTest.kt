@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.controllers
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.mockThis
 import org.hamcrest.CoreMatchers
+import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert
 import org.junit.Ignore
 import org.junit.Test
@@ -15,7 +16,7 @@ class StatusControllerTest {
     fun getServerStatus() {
         val uptime = System.nanoTime()
 
-        Assert.assertThat(
+        assertThat(
                 statusController.getServerStatus(uptime),
                 CoreMatchers.equalTo(mapOf("status" to "ok", "deviceManager" to emptyMap<String, Any>()
                 )))

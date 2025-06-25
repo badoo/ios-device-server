@@ -5,7 +5,7 @@ import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.mockThis
 import org.hamcrest.Matchers.*
-import org.junit.Assert.assertThat
+import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Ignore
 import org.junit.Test
 

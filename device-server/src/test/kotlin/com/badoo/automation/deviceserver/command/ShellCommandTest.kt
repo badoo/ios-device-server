@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.command
 
 import org.hamcrest.Matchers.*
-import org.junit.Assert.assertThat
+import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test

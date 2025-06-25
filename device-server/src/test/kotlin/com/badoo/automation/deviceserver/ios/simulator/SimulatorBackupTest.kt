@@ -10,7 +10,10 @@ import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupErr
 import com.nhaarman.mockito_kotlin.firstValue
 import com.nhaarman.mockito_kotlin.whenever
 import org.hamcrest.Matchers.matchesPattern
-import org.junit.Assert.*
+import org.hamcrest.MatcherAssert.assertThat
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
