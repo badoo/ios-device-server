@@ -36,8 +36,4 @@ abstract class SimulatorFilesystemContainer(private val remote: IRemote) {
 
         return expanded
     }
-
-    internal fun sshNoEscapingWorkaround(path: String): String {
-        return path
-    }
 }

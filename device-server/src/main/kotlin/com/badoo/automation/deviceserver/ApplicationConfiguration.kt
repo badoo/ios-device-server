@@ -24,7 +24,7 @@ class ApplicationConfiguration {
     val tempFolder = File(System.getProperty("java.io.tmpdir") ?: throw IllegalStateException("Property java.io.tmpdir is not defined"))
     val trustStorePath: String = System.getProperty("trust.store.path", "")
     val assetsPath: String = System.getProperty("media.assets.path", "")
-    val appBundleCachePath: File = File(System.getProperty("app.bundle.cache.path", System.getenv("HOME")), "app_bundle_cache")
+    val appBundleCachePath: File = File(System.getProperty("app.bundle.cache.path", File(homeDirectory, ".iosctl/app_bundle_cache").absolutePath))
     val appBundleCacheRemotePath: File = File(System.getProperty("app.bundle.cache.remote.path", "/Users/qa/app_bundle_cache"))
     val videoRecorderClassName: String = System.getProperty("video.recorder", FFMPEGVideoRecorder::class.qualifiedName)
     val simulatorBackupPath: String = System.getProperty("simulator.backup.path", File(homeDirectory, ".iosctl/ios_simulator_backups").absolutePath)

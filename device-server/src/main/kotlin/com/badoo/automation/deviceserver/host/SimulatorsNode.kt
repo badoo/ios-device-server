@@ -62,7 +62,6 @@ class SimulatorsNode(
     private val appInstaller: AppInstaller = AppInstaller(remote)
 
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
-        logger.info(logMarker, "Ready to install app ${appBundleDto.appUrl} on device $deviceRef")
         val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
             ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
 

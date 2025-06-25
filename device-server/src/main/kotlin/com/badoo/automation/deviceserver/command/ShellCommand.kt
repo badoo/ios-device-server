@@ -39,7 +39,6 @@ open class ShellCommand(
         val commandString = fullCommand.joinToString(" ")
         val processLogMarker = MapEntriesAppendingMarker(mapOf("PID" to pid, "command" to commandString))
         logMarker?.let { processLogMarker.add(it) }
-        logger.debug(processLogMarker, "Executing command: $commandString, PID: $pid")
 
         val stdOutBuilder = StringBuilder()
         val stdErrBuilder = StringBuilder()
@@ -75,7 +74,6 @@ open class ShellCommand(
             } else {
                 val stackTrace = Thread.currentThread().stackTrace.joinToString("\n")
                 processLogMarker.add(MapEntriesAppendingMarker(mapOf("stack_trace" to stackTrace)))
-                logMarker?.let { processLogMarker.add(it) }
                 logger.error(processLogMarker, "Command has failed to complete in time. Timeout: ${timeOut.toSeconds()} seconds. Command: $commandString, PID: $pid")
                 destroyProcess(process, processLogMarker, commandString, pid, logger)
                 stdOutReader.cancel(true)

@@ -51,7 +51,6 @@ class DevicesNode(
     }
 
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
-        logger.info(logMarker, "Ready to install app ${appBundleDto.appUrl} on device $deviceRef")
         var appBinaryPath: File = appBinariesCache[appBundleDto.appUrl]
             ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
 

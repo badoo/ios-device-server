@@ -9,6 +9,8 @@ import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegistere
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
+import com.badoo.automation.deviceserver.util.deleteRecursivelyIfExist
+import com.badoo.automation.deviceserver.util.ensureDirectoryExists
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -471,12 +473,10 @@ class DeviceManager(
         val nanos = measureNanoTime {
             logger.debug(marker, "Downloading app bundle to cache ${appBundle.appUrl}. Url: ${appBundle.appUrl}")
             try {
-                logger.info(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath}")
-
-                appConfig.appBundleCachePath.mkdirs()
-                appConfig.appBundleCachePath.listFiles().forEach { it.deleteRecursively() }
-
-                logger.info(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} is done")
+                with(appConfig.appBundleCachePath) {
+                    deleteRecursivelyIfExist(logger, marker)
+                    ensureDirectoryExists(logger, marker)
+                }
             } catch (t: Throwable) {
                 logger.error(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} failed! Error: ${t.message}", t)
             }

@@ -29,10 +29,8 @@ class AppInstaller(
     fun installApplication(
         udid: UDID, appUrl: String, appBinaryPath: File, isRealDevice: Boolean, bundleId: String
     ): Future<InstallResult> {
-        val logMarker = logMarker(udid)
-        logger.info(logMarker, "Installing app $appUrl on device $udid")
-
         return installExecutor.submit(Callable {
+            val logMarker = logMarker(udid)
             try {
                 return@Callable if (isRealDevice) {
                     performInstallRealDevice(logMarker, udid, appBinaryPath, appUrl, bundleId)
@@ -136,10 +134,10 @@ class AppInstaller(
 
                     isAppInstalled
                 } catch (e: DataContainerException) {
-                    logger.error(logMarker, "Error while checking if app is installed on simulator $udid", e)
+                    logger.trace(logMarker, "Error while checking if app is installed on simulator $udid", e)
                     return@pollFor false
                 } catch (e: FileNotFoundException) {
-                    logger.error(logMarker, "Error while checking if app is installed on simulator $udid", e)
+                    logger.trace(logMarker, "Error while checking if app is installed on simulator $udid", e)
                     return@pollFor false
                 }
             }

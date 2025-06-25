@@ -20,7 +20,7 @@ class SharedContainer(
     }
 
     fun readFile(path: Path): ByteArray {
-        val expandedPath = sshNoEscapingWorkaround(expandPath(path, basePath).toString())
+        val expandedPath = expandPath(path, basePath).toString()
 
         return super.readFile(expandedPath)
     }

@@ -135,8 +135,6 @@ class XCTestInstrumentationAgent(
             }
         }
 
-        installHostApp(instrumentationBundle)
-
         val process = childFactory(
             remote.hostName,
             launchXctestCommand,
