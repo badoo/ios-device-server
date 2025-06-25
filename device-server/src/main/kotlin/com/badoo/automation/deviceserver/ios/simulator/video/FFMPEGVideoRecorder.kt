@@ -12,6 +12,7 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.net.URI
 import java.net.URL
 import java.time.Duration
 import java.util.concurrent.TimeUnit
@@ -30,7 +31,7 @@ class FFMPEGVideoRecorder(
     private val videoFile = File(config.tempFolder, videoFileName)
     private val videoLogFile = File(config.tempFolder, "${videoFileName}.log")
 
-    private val mjpegStreamUrl = URL("http://${remote.publicHostName}:${mjpegServerPort}")
+    private val mjpegStreamUrl = URI("http://${remote.publicHostName}:${mjpegServerPort}").toURL()
 
     override fun toString(): String = "${javaClass.simpleName} for $ref"
 

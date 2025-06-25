@@ -860,7 +860,7 @@ class Simulator(
         val ports = allocatedPorts.toSet()
         require(ports.contains(port)) { "Port $port is not in user ports range $ports" }
 
-        return URL("http://${remote.publicHostName}:$port/")
+        return URI("http://${remote.publicHostName}:$port/").toURL()
     }
 
     //region approveAccess
