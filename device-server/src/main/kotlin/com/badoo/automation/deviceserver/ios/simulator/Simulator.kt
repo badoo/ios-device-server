@@ -692,16 +692,11 @@ class Simulator(
 
     private fun boot() {
         logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
-        val task = concurrentBootsPool.submit { // using limited amount of workers to boot simulator
+        val task = concurrentBootsPool.submit { // using limited number of workers to boot simulator
             val nanos = measureNanoTime {
                 useSoftwareKeyboard()
-
-                val bootTime = remote.exec(listOf("date", "+%s"), mapOf(), false, 30L).stdOut.trim().toLong()
-
                 bootSimulator()
-
-                waitUntilSimulatorBooted(bootTime)
-
+                waitUntilSimulatorBooted()
                 dismissTutorials()
 
                 if (appConfig.useTestHelperApp) {
@@ -721,7 +716,7 @@ class Simulator(
         task.get()
     }
 
-    private fun waitUntilSimulatorBooted(bootTime: Long) {
+    private fun waitUntilSimulatorBooted() {
         Thread.sleep(5000L) // make sure enough time for initial boot before any other actions
         val startTime = System.nanoTime()
         val bootResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "bootstatus", udid), mapOf(), true, 240)
