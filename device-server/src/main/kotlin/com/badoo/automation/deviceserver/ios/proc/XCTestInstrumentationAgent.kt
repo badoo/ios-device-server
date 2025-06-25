@@ -22,7 +22,6 @@ class XCTestInstrumentationAgent(
     private val isRealDevice: Boolean,
     private val childFactory: (
         remoteHost: String,
-        userName: String,
         cmd: List<String>,
         commandEnvironment: Map<String, String>,
         out_reader: ((line: String) -> Unit)?,
@@ -140,7 +139,6 @@ class XCTestInstrumentationAgent(
 
         val process = childFactory(
             remote.hostName,
-            remote.userName,
             launchXctestCommand,
             mapOf(),
             { message ->

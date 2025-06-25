@@ -13,10 +13,9 @@ import java.io.File
 import java.nio.file.Paths
 
 class HostFactory(
-    private val remoteProvider: (hostName: String, userName: String, publicHost: String) -> IRemote = { hostName, userName, publicHostName ->
+    private val remoteProvider: (hostName: String, publicHost: String) -> IRemote = { hostName, publicHostName ->
         Remote(
             hostName,
-            userName,
             publicHostName
         )
     },
@@ -49,7 +48,7 @@ class HostFactory(
         val hostName = config.host
         val userName = config.user
         val publicHostName = config.publicHost
-        val remote: IRemote = remoteProvider(hostName, userName, publicHostName)
+        val remote: IRemote = remoteProvider(hostName, publicHostName)
 
         if (!userName.isBlank()) {
             throw RuntimeException("Config for localhost nodes must have empty 'user'. Current config: $config")

@@ -17,7 +17,6 @@ import java.time.Duration.ofSeconds
 
 class Remote(
     override val hostName: String,
-    override val userName: String,
     override val publicHostName: String,
     override val localExecutor: IShellCommand = ShellCommand(),
     override val remoteExecutor: IShellCommand = ShellCommand(),
@@ -43,9 +42,8 @@ class Remote(
     private val logMarker = MapEntriesAppendingMarker(mapOf(
             LogMarkers.HOSTNAME to hostName
     ))
-    private val userAtHost = if (userName.isBlank()) hostName else "$userName@$hostName"
 
-    override fun toString(): String = "<Remote user:$userName node:$hostName>"
+    override fun toString(): String = "<Node:$publicHostName>"
 
     override val homeBrewPath: File by lazy {
         getHomeBrewPath()

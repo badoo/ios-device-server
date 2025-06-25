@@ -15,7 +15,6 @@ class UsbProxy(
     val localPort: Int,
     private val childFactory: (
         remoteHost: String,
-        userName: String,
         cmd: List<String>,
         commandEnvironment: Map<String, String>,
         out_reader: (line: String) -> Unit,
@@ -41,7 +40,6 @@ class UsbProxy(
         val iProxyCommand = listOf(iproxyBinary, "$localPort:$devicePort", "--udid", udid)
         iproxy = childFactory(
             remote.hostName,
-            remote.userName,
             iProxyCommand,
             mapOf(),
             { message -> }, // { message -> logger.trace(logMarker, "${this}: iproxy <o>: ${message.trim()}") },
@@ -50,7 +48,6 @@ class UsbProxy(
 
         socat = childFactory(
             remote.hostName,
-            remote.userName,
             listOf(socatBinary, "tcp-listen:$localPort,reuseaddr,fork", "tcp:0.0.0.0:$localPort"),
             mapOf(),
             { message -> logger.trace(logMarker, "${this}: socat <o>: ${message.trim()}") },

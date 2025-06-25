@@ -27,7 +27,6 @@ class RemoteTest {
         )
         remote = Remote(
             hostName = "host",
-            userName = "user",
             publicHostName = "",
             localExecutor = localExecutor,
             remoteExecutor = remoteExecutor,

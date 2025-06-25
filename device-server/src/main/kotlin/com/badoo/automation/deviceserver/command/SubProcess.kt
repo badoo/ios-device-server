@@ -73,7 +73,6 @@ class SubProcess private constructor(
     companion object {
         fun fromCommand(
             remoteHost: String,
-            userName: String,
             cmd: List<String>,
             commandEnvironment: Map<String, String>,
             out_reader: ((line: String) -> Unit)?,
