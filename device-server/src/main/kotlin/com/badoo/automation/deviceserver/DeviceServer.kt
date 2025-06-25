@@ -92,8 +92,7 @@ fun Application.module() {
     val startTime = System.nanoTime()
 
     val hostFactory = HostFactory(
-        remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile,
-        appConfiguration = ApplicationConfiguration()
+        remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile, appConfiguration = ApplicationConfiguration()
     )
     val deviceManager = DeviceManager(config, hostFactory)
     deviceManager.cleanupTemporaryFiles()
@@ -146,8 +145,8 @@ fun Application.module() {
         }
         route("status") {
             get {
-              val code = if (deviceManager.isReady()) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
-              call.respond(code, statusController.getServerStatus(startTime))
+                val code = if (deviceManager.isReady()) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+                call.respond(code, statusController.getServerStatus(startTime))
             }
             get("config") {
                 call.respond(config)
@@ -421,7 +420,11 @@ fun Application.module() {
                     }
                     post("start") {
                         val waypoints = jsonContent<LocationWaypointsDto>(call)
-                        call.respond(devicesController.locationStartLocationSequence(param(call, "ref"), waypoints.speed, waypoints.distance, waypoints.interval, waypoints.waypoints))
+                        call.respond(
+                            devicesController.locationStartLocationSequence(
+                                param(call, "ref"), waypoints.speed, waypoints.distance, waypoints.interval, waypoints.waypoints
+                            )
+                        )
                     }
                 }
                 get("state") {
@@ -464,15 +467,15 @@ fun Application.module() {
                 else -> HttpStatusCode.InternalServerError
             }
             val path = call.request.path()
-            val marker = MapEntriesAppendingMarker(mapOf(
-                "http_api" to path,
-                "exception_class" to cause.javaClass.canonicalName
-            ))
+            val marker = MapEntriesAppendingMarker(
+                mapOf(
+                    "http_api" to path, "exception_class" to cause.javaClass.canonicalName
+                )
+            )
 
             logger.error(marker, "HTTP_API: $path | Error: ${cause.message}", cause)
             call.respond(
-                statusCode,
-                hashMapOf(
+                statusCode, hashMapOf(
                     "error" to cause.toDto()
                 )
             )
