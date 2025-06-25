@@ -163,7 +163,7 @@ open class ShellCommand(
             logger: Logger,
             destroyTimeOutNanos: Long = Duration.ofSeconds(10).toNanos(),
         ) {
-            logger.debug(logMarker, "Trying to kill failed command with SIGTERM. Command: $commandString, PID: $pid")
+            logger.debug(logMarker, "Sending SIGTERM to command: $commandString, PID: $pid")
             process.destroy()
 
             val isDestroyedGracefully: Boolean = process.waitFor(destroyTimeOutNanos, TimeUnit.NANOSECONDS)

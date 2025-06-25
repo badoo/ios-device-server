@@ -532,9 +532,9 @@ class Simulator(
             { ignoringErrors({ videoRecorder.dispose() }) },
             { ignoringErrors({ instrumentationAgent.kill() }) },
         ).map { executor.submit(it) }
+        tasks.forEach { it.get() }
 
         val result = remote.fbsimctl.shutdown(udid)
-        tasks.forEach { it.get() }
 
         if (!result.isSuccess && !result.stdErr.contains("current state: Shutdown") && !result.stdOut.contains("current state: Shutdown")) {
             logger.debug(logMarker, "Error occurred while shutting down simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
