@@ -46,13 +46,8 @@ class HostFactory(
         logger.info("Trying to start node $config.")
 
         val hostName = config.host
-        val userName = config.user
         val publicHostName = config.publicHost
         val remote: IRemote = remoteProvider(hostName, publicHostName)
-
-        if (!userName.isBlank()) {
-            throw RuntimeException("Config for localhost nodes must have empty 'user'. Current config: $config")
-        }
 
         val nodeTypeResult = remote.exec(listOf("/usr/bin/arch"), mapOf(),true, 60)
         if (nodeTypeResult.isSuccess) {

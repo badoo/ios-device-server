@@ -6,9 +6,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties( ignoreUnknown = true )
 data class NodeConfig(
-    @JsonProperty("user")
-    val user: String = "",
-
     @JsonProperty("host")
     val host: String = "localhost",
 

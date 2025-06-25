@@ -28,7 +28,6 @@ class NodeConfigTest {
 
         val expected = NodeConfig(
             type = NodeConfig.NodeType.Devices,
-            user = "user",
             host = "host",
             simulatorLimit = 1,
             concurrentBoots = 1,
@@ -50,7 +49,6 @@ class NodeConfigTest {
 
         val expected = NodeConfig(
             type = NodeConfig.NodeType.Simulators,
-            user = "",
             host = "localhost",
             simulatorLimit = 6,
             concurrentBoots = 3,
