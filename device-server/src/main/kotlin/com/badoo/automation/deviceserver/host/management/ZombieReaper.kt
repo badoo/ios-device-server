@@ -17,10 +17,7 @@ class ZombieReaper {
 
     fun launchReapingZombies() {
         executor.scheduleWithFixedDelay(
-                { reapZombies(findZombies()) },
-                60L,
-                60L,
-                TimeUnit.SECONDS
+            { reapZombies(findZombies()) }, ZOMBIE_REAP_INTERVAL, ZOMBIE_REAP_INTERVAL, TimeUnit.SECONDS
         )
     }
 
@@ -74,11 +71,18 @@ class ZombieReaper {
             val childrenPids = ProcessHandle.current().children().map { it.pid().toInt() }
             val childrenZombiesPids = childrenPids.filter { zombiesPids.contains(it) }.toList()
 
-            logger.debug(MapEntriesAppendingMarker(mapOf("zombies" to childrenZombiesPids.size)), "Found ${childrenZombiesPids.size} zombie processes: ${childrenZombiesPids.joinToString(",")}")
+            logger.debug(
+                MapEntriesAppendingMarker(mapOf("zombies" to childrenZombiesPids.size)),
+                "Found ${childrenZombiesPids.size} zombie processes: ${childrenZombiesPids.joinToString(",")}"
+            )
             childrenZombiesPids
         } catch (t: Throwable) {
             logger.error("Failed to find zombie processes. Error: ${t.javaClass}, ${t.message}", t)
             listOf()
         }
+    }
+
+    companion object {
+        private const val ZOMBIE_REAP_INTERVAL: Long = 300L // seconds
     }
 }
