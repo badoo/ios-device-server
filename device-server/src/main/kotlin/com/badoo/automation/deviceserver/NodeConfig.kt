@@ -16,10 +16,10 @@ data class NodeConfig(
     val publicHost: String = host,
 
     @JsonProperty("simulator_limit")
-    val simulatorLimit: Int = 6,
+    val simulatorLimit: Int = 5,
 
     @JsonProperty("concurrent_boots")
-    val concurrentBoots: Int = 3,
+    val concurrentBoots: Int = 1,
 
     @JsonProperty("type")
     val type: NodeType = NodeType.Simulators,

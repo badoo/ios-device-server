@@ -205,16 +205,6 @@ class Simulator(
 
             logTiming("simulator boot") { boot() }
 
-            dismissTutorials()
-
-            if (appConfig.useTestHelperApp) {
-                installTestHelperApp()
-            }
-
-            if (useWda) {
-                logTiming("starting $instrumentationAgent") { startWdaWithRetry() }
-            }
-
             logger.info(logMarker, "Finished preparing $this")
             startPeriodicHealthCheck()
             deviceState = DeviceState.CREATED
@@ -691,7 +681,7 @@ class Simulator(
 
     private fun bootSimulator() {
         val cmd = listOf("/usr/bin/xcrun", "simctl", "boot", udid) + disabledServices()
-        remote.exec(cmd, mapOf(), false, 60L)
+        remote.exec(cmd, mapOf(), false, 120L)
     }
 
     private fun boot() {
@@ -705,6 +695,16 @@ class Simulator(
                 bootSimulator()
 
                 waitUntilSimulatorBooted(bootTime)
+
+                dismissTutorials()
+
+                if (appConfig.useTestHelperApp) {
+                    installTestHelperApp()
+                }
+
+                if (useWda) {
+                    logTiming("starting $instrumentationAgent") { startWdaWithRetry() }
+                }
             }
             bootTask = task
             task.get()
