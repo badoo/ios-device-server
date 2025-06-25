@@ -32,20 +32,19 @@ import kotlin.concurrent.withLock
 import kotlin.system.measureNanoTime
 
 class Simulator(
-        private val deviceRef: DeviceRef,
-        private val remote: IRemote,
-        override val deviceInfo: DeviceInfo,
-        private val allocatedPorts: DeviceAllocatedPorts,
-        private val deviceSetPath: String,
-        wdaSimulatorBundles: WdaSimulatorBundles,
-        private val concurrentBootsPool: ExecutorService,
-        headless: Boolean,
-        private val useWda: Boolean,
-        private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
-        private val trustStoreFile: String = appConfig.trustStorePath,
-        private val assetsPath: String = appConfig.assetsPath
-) : ISimulator
-{
+    private val deviceRef: DeviceRef,
+    private val remote: IRemote,
+    override val deviceInfo: DeviceInfo,
+    private val allocatedPorts: DeviceAllocatedPorts,
+    private val deviceSetPath: String,
+    wdaSimulatorBundles: WdaSimulatorBundles,
+    private val concurrentBootsPool: ExecutorService,
+    headless: Boolean,
+    private val useWda: Boolean,
+    private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
+    private val trustStoreFile: String = appConfig.trustStorePath,
+    private val assetsPath: String = appConfig.assetsPath
+) : ISimulator {
     private companion object {
         private val PREPARE_TIMEOUT: Duration = Duration.ofMinutes(10)
         private val RESET_TIMEOUT: Duration = Duration.ofMinutes(5)
@@ -71,35 +70,39 @@ class Simulator(
                 ref,
                 udid
             )
+
             else -> throw IllegalArgumentException(
                 "Wrong class specified as video recorder: $recorderClassName. " +
                         "Available are: [${FFMPEGVideoRecorder::class.qualifiedName}]"
             )
         }
     }
+
     override val videoRecorder: VideoRecorder = createVideoRecorder()
 
     override val osLog = OsLog(remote, udid)
 
     //region instance state variables
     private val deviceLock = ReentrantLock()
-    @Volatile override var deviceState: DeviceState = DeviceState.NONE // writing from separate thread
+    @Volatile
+    override var deviceState: DeviceState = DeviceState.NONE // writing from separate thread
         private set
 
-    @Volatile override var lastException: Exception? = null // writing from separate thread
+    @Volatile
+    override var lastException: Exception? = null // writing from separate thread
         private set
 
     private val simulatorProcess = SimulatorProcess(remote, udid, deviceRef)
 
     private val instrumentationAgent = XCTestInstrumentationAgent(
-            remote,
-            listOf(wdaSimulatorBundles.deviceAgentBundle, wdaSimulatorBundles.webDriverAgentBundle),
-            deviceInfo,
-            wdaEndpoint,
-            mjpegServerPort,
-            deviceRef,
-            isRealDevice = false
-        )
+        remote,
+        listOf(wdaSimulatorBundles.deviceAgentBundle, wdaSimulatorBundles.webDriverAgentBundle),
+        deviceInfo,
+        wdaEndpoint,
+        mjpegServerPort,
+        deviceRef,
+        isRealDevice = false
+    )
 
     override val instrumentationAgentLog get() = instrumentationAgent.deviceAgentLog
     private val simulatorDirectory = File(deviceSetPath, udid)
@@ -108,13 +111,14 @@ class Simulator(
     private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory)
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val commonLogMarkerDetails = mapOf(
-            LogMarkers.DEVICE_REF to deviceRef,
-            LogMarkers.UDID to udid,
-            LogMarkers.HOSTNAME to remote.hostName
+        LogMarkers.DEVICE_REF to deviceRef,
+        LogMarkers.UDID to udid,
+        LogMarkers.HOSTNAME to remote.hostName
     )
     private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
-    @Volatile private var healthChecker: ScheduledFuture<*>? = null
+    @Volatile
+    private var healthChecker: ScheduledFuture<*>? = null
     //endregion
 
     override val media: Media = Media(remote, udid, deviceSetPath)
@@ -123,6 +127,7 @@ class Simulator(
 
     @Volatile
     private var bootTask: Future<*>? = null
+
     @Volatile
     private var installTask: Future<InstallResult>? = null
 
@@ -203,7 +208,7 @@ class Simulator(
                 eraseSimulatorAndCreateBackup()
             }
 
-            logTiming("simulator boot") { boot() }
+            boot()
 
             logger.info(logMarker, "Finished preparing $this")
             startPeriodicHealthCheck()
@@ -236,13 +241,15 @@ class Simulator(
                 logger,
                 logMarker
             ) {
-                remote.execIgnoringErrors(listOf(
-                    "/usr/bin/xcrun",
-                    "simctl",
-                    "get_app_container",
-                    udid,
-                    "com.bumble.automation.TestHelper"
-                )).isSuccess
+                remote.execIgnoringErrors(
+                    listOf(
+                        "/usr/bin/xcrun",
+                        "simctl",
+                        "get_app_container",
+                        udid,
+                        "com.bumble.automation.TestHelper"
+                    )
+                ).isSuccess
 
             }
         }
@@ -359,8 +366,7 @@ class Simulator(
                 logger.info(logMarker, "Started $instrumentationAgent on ${this@Simulator}")
 
                 return
-            }
-            catch (e: RuntimeException) {
+            } catch (e: RuntimeException) {
                 logger.warn(logMarker, "Attempt $attempt to start $instrumentationAgent for ${this@Simulator} failed: $e")
 
                 val wdaLogLines = instrumentationAgent.deviceAgentLog.readLines().takeLast(200)
@@ -521,11 +527,11 @@ class Simulator(
             cancelTask(it, "installTask")
         }
 
-       val executor = Executors.newVirtualThreadPerTaskExecutor()
-       val tasks = setOf(
-           {ignoringErrors({ videoRecorder.dispose() })},
-           {ignoringErrors({ instrumentationAgent.kill() })},
-       ).map { executor.submit(it) }
+        val executor = Executors.newVirtualThreadPerTaskExecutor()
+        val tasks = setOf(
+            { ignoringErrors({ videoRecorder.dispose() }) },
+            { ignoringErrors({ instrumentationAgent.kill() }) },
+        ).map { executor.submit(it) }
 
         val result = remote.fbsimctl.shutdown(udid)
         tasks.forEach { it.get() }
@@ -686,8 +692,8 @@ class Simulator(
 
     private fun boot() {
         logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
-        val nanos = measureNanoTime {
-            val task = concurrentBootsPool.submit { // using limited amount of workers to boot simulator
+        val task = concurrentBootsPool.submit { // using limited amount of workers to boot simulator
+            val nanos = measureNanoTime {
                 useSoftwareKeyboard()
 
                 val bootTime = remote.exec(listOf("date", "+%s"), mapOf(), false, 30L).stdOut.trim().toLong()
@@ -706,11 +712,13 @@ class Simulator(
                     logTiming("starting $instrumentationAgent") { startWdaWithRetry() }
                 }
             }
-            bootTask = task
-            task.get()
+
+            val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
+            logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
         }
-        val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
-        logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
+
+        bootTask = task
+        task.get()
     }
 
     private fun waitUntilSimulatorBooted(bootTime: Long) {
@@ -723,7 +731,8 @@ class Simulator(
             val message = "Simulator bootstatus $udid successfully booted to sufficient state. Was waiting for $elapsedSeconds seconds."
             logger.info(logMarker, message)
         } else {
-            val message = "Simulator bootstatus $udid failed to successfully boot to sufficient state. Was waiting for $elapsedSeconds seconds. Exit code: ${bootResult.exitCode}. StdErr: ${bootResult.stdErr}. StdOut: ${bootResult.stdOut}"
+            val message =
+                "Simulator bootstatus $udid failed to successfully boot to sufficient state. Was waiting for $elapsedSeconds seconds. Exit code: ${bootResult.exitCode}. StdErr: ${bootResult.stdErr}. StdOut: ${bootResult.stdOut}"
             logger.error(logMarker, message)
         }
     }
@@ -742,8 +751,8 @@ class Simulator(
         val nanos = measureNanoTime(action)
         val seconds = NANOSECONDS.toSeconds(nanos)
         val measurement = mutableMapOf(
-                "action_name" to actionName,
-                "duration" to seconds
+            "action_name" to actionName,
+            "duration" to seconds
         )
         measurement.putAll(commonLogMarkerDetails)
         logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} action <$actionName> took $seconds seconds")
@@ -828,7 +837,9 @@ class Simulator(
         var isWdaReady = false
 
         if (deviceState == DeviceState.CREATED) {
-            isWdaReady = (if (useWda) { instrumentationAgent.isHealthy() } else true)
+            isWdaReady = (if (useWda) {
+                instrumentationAgent.isHealthy()
+            } else true)
         }
 
         val isSimulatorReady = deviceState == DeviceState.CREATED && isWdaReady
@@ -892,17 +903,17 @@ class Simulator(
     //region release
     override fun release(reason: String) {
         logTiming("Full set of actions to release simulator $udid on host ${remote.publicHostName}") {
-            logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ shutdown() })}
-            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ disposeResources() })}
+            logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ shutdown() }) }
+            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ disposeResources() }) }
         }
     }
 
     override fun delete(reason: String) {
         logTiming("Full set of actions to delete simulator $udid on host ${remote.publicHostName}") {
-            logTiming("Delete backup for simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ backup.delete() })}
-            logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ shutdown() })}
-            logTiming("Delete simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ deleteSimulator() })}
-            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") {ignoringErrors({ disposeResources(keepMetadata = false) })}
+            logTiming("Delete backup for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ backup.delete() }) }
+            logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ shutdown() }) }
+            logTiming("Delete simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ deleteSimulator() }) }
+            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ disposeResources(keepMetadata = false) }) }
         }
     }
 
@@ -975,13 +986,13 @@ class Simulator(
 
     override fun listApps(): List<FBSimctlAppInfo> = remote.fbsimctl.listApps(udid)
 
-    override fun shake() : Boolean {
+    override fun shake(): Boolean {
         val command = listOf("xcrun", "simctl", "notify_post", udid, "com.apple.UIKit.SimulatorShake")
         val result = remote.execIgnoringErrors(command)
         return result.isSuccess
     }
 
-    override fun openUrl(url: String) : Boolean {
+    override fun openUrl(url: String): Boolean {
         val urlString = url
         val command = listOf("/usr/bin/xcrun", "simctl", "openurl", udid, urlString)
         val result = remote.execIgnoringErrors(command)
@@ -1026,7 +1037,7 @@ class Simulator(
      * Returns list of crashes (file names) since {@code pastMinutes} sorted by most recent first
      * @param pastMinutes optional duration to search from, for example Duration.ofMinutes(5)
      */
-    private fun listCrashLogs(pastMinutes: Long? = null):List<String> {
+    private fun listCrashLogs(pastMinutes: Long? = null): List<String> {
         if (pastMinutes != null && pastMinutes < 0) {
             throw IllegalArgumentException("pastMinutes should be positive ")
         }
@@ -1097,7 +1108,7 @@ class Simulator(
 
     override fun getEnvironmentVariable(variableName: String): String {
         logger.debug(logMarker, "Getting environment variable $variableName for Simulator $this")
-        if(!ENV_VAR_VALIDATE_REGEX.matches(variableName)) {
+        if (!ENV_VAR_VALIDATE_REGEX.matches(variableName)) {
             throw IllegalArgumentException("Variable name should contain only letters, numbers and underscores. Current value: $variableName")
         }
 
