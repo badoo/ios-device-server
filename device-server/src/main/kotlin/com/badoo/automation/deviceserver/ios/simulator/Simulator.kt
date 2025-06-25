@@ -912,9 +912,9 @@ class Simulator(
     }
 
     override fun delete(reason: String) {
+        release(reason)
         logTiming("Full set of actions to delete simulator $udid on host ${remote.publicHostName}") {
             logTiming("Delete backup for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ backup.delete() }) }
-            logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ shutdown() }) }
             logTiming("Delete simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ deleteSimulator() }) }
             logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ disposeResources(keepMetadata = false) }) }
         }
