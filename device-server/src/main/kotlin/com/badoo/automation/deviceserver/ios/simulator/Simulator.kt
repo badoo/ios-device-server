@@ -691,6 +691,14 @@ class Simulator(
     }
 
     private fun boot() {
+        bootTask?.let { oldBootTask ->
+            if (!oldBootTask.isDone) {
+                val message = "Failed to boot simulator $udid due to previous task is not finished. Call shutdown() to cancel it."
+                logger.error(logMarker, message)
+                throw RuntimeException(message)
+            }
+        }
+
         logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
         val task = concurrentBootsPool.submit { // using limited number of workers to boot simulator
             val nanos = measureNanoTime {
