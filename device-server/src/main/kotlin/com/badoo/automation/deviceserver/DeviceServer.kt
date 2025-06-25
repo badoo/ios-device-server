@@ -9,6 +9,7 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceCreationEx
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
+import com.badoo.automation.deviceserver.util.NetworkUtils
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -30,9 +31,6 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
 import java.net.NetworkInterface
-import java.nio.file.Files
-import java.nio.file.attribute.PosixFilePermission
-
 
 private fun jsonContent(call: ApplicationCall): JsonNode {
     val json = call.request.receiveChannel().toInputStream()
@@ -52,15 +50,6 @@ private fun paramInt(call: ApplicationCall, s: String): Int {
         return param(call, s).toInt()
     } catch (e: NumberFormatException) {
         throw Exception("Parameter $s was not an integer in ${call.request.uri}")
-    }
-}
-
-fun getAddresses(): List<String> {
-    return NetworkInterface.getNetworkInterfaces().toList().flatMap { networkInterface ->
-        networkInterface.inetAddresses.toList()
-                .filter { it.address.size == 4 }
-                .filter { !it.isLoopbackAddress }
-                .map { it.hostAddress + "/" + it.hostName }
     }
 }
 
@@ -482,5 +471,5 @@ fun Application.module() {
         }
     }
 
-    logger.info("Server: Installation complete. Should be available at ${getAddresses()}")
+    logger.info("Server: Installation complete. Should be available at ${NetworkUtils.getAddresses()}")
 }
