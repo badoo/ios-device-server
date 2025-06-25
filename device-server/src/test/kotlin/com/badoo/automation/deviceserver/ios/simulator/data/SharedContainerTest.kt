@@ -48,20 +48,6 @@ class SharedContainerTest {
         container.writeFile(ByteArray(3), File("/Users/qa/Library").toPath())
     }
 
-    @Test
-    fun shouldPushFile() {
-        val container = SharedContainer(
-            remote = remote,
-            basePath = sharedContainerPathStub
-        )
-        doNothing().`when`(remote).scpToRemoteHost(any(), any(), any())
-
-        val fakeFailLocation = File(sharedContainerPathStub.path.plus("/config.plist"))
-
-        container.writeFile(ByteArray(3), fakeFailLocation.toPath())
-        Mockito.verify(remote, Mockito.times(1)).scpToRemoteHost(any(), any(), any())
-    }
-
     @Test(expected = DataContainerException::class)
     fun shouldRaiseErrorOnReadingOutsideSharedContainer() {
         val container = SharedContainer(

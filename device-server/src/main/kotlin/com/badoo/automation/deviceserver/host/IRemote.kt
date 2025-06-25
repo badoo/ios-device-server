@@ -41,7 +41,5 @@ interface IRemote {
     val fbsimctl: FBSimctl
     val xcrunSimctl: XCRunSimctl
     fun isDirectory(path: String): Boolean
-    fun scpToRemoteHost(from: String, to: String, timeOut: Duration = Duration.ofMinutes(2))
     fun rm(path: String, timeOut: Duration = Duration.ofMinutes(3))
-    fun scpFromRemoteHost(from: String, to: String, timeOut: Duration)
 }

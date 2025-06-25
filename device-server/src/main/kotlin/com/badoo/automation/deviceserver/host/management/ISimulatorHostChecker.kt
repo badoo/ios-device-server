@@ -22,8 +22,6 @@ interface ISimulatorHostChecker {
     fun cleanup()
     fun setupHost()
     fun killDiskCleanupThread()
-    fun copyWdaBundleToHost()
-    fun copyTestHelperBundleToHost()
 }
 
 class SimulatorHostChecker(
@@ -45,34 +43,6 @@ class SimulatorHostChecker(
         if (applicationConfiguration.simulatorBackupPath.isNotBlank()) {
             File(applicationConfiguration.simulatorBackupPath).ensureDirectoryExists(logger, logMarker)
         }
-    }
-
-    override fun copyWdaBundleToHost() {
-        logger.debug(logMarker, "Setting up remote node: copying WebDriverAgent to node ${remote.hostName}")
-
-        val remoteBundleRoot = wdaSimulatorBundles.webDriverAgentBundle.bundlePath().parent
-
-        with(File(remoteBundleRoot)) {
-            deleteRecursivelyIfExist(logger, logMarker)
-            ensureDirectoryExists(logger, logMarker)
-        }
-
-        remote.scpToRemoteHost(wdaSimulatorBundles.deviceAgentBundle.bundlePath().absolutePath, remoteBundleRoot)
-        remote.scpToRemoteHost(wdaSimulatorBundles.webDriverAgentBundle.bundlePath().absolutePath, remoteBundleRoot)
-    }
-
-    override fun copyTestHelperBundleToHost() {
-        logger.debug(logMarker, "Setting up remote node: copying TestHelper app to node ${remote.hostName}")
-        val testHelperAppBundle = File(remoteTestHelperAppRoot, "TestHelper.app")
-
-        if (!testHelperAppBundle.exists()) {
-            logger.error(logMarker, "Failed to copy TestHelper app to node ${remote.hostName}. TestHelper app does not exist")
-            return
-        }
-
-        remote.rm(testHelperAppBundle.absolutePath)
-        remote.execIgnoringErrors(listOf("/bin/mkdir", "-p", remoteTestHelperAppRoot.absolutePath))
-        remote.scpToRemoteHost(testHelperAppBundle.absolutePath, remoteTestHelperAppRoot.absolutePath)
     }
 
     override fun killDiskCleanupThread() {

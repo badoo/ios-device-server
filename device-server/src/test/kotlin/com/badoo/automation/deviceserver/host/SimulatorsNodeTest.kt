@@ -129,7 +129,6 @@ class SimulatorsNodeTest {
 
         val inOrder = inOrder(hostChecker)
         inOrder.verify(hostChecker).checkPrerequisites()
-        inOrder.verify(hostChecker).copyWdaBundleToHost()
         inOrder.verify(hostChecker).cleanup()
         inOrder.verify(hostChecker).setupHost()
         inOrder.verifyNoMoreInteractions()
