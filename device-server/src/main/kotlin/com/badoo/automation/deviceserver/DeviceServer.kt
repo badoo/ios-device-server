@@ -30,7 +30,7 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
-import java.net.NetworkInterface
+import kotlin.system.exitProcess
 
 private fun jsonContent(call: ApplicationCall): JsonNode {
     val json = call.request.receiveChannel().toInputStream()
@@ -115,11 +115,6 @@ fun Application.module() {
         }
     }
 
-    install(ShutDownUrl.ApplicationCallPlugin) {
-        shutDownUrl = "/quitquitquit"
-        exitCodeSupplier = { 1 }
-    }
-
 //    authentication {
 //        bearer("auth-bearer") {
 //            realm = "Ktor Server"
@@ -139,6 +134,11 @@ fun Application.module() {
 
     logger.info("Server: Installing routing...")
     install(RoutingRoot) {
+        get("quitquitquit") {
+            call.respond(HttpStatusCode.OK, "Shutting down server...")
+            Thread.sleep(2000) // Give time to respond
+            exitProcess(0)
+        }
         get {
             val toDoRoutes: Route? = null
             call.respondText(statusController.welcomeMessage(toDoRoutes), ContentType.Text.Html)
