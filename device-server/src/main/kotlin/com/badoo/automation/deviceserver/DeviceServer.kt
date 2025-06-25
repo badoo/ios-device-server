@@ -55,9 +55,17 @@ private fun paramInt(call: ApplicationCall, s: String): Int {
 
 private val appConfiguration = ApplicationConfiguration()
 
+private fun getDefaultNodeConfig(): NodeConfig {
+    val publicHostName = NetworkUtils.getAddresses().first().ip
+    return NodeConfig(
+        host = publicHostName,
+        publicHost = publicHostName,
+    )
+}
+
 private fun serverConfig(): DeviceServerConfig {
     if (appConfiguration.deviceServerConfigPath.isEmpty()) {
-        val defaultNodeConfig = NodeConfig()
+        val defaultNodeConfig = getDefaultNodeConfig()
         logger.info("Using default config: $defaultNodeConfig")
         return DeviceServerConfig(nodes = setOf(defaultNodeConfig), timeouts = emptyMap())
     }
