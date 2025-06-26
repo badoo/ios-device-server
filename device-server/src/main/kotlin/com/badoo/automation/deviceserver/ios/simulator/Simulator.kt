@@ -84,6 +84,7 @@ class Simulator(
 
     //region instance state variables
     private val deviceLock = ReentrantLock()
+
     @Volatile
     override var deviceState: DeviceState = DeviceState.NONE // writing from separate thread
         private set
@@ -117,6 +118,7 @@ class Simulator(
     )
     private val logMarker: Marker = MapEntriesAppendingMarker(commonLogMarkerDetails)
     private val fileSystem = FileSystem(remote, udid)
+
     @Volatile
     private var healthChecker: ScheduledFuture<*>? = null
     //endregion
@@ -180,40 +182,39 @@ class Simulator(
             )
             measurement.putAll(commonLogMarkerDetails)
 
-            logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} ready in $seconds seconds")
+            logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} ready in $seconds seconds (total simulator preparation time)")
         }
     }
 
-    private fun prepare(timeout: Duration = PREPARE_TIMEOUT, clean: Boolean) {
-        logger.info(logMarker, "Starting to prepare ${this@Simulator}. Will wait for ${timeout.seconds} seconds")
+    private fun prepare(clean: Boolean) {
+        logger.info(logMarker, "Starting to prepare ${this@Simulator} asynchronously")
         lastException = null
 
         //FIXME: add checks for cancellation of criticalAsyncPromise
-        executeWithTimeout(timeout, "Preparing simulator") {
-            // erase simulator if there is no existing backup, this is to ensure backup is created from a clean state
-            logger.info(logMarker, "Launch prepare sequence for ${this@Simulator} asynchronously")
 
-            if (backup.isExist()) {
-                if (clean) {
-                    try {
-                        backup.restore()
-                    } catch (e: SimulatorBackupError) {
-                        logger.warn(logMarker, "Will erase simulator and re-create backup for ${this@Simulator}")
-                        shutdown()
-                        backup.delete()
-                        eraseSimulatorAndCreateBackup()
-                    }
+        // erase simulator if there is no existing backup, this is to ensure backup is created from a clean state
+        logger.info(logMarker, "Launch prepare sequence for ${this@Simulator} asynchronously")
+
+        if (backup.isExist()) {
+            if (clean) {
+                try {
+                    backup.restore()
+                } catch (e: SimulatorBackupError) {
+                    logger.warn(logMarker, "Will erase simulator and re-create backup for ${this@Simulator}")
+                    shutdown()
+                    backup.delete()
+                    eraseSimulatorAndCreateBackup()
                 }
-            } else {
-                eraseSimulatorAndCreateBackup()
             }
-
-            boot()
-
-            logger.info(logMarker, "Finished preparing $this")
-            startPeriodicHealthCheck()
-            deviceState = DeviceState.CREATED
+        } else {
+            eraseSimulatorAndCreateBackup()
         }
+
+        boot()
+
+        logger.info(logMarker, "Finished preparing $this")
+        startPeriodicHealthCheck()
+        deviceState = DeviceState.CREATED
     }
 
     private fun installTestHelperApp() {
