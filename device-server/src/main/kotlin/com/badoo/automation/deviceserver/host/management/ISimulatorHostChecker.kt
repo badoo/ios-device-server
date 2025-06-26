@@ -41,7 +41,14 @@ class SimulatorHostChecker(
 
     override fun createDirectories() {
         if (applicationConfiguration.simulatorBackupPath.isNotBlank()) {
-            File(applicationConfiguration.simulatorBackupPath).ensureDirectoryExists(logger, logMarker)
+            with(File(applicationConfiguration.simulatorBackupPath)) {
+                ensureDirectoryExists(logger, logMarker)
+            }
+        }
+
+        with(applicationConfiguration.appBundleCachePath) {
+            deleteRecursivelyIfExist(logger, logMarker)
+            ensureDirectoryExists(logger, logMarker)
         }
     }
 
@@ -100,7 +107,6 @@ class SimulatorHostChecker(
                 "/var/folders/*/*/*/xctestRunDir_*",
                 "/var/folders/*/*/*/device_agent_log_*",
                 "/private/var/tmp/test-session-systemlogs-*.logarchive",
-                File(ApplicationConfiguration().appBundleCacheRemotePath.absolutePath, "*").absolutePath,
                 "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )
 

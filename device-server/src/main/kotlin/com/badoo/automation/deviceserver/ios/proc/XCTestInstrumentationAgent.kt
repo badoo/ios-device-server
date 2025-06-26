@@ -117,7 +117,7 @@ class XCTestInstrumentationAgent(
 
         val instrumentationBundle = getInstrumentationBundle()
 
-        ensure(instrumentationBundle.bundlePath().ensureDirectoryExists(logger, logMarker)) {
+        ensure(instrumentationBundle.bundlePath().isDirectory) {
             WebDriverAgentError("$instrumentationBundle ${instrumentationBundle.bundlePath().absolutePath} does not exist or is not a directory")
         }
 
