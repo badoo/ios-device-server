@@ -37,7 +37,7 @@ class CustomHttpClient {
             return HttpResult(NetworkReadTimeoutError.code)
         } catch (e: java.io.IOException) { // we can get connection reset or stream end from iproxy or socat
             return HttpResult(WebServerIsDown.code)
-        } catch (e: RuntimeException) {
+        } catch (e: Exception) {
             return HttpResult(UnknownError.code)
         }
     }

@@ -337,8 +337,8 @@ class Simulator(
         }
     }
 
-    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(60), retryInterval: Duration = Duration.ofSeconds(2)) {
-        val maxRetries = 7
+    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(60), retryInterval: Duration = Duration.ofSeconds(1)) {
+        val maxRetries = 3
 
         for (attempt in 1..maxRetries) {
             if (Thread.currentThread().isInterrupted) {
@@ -352,7 +352,7 @@ class Simulator(
                 instrumentationAgent.kill()
                 instrumentationAgent.start()
 
-                Thread.sleep(8000)
+                Thread.sleep(2000) // Wait for WDA to start before sending requests
 
                 pollFor(
                     pollTimeout,

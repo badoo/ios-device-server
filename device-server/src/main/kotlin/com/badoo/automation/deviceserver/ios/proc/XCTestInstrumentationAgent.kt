@@ -204,7 +204,7 @@ class XCTestInstrumentationAgent(
             val success = client.get(url).isSuccess
             logger.debug(logMarker, "Checking health for WebDriverAgent on $udid on url: $url - Result: ${if (success) "Success" else "Failure"}")
             return success
-        } catch (e: RuntimeException) {
+        } catch (e: Exception) {
             logger.warn(logMarker, "Failed to determine WDA driver state. Exception: $e")
             false
         }
