@@ -520,10 +520,6 @@ class Simulator(
         logger.info(logMarker, "Shutting down ${this@Simulator}")
         stopPeriodicHealthCheck()
 
-        bootTask?.let {
-            cancelTask(it, "bootTask")
-        }
-
         installTask?.let {
             cancelTask(it, "installTask")
         }
@@ -534,6 +530,10 @@ class Simulator(
             { ignoringErrors({ instrumentationAgent.kill() }) },
         ).map { executor.submit(it) }
         tasks.forEach { it.get() }
+
+        bootTask?.let {
+            cancelTask(it, "bootTask")
+        }
 
         val result = remote.fbsimctl.shutdown(udid)
 
@@ -700,21 +700,13 @@ class Simulator(
             }
         }
 
-        logger.info(logMarker, "Booting ${this@Simulator} asynchronously")
+        useSoftwareKeyboard()
+
+        logger.info(logMarker, "Booting ${this@Simulator}")
         val task = concurrentBootsPool.submit { // using limited number of workers to boot simulator
             val nanos = measureNanoTime {
-                useSoftwareKeyboard()
                 bootSimulator()
                 waitUntilSimulatorBooted()
-                dismissTutorials()
-
-                if (appConfig.useTestHelperApp) {
-                    installTestHelperApp()
-                }
-
-                if (useWda) {
-                    logTiming("starting $instrumentationAgent") { startWdaWithRetry() }
-                }
             }
 
             val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
@@ -723,6 +715,16 @@ class Simulator(
 
         bootTask = task
         task.get()
+
+        dismissTutorials()
+
+        if (appConfig.useTestHelperApp) {
+            installTestHelperApp()
+        }
+
+        if (useWda) {
+            logTiming("starting $instrumentationAgent") { startWdaWithRetry() }
+        }
     }
 
     private fun waitUntilSimulatorBooted() {
