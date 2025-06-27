@@ -11,7 +11,6 @@ interface ISimulator: IDevice {
     val media: Media
     val locationManager: LocationManager
 
-    fun resetAsync(): Runnable
     fun sendPushNotification(bundleId: String, notificationContent: ByteArray)
     fun sendPasteboard(payload: ByteArray)
     fun setPermissions(bundleId: String, permissions: PermissionSet)

@@ -765,64 +765,6 @@ class Simulator(
     }
     //endregion
 
-    //region reset async
-    override fun resetAsync(): Runnable {
-        val state = deviceState
-        if (state != DeviceState.CREATED && state != DeviceState.FAILED) {
-            val message = "Unable to perform reset. Simulator $udid is in state $state"
-            logger.error(logMarker, message)
-            throw IllegalStateException(message)
-        }
-
-        return Runnable {
-            executeCritical {
-                deviceState = DeviceState.RESETTING
-
-                val nanos = measureNanoTime {
-                    shutdown()
-                    resetFromBackup()
-                    try {
-                        prepare(clean = false) // simulator is already clean as it was restored from backup in resetFromBackup
-                    } catch (e: Exception) { // catching most wide exception
-                        deviceState = DeviceState.FAILED
-                        logger.error(logMarker, "Failed to reset and prepare device ${this@Simulator}", e)
-                        shutdown()
-                        disposeResources()
-                        throw e
-                    }
-                }
-
-                val seconds = NANOSECONDS.toSeconds(nanos)
-
-                val measurement = mutableMapOf(
-                    "action_name" to "resetAsync",
-                    "duration" to seconds
-                )
-                measurement.putAll(commonLogMarkerDetails)
-
-                logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} reset and ready in $seconds seconds")
-            }
-        }
-    }
-
-    private fun resetFromBackup(timeout: Duration = RESET_TIMEOUT) {
-        logger.info(logMarker, "Starting to reset $this")
-
-        executeWithTimeout(timeout, "Resetting simulator") {
-            if (!backup.isExist()) {
-                logger.error(logMarker, "Could not find backup for $this")
-                throw SimulatorError("Could not find backup for $this")
-            }
-
-            logTiming("replacing with backup") {
-                backup.restore()
-            }
-        }
-
-        logger.info(logMarker, "Finished to reset $this")
-    }
-    //endregion
-
     //region helper functions — execute critical and async
     private fun executeCritical(action: () -> Unit) {
         deviceLock.withLock {

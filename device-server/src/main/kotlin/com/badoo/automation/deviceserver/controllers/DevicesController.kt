@@ -28,7 +28,6 @@ class DevicesController(private val deviceManager: DeviceManager) {
     fun controlDevice(ref: DeviceRef, jsonContent: JsonNode): EmptyMap {
         val action = jsonContent["action"]?.asText()
         when (action) {
-            "reset" -> deviceManager.resetAsyncDevice(ref)
             "clear_safari_cookies" -> deviceManager.clearSafariCookies(ref)
             "shake" -> deviceManager.shake(ref)
             else -> throw IllegalArgumentException("Unknown action $action")

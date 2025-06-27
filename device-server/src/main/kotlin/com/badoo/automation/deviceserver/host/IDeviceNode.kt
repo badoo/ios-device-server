@@ -11,9 +11,6 @@ import java.util.regex.Pattern
 
 interface IDeviceNode {
     fun supports(desiredCaps: DesiredCapabilities): Boolean
-
-    fun resetAsync(deviceRef: DeviceRef)
-
     fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray)
     fun sendPasteboard(deviceRef: DeviceRef, payload: ByteArray)
     fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto)

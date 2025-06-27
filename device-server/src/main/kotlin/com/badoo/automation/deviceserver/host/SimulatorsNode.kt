@@ -433,14 +433,6 @@ class SimulatorsNode(
         prepareTasks.remove(deviceRef)
     }
 
-
-    override fun resetAsync(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).resetAsync().let { resetProc ->
-            cancelRunningSimulatorTask(deviceRef, "resetAsync")
-            prepareTasks[deviceRef] = simulatorsBootExecutorService.submit(resetProc)
-        }
-    }
-
     override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
         return getDeviceFor(deviceRef).status()
     }

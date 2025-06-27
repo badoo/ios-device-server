@@ -340,15 +340,6 @@ class SimulatorsNodeTest {
         assertThat(portAllocator.available(), equalTo(15))
     }
 
-    @Test @Ignore
-    fun resetAsync() {
-        createDeviceForTest()
-
-        simulatorsNode.resetAsync(ref1)
-        Thread.sleep(1000)
-        verify(simulatorMock).resetAsync()
-    }
-
     @Ignore @Test
     fun state() {
         createDeviceForTest()

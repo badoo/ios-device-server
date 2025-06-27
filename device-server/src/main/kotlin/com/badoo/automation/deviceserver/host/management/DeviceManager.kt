@@ -207,10 +207,6 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).clearSafariCookies(ref)
     }
 
-    fun resetAsyncDevice(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).resetAsync(ref)
-    }
-
     fun sendPushNotification(ref: DeviceRef, bundleId: String, notificationContent: ByteArray) {
         nodeRegistry.activeDevices.getNodeFor(ref).sendPushNotification(ref, bundleId, notificationContent)
     }

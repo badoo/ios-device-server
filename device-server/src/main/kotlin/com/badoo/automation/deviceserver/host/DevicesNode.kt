@@ -142,10 +142,6 @@ class DevicesNode(
         return desiredCaps.arch == null || supportedArchitectures.contains(desiredCaps.arch)
     }
 
-    override fun resetAsync(deviceRef: DeviceRef) {
-        throw(NotImplementedError("Reset is not supported by physical devices"))
-    }
-
     override fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray) {
         throw(NotImplementedError("Simulating push notifications is not supported by physical devices"))
     }

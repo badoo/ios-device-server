@@ -89,16 +89,6 @@ class DevicesControllerTest {
     }
 
     @Test
-    fun controlDeviceReset() {
-        val reset = json("""{"action": "reset"}""")
-
-        val actualResult = deviceServer.controlDevice(deviceRef, reset)
-
-        verify(deviceManager, times(1)).resetAsyncDevice(deviceRef)
-        assertThat(actualResult, equalTo(happyEmpty))
-    }
-
-    @Test
     fun controlDeviceClearCookies() {
         val clearSafariCookies = json("""{"action":"clear_safari_cookies"}""")
 
