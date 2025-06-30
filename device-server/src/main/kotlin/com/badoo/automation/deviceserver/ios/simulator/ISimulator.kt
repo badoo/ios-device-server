@@ -6,11 +6,13 @@ import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.simulator.data.DataContainer
 import com.badoo.automation.deviceserver.ios.simulator.data.Media
 import com.badoo.automation.deviceserver.ios.simulator.data.SharedContainer
+import java.util.concurrent.Semaphore
 
 interface ISimulator: IDevice {
     val media: Media
     val locationManager: LocationManager
 
+    fun prepareAsync(concurrentBootsSemaphore: Semaphore)
     fun sendPushNotification(bundleId: String, notificationContent: ByteArray)
     fun sendPasteboard(payload: ByteArray)
     fun setPermissions(bundleId: String, permissions: PermissionSet)

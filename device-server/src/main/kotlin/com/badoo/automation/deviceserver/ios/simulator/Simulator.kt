@@ -8,15 +8,11 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.proc.*
-import com.badoo.automation.deviceserver.ios.simulator.backup.ISimulatorBackup
-import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackup
-import com.badoo.automation.deviceserver.ios.simulator.backup.SimulatorBackupError
 import com.badoo.automation.deviceserver.ios.simulator.data.*
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
 import com.badoo.automation.deviceserver.util.*
-import kotlinx.coroutines.Runnable
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
@@ -36,9 +32,7 @@ class Simulator(
     private val remote: IRemote,
     override val deviceInfo: DeviceInfo,
     private val allocatedPorts: DeviceAllocatedPorts,
-    private val deviceSetPath: String,
     wdaSimulatorBundles: WdaSimulatorBundles,
-    private val concurrentBootsPool: ExecutorService,
     headless: Boolean,
     private val useWda: Boolean,
     private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
@@ -46,7 +40,6 @@ class Simulator(
     private val assetsPath: String = appConfig.assetsPath
 ) : ISimulator {
     private companion object {
-        private val PREPARE_TIMEOUT: Duration = Duration.ofMinutes(10)
         private val RESET_TIMEOUT: Duration = Duration.ofMinutes(5)
         private const val SAFARI_BUNDLE_ID = "com.apple.mobilesafari"
         private val ENV_VAR_VALIDATE_REGEX = "[a-zA-Z0-9_]+$".toRegex()
@@ -106,10 +99,7 @@ class Simulator(
     )
 
     override val instrumentationAgentLog get() = instrumentationAgent.deviceAgentLog
-    private val simulatorDirectory = File(deviceSetPath, udid)
-    private val simulatorDataDirectory = File(simulatorDirectory, "data")
 
-    private val backup: ISimulatorBackup = SimulatorBackup(remote, udid, deviceSetPath, simulatorDirectory, simulatorDataDirectory)
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val commonLogMarkerDetails = mapOf(
         LogMarkers.DEVICE_REF to deviceRef,
@@ -123,12 +113,9 @@ class Simulator(
     private var healthChecker: ScheduledFuture<*>? = null
     //endregion
 
-    override val media: Media = Media(remote, udid, deviceSetPath)
+    override val media: Media = Media(remote, udid, File(appConfig.homeDirectory, "Library/Developer/CoreSimulator/Devices").absolutePath)
 
     override fun toString() = "<Simulator: $deviceRef>"
-
-    @Volatile
-    private var bootTask: Future<*>? = null
 
     @Volatile
     private var installTask: Future<InstallResult>? = null
@@ -156,23 +143,134 @@ class Simulator(
 
     //region prepareAsync
     override fun prepareAsync() {
-        executeCritical {
-            if (deviceState == DeviceState.CREATING || deviceState == DeviceState.RESETTING) {
+        throw NotImplementedError("This is not implemented for Simulator")
+    }
+
+    var simulatorBootExecutor2: ExecutorService? = null
+    var bootTasks2: List<Future<*>>? = null
+
+    override fun prepareAsync(concurrentBootsSemaphore: Semaphore) {
+        executeCriticalWithLock {
+            if (deviceState == DeviceState.CREATING) {
                 throw java.lang.IllegalStateException("Simulator $udid is already in state $deviceState")
             }
+
+            logger.info(logMarker, "Starting to boot and prepare ${this@Simulator}")
+
             deviceState = DeviceState.CREATING
 
+            val simulatorBootExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+            simulatorBootExecutor2 = simulatorBootExecutor
+            val bootTasks: MutableList<Future<*>> = mutableListOf<Future<*>>()
+            bootTasks2 = bootTasks
+
+            scheduleSequentialExecution(
+                simulatorBootExecutor,
+                bootTasks,
+                { useSoftwareKeyboard() },
+                { "Failed to set up software keyboard for simulator $udid" },
+            )
+
+            scheduleSequentialExecution(
+                simulatorBootExecutor,
+                bootTasks,
+                { copyTrustStore() },
+                { "Failed to copy TrustStore for simulator $udid" },
+            )
+
+            scheduleSequentialExecution(
+                simulatorBootExecutor,
+                bootTasks,
+                {
+                    withSemapthore(concurrentBootsSemaphore, "Booting of ${this@Simulator}") {
+                        logger.info(logMarker, "Booting ${this@Simulator}")
+                        val nanos = measureNanoTime {
+                            bootSimulator()
+                            waitUntilSimulatorBooted() // Keep boot + waiting for booted together to ensure a simulator state is not broken
+                        }
+                        val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
+                        logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
+                    }
+                },
+                { "Failed to boot simulator $udid" },
+            )
+
+            scheduleSequentialExecution(
+                simulatorBootExecutor,
+                bootTasks,
+                {
+                    dismissTutorials()
+                },
+                { "Failed to dismiss tutorials for simulator $udid" },
+            )
+
+            scheduleSequentialExecution(
+                simulatorBootExecutor,
+                bootTasks,
+                {
+                    copyMediaAssetsWithRetry()
+                },
+                { "Failed to copy media assets to simulator $udid" },
+            )
+
+
+            if (appConfig.useTestHelperApp) {
+                scheduleSequentialExecution(
+                    simulatorBootExecutor,
+                    bootTasks,
+                    {
+                        installTestHelperApp()
+                    },
+                    { "Failed to install TestHelper app to simulator $udid" },
+                )
+            }
+
+            scheduleSequentialExecution(
+                simulatorBootExecutor,
+                bootTasks,
+                {
+                    launchMobileSafari("https://localhost")
+                    Thread.sleep(5000)
+                },
+                { "Failed to launch MobileSafari on simulator $udid" },
+            )
+
+            if (useWda) {
+                scheduleSequentialExecution(
+                    simulatorBootExecutor,
+                    bootTasks,
+                    {
+                        logTiming("starting $instrumentationAgent") {
+                            startWdaWithRetry()
+                        }
+                    },
+                    { "Failed to start instrumentation on simulator $udid" },
+                )
+            }
+
+            scheduleSequentialExecution(
+                simulatorBootExecutor,
+                bootTasks,
+                {
+                    startPeriodicHealthCheck()
+                },
+                { "Failed to start periodic health checks on simulator $udid" },
+            )
+
+            scheduleSequentialExecution(
+                simulatorBootExecutor,
+                bootTasks,
+                {
+                    logger.info(logMarker, "Finished preparing simulator $this")
+                    deviceState = DeviceState.CREATED
+                },
+                { "Failed to prepare simulator $udid" },
+            )
+
+            simulatorBootExecutor.shutdown()
+
             val nanos = measureNanoTime {
-                try {
-                    shutdown()
-                    prepare(clean = true)
-                } catch (e: Exception) { // catching most wide exception
-                    deviceState = DeviceState.FAILED
-                    logger.error(logMarker, "Failed to prepare device ${this@Simulator}", e)
-                    shutdown()
-                    disposeResources()
-                    throw e
-                }
+                bootTasks.forEach { it.get() }
             }
 
             val seconds = NANOSECONDS.toSeconds(nanos)
@@ -184,37 +282,6 @@ class Simulator(
 
             logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} ready in $seconds seconds (total simulator preparation time)")
         }
-    }
-
-    private fun prepare(clean: Boolean) {
-        logger.info(logMarker, "Starting to prepare ${this@Simulator} asynchronously")
-        lastException = null
-
-        //FIXME: add checks for cancellation of criticalAsyncPromise
-
-        // erase simulator if there is no existing backup, this is to ensure backup is created from a clean state
-        logger.info(logMarker, "Launch prepare sequence for ${this@Simulator} asynchronously")
-
-        if (backup.isExist()) {
-            if (clean) {
-                try {
-                    backup.restore()
-                } catch (e: SimulatorBackupError) {
-                    logger.warn(logMarker, "Will erase simulator and re-create backup for ${this@Simulator}")
-                    shutdown()
-                    backup.delete()
-                    eraseSimulatorAndCreateBackup()
-                }
-            }
-        } else {
-            eraseSimulatorAndCreateBackup()
-        }
-
-        boot()
-
-        logger.info(logMarker, "Finished preparing $this")
-        startPeriodicHealthCheck()
-        deviceState = DeviceState.CREATED
     }
 
     private fun installTestHelperApp() {
@@ -287,7 +354,6 @@ class Simulator(
                 performInstrumentationAgentHealthCheck(wdaFailCount, maxFailCount)
             }
         }, 0, healthCheckInterval, TimeUnit.MILLISECONDS)
-
     }
 
     private fun performInstrumentationAgentHealthCheck(wdaFailCount: Int, maxFailCount: Int) {
@@ -382,36 +448,6 @@ class Simulator(
         }
     }
 
-    private fun eraseSimulatorAndCreateBackup() {
-        logger.info(logMarker, "Erasing simulator ${this@Simulator} before creating a backup")
-        remote.xcrunSimctl.eraseSimulator(udid)
-
-        if (trustStoreFile.isNotEmpty()) {
-            copyTrustStore()
-        }
-
-        logger.info(logMarker, "Booting ${this@Simulator} before creating a backup")
-        logTiming("initial boot") { boot() }
-
-        dismissTutorials()
-
-        if (assetsPath.isNotEmpty()) {
-            copyMediaAssetsWithRetry()
-        }
-
-        if (appConfig.useTestHelperApp) {
-            installTestHelperApp()
-        }
-
-        launchMobileSafari("https://localhost")
-        Thread.sleep(5000)
-
-        logger.info(logMarker, "Shutting down ${this@Simulator} before creating a backup")
-        shutdown()
-
-        backup.create()
-    }
-
     private fun useSoftwareKeyboard() {
         try {
             val devicePreferencesResult = remote.execIgnoringErrors(listOf("/usr/bin/defaults", "read", "com.apple.iphonesimulator", "DevicePreferences"))
@@ -455,6 +491,7 @@ class Simulator(
 
     private fun copyTrustStore() {
         logger.debug(logMarker, "Copying trust store to ${this@Simulator}")
+        val deviceSetPath = File(appConfig.homeDirectory, "Library/Developer/CoreSimulator/Devices").absolutePath
         val keyChainLocation = Paths.get(deviceSetPath, udid, "data", "Library", "Keychains").toFile().absolutePath
         remote.shell("mkdir -p $keyChainLocation", returnOnFailure = false)
 
@@ -491,16 +528,6 @@ class Simulator(
         return listDevices().lines().find { it.contains(udid) && it.contains("(Shutdown)") } != null
     }
 
-    private fun deleteSimulator() {
-        logger.debug(logMarker, "Will delete simulator $udid")
-        val result: CommandResult = remote.fbsimctl.delete(udid)
-        if (result.isSuccess) {
-            logger.debug(logMarker, "Did delete simulator $udid")
-        } else {
-            logger.error(logMarker, "Error occurred while deleting simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
-        }
-    }
-
     private fun cancelTask(task: Future<*>, taskName: String) {
         task.cancel(true)
         val timeOut = Duration.ofSeconds(30)
@@ -518,22 +545,18 @@ class Simulator(
 
     private fun shutdown() {
         logger.info(logMarker, "Shutting down ${this@Simulator}")
-        stopPeriodicHealthCheck()
 
+        simulatorBootExecutor2?.shutdownNow()
         installTask?.let {
             cancelTask(it, "installTask")
         }
-
+        stopPeriodicHealthCheck()
         val executor = Executors.newVirtualThreadPerTaskExecutor()
         val tasks = setOf(
             { ignoringErrors({ videoRecorder.dispose() }) },
             { ignoringErrors({ instrumentationAgent.kill() }) },
         ).map { executor.submit(it) }
         tasks.forEach { it.get() }
-
-        bootTask?.let {
-            cancelTask(it, "bootTask")
-        }
 
         val result = remote.fbsimctl.shutdown(udid)
 
@@ -691,46 +714,10 @@ class Simulator(
         remote.exec(cmd, mapOf(), false, 120L)
     }
 
-    private fun boot() {
-        bootTask?.let { oldBootTask ->
-            if (!oldBootTask.isDone) {
-                val message = "Failed to boot simulator $udid due to previous task is not finished. Call shutdown() to cancel it."
-                logger.error(logMarker, message)
-                throw RuntimeException(message)
-            }
-        }
-
-        useSoftwareKeyboard()
-
-        logger.info(logMarker, "Booting ${this@Simulator}")
-        val task = concurrentBootsPool.submit { // using limited number of workers to boot simulator
-            val nanos = measureNanoTime {
-                bootSimulator()
-                waitUntilSimulatorBooted()
-            }
-
-            val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
-            logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
-        }
-
-        bootTask = task
-        task.get()
-
-        dismissTutorials()
-
-        if (appConfig.useTestHelperApp) {
-            installTestHelperApp()
-        }
-
-        if (useWda) {
-            logTiming("starting $instrumentationAgent") { startWdaWithRetry() }
-        }
-    }
-
     private fun waitUntilSimulatorBooted() {
-        Thread.sleep(5000L) // make sure enough time for initial boot before any other actions
+        Thread.sleep(3000L) // make sure enough time for initial boot before any other actions
         val startTime = System.nanoTime()
-        val bootResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "bootstatus", udid), mapOf(), true, 240)
+        val bootResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "bootstatus", udid), mapOf(), true, 180)
         val finishTime = System.nanoTime()
         val elapsedSeconds = NANOSECONDS.toSeconds(finishTime - startTime)
         if (bootResult.isSuccess) {
@@ -751,7 +738,6 @@ class Simulator(
         remote.shell("/usr/bin/xcrun simctl openurl $udid $url", true)
     }
 
-
     private fun logTiming(actionName: String, action: () -> Unit) {
         logger.info(logMarker, "Device ${this@Simulator} starting action <$actionName>")
         val nanos = measureNanoTime(action)
@@ -766,7 +752,7 @@ class Simulator(
     //endregion
 
     //region helper functions — execute critical and async
-    private fun executeCritical(action: () -> Unit) {
+    private fun executeCriticalWithLock(action: () -> Unit) {
         deviceLock.withLock {
             try {
                 action()
@@ -777,6 +763,31 @@ class Simulator(
                 logger.error(logMarker, "Execute critical block finished with exception. Message: [${e.message}]", e)
             }
         }
+    }
+
+    private fun withSemapthore(semaphore: Semaphore, actionName: String, action: () -> Unit) {
+        try {
+            logger.info(logMarker, "Will acquire a semaphore for executing action <$actionName>")
+            semaphore.acquire()
+            logger.info(logMarker, "Have acquired a semaphore for executing action <$actionName>. Executing action now")
+            action()
+        } finally {
+            semaphore.release()
+            logger.info(logMarker, "Have released a semaphore for executing action <$actionName>. Semaphore is now available for other actions")
+        }
+    }
+
+    private fun scheduleSequentialExecution(simulatorBootExecutor: ExecutorService, bootTasks: MutableList<Future<*>>, action: () -> Unit, lazyErrorMessage: () -> String) {
+        bootTasks.add(simulatorBootExecutor.submit {
+            try {
+                action()
+            } catch (e: Exception) {
+                lastException = e
+                deviceState = DeviceState.FAILED
+                logger.error(logMarker, lazyErrorMessage(), e)
+                simulatorBootExecutor.shutdownNow()
+            }
+        })
     }
     //endregion
 
@@ -852,42 +863,8 @@ class Simulator(
     override fun release(reason: String) {
         logTiming("Full set of actions to release simulator $udid on host ${remote.publicHostName}") {
             logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ shutdown() }) }
-            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ disposeResources() }) }
+            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ videoRecorder.dispose() }) }
         }
-    }
-
-    override fun delete(reason: String) {
-        release(reason)
-        logTiming("Full set of actions to delete simulator $udid on host ${remote.publicHostName}") {
-            logTiming("Delete backup for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ backup.delete() }) }
-            logTiming("Delete simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ deleteSimulator() }) }
-            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ disposeResources(keepMetadata = false) }) }
-        }
-    }
-
-    private fun deleteSimulatorFolder(keepMetadata: Boolean) {
-        val directoryPath = if (keepMetadata) simulatorDataDirectory.absolutePath else simulatorDirectory.absolutePath
-
-        (1..3).any {
-            val chmodResult = remote.execIgnoringErrors(listOf("/bin/chmod", "-RP", "755", directoryPath), timeOutSeconds = 120L)
-
-            if (!chmodResult.isSuccess) {
-                logger.error(logMarker, "Attempt number $it: Failed to chmod at path: [$directoryPath]. Result: $chmodResult")
-            }
-
-            val deleteResult = remote.execIgnoringErrors(listOf("/bin/rm", "-rf", directoryPath), timeOutSeconds = 120L)
-
-            if (!deleteResult.isSuccess) {
-                logger.error(logMarker, "Attempt number $it: Failed to delete at path: [$directoryPath]. Result: $deleteResult")
-            }
-
-            deleteResult.isSuccess
-        }
-    }
-
-    private fun disposeResources(keepMetadata: Boolean = true) {
-        ignoringErrors({ videoRecorder.dispose() })
-        deleteSimulatorFolder(keepMetadata)
     }
 
     private fun ignoringErrors(action: () -> Unit?) {
