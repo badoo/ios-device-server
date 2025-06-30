@@ -13,6 +13,9 @@ data class DesiredCapabilities(
         @JsonProperty("use_wda")
         val useWda: Boolean = true
 ) {
+        val osVersion = os?.split(" ")?.last()
+        ?: throw RuntimeException("Unable to find OS version in desired capabilities: $this")
+
         override fun equals(other: Any?): Boolean {
                 if (this === other) return true
                 if (javaClass != other?.javaClass) return false

@@ -1,71 +1,80 @@
 package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.data.DesiredCapabilities
-import com.badoo.automation.deviceserver.data.DeviceInfo
-import com.badoo.automation.deviceserver.data.UDID
-import com.badoo.automation.deviceserver.host.management.DesiredCapabilitiesMatcher
-import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
-import java.io.File
+import com.badoo.automation.deviceserver.repository.SimulatorRegistry
+import com.badoo.automation.deviceserver.repository.SimulatorRepository
+import com.badoo.automation.deviceserver.simctl.models.DeviceType
+import com.badoo.automation.deviceserver.simctl.models.Simulator
+import com.badoo.automation.deviceserver.simctl.models.SimulatorRuntime
 import java.lang.RuntimeException
+import java.time.Duration
 
 class SimulatorProvider(
-        val remote: IRemote,
-        simulatorBackupsConfiguration: String?,
-        private val desiredCapsMatcher: DesiredCapabilitiesMatcher = DesiredCapabilitiesMatcher()
+    val remote: IRemote, private val simulatorRepository: SimulatorRepository, private val simulatorRegistry: SimulatorRegistry
 ) {
-    val deviceSetPath = remote.fbsimctl.defaultDeviceSet()
-    private val simulatorBackupsPath = File(simulatorBackupsConfiguration ?: deviceSetPath)
-
-    private var cachedSimulatorList: List<FBSimctlDevice> = emptyList()
-    private var cachedBackupsList: List<String> = emptyList()
-
-    fun provideSimulator(desiredCaps: DesiredCapabilities, usedUdids: Set<String>): FBSimctlDevice? {
-        val simulators = listSimulators()
-
+    fun provideSimulator(desiredCaps: DesiredCapabilities, usedUdids: Set<String>): Simulator {
         if (desiredCaps.udid != null && desiredCaps.udid.isNotBlank()) {
-            val matched = simulators.find { fbSimctlDevice -> desiredCaps.udid == fbSimctlDevice.udid }
-
-            if (matched == null) {
-                throw RuntimeException("Unable to find requested device with UDID ${desiredCaps.udid}. List of known devices is $simulators")
-            }
-
-            if (usedUdids.contains(matched.udid)) {
-                throw RuntimeException("Simulator with UDID ${matched.udid} is already in use. List of used devices is $usedUdids")
-            }
-
-            return matched
+            return proviceSimulatorByUdid(usedUdids = usedUdids, udid = desiredCaps.udid, simulators = simulatorRepository.listDevices().values.flatten())
         }
 
-        val matched: FBSimctlDevice? = simulators.find { fbSimctlDevice ->
-            val deviceInfo = DeviceInfo(fbSimctlDevice)
-            desiredCapsMatcher.isMatch(deviceInfo, desiredCaps) && !usedUdids.contains(deviceInfo.udid) && backupExists(deviceInfo.udid)
+        val deviceType: DeviceType = desiredCaps.toDeviceType(simulatorRepository)
+        val runtime: SimulatorRuntime = desiredCaps.toRuntime(simulatorRepository)
+        val mainSimulator: Simulator = ensureMainSimulatorExists(deviceType, runtime, desiredCaps)
+
+        val clone = simulatorRepository.cloneSimulator(mainSimulator.udid)
+            ?: throw RuntimeException("Unable to clone main simulator: $mainSimulator")
+
+        simulatorRegistry.addClonedSimulator(clone)
+
+        return clone
+    }
+
+    fun createMainSimulator(desiredCaps: DesiredCapabilities, bootWaitDuration: Duration): Simulator {
+        return ensureMainSimulatorExists(desiredCaps.toDeviceType(simulatorRepository), desiredCaps.toRuntime(simulatorRepository), desiredCaps, bootWaitDuration)
+    }
+
+    private fun ensureMainSimulatorExists(deviceType: DeviceType, runtime: SimulatorRuntime, desiredCaps: DesiredCapabilities, bootWaitDuration: Duration = Duration.ofSeconds(180)): Simulator {
+        return (simulatorRegistry.getMainSimulators()
+            .find { it.deviceTypeIdentifier == deviceType.identifier && it.osVersion == runtime.runtimeIdentifier }
+            ?: createMainSimulator(desiredCaps.model!!, deviceType, runtime, bootWaitDuration))
+    }
+
+    private fun createMainSimulator(deviceName: String, deviceType: DeviceType, runtime: SimulatorRuntime, bootWaitDuration: Duration): Simulator {
+        val createdMain: Simulator = simulatorRepository.createSimulator(deviceName, deviceType, runtime)
+            ?: throw RuntimeException("Failed to create main simulator with deviceName: $deviceName, deviceType: $deviceType, runtime: $runtime")
+
+        with(createdMain) {
+            simulatorRepository.bootSimulator(udid)
+            Thread.sleep(bootWaitDuration) // Wait for the simulator to boot all services // FIXME: Make it more sophisticated
+            simulatorRepository.shutdownSimulator(udid)
+            simulatorRegistry.addMainSimulator(this)
+            return this
+        }
+    }
+
+    private fun proviceSimulatorByUdid(
+        usedUdids: Set<String>, udid: String, simulators: List<Simulator>
+    ): Simulator {
+        if (usedUdids.contains(udid)) {
+            throw RuntimeException("Simulator with UDID ${udid} is already in use. List of used devices is $usedUdids")
         }
 
-        return matched ?: create(desiredCaps.model, desiredCaps.os)
-    }
+        val matched = simulators.find { it.udid == udid }
 
-    private fun listSimulators(): List<FBSimctlDevice> {
-        if (cachedSimulatorList.isEmpty()) {
-            cachedSimulatorList = remote.fbsimctl.listSimulators().filter { it.model.isNotBlank() && it.os.isNotBlank() }
-        }
-        return cachedSimulatorList
-    }
-
-    private fun backupExists(udid: UDID): Boolean {
-        if (cachedBackupsList.isEmpty()) {
-            val command = listOf("/bin/ls", "-1", simulatorBackupsPath.absolutePath)
-            val commandResult = remote.exec(command, mapOf(), false, 60L)
-            val stdOut: String = commandResult.stdOut
-            val lines: List<String> = stdOut.lines()
-            cachedBackupsList = lines
+        if (matched == null) {
+            throw RuntimeException("Unable to find requested device with UDID ${udid}. List of known devices is $simulators")
         }
 
-        return cachedBackupsList.find { it.contains(udid) } != null
+        return matched
     }
+}
 
-    private fun create(model: String?, os: String?): FBSimctlDevice {
-        cachedSimulatorList = emptyList()
-        cachedBackupsList = emptyList()
-        return remote.xcrunSimctl.create(model, os)
-    }
+private fun DesiredCapabilities.toDeviceType(simulatorRepository: SimulatorRepository): DeviceType {
+    return simulatorRepository.listDeviceTypes().find { it.name == model }
+        ?: throw RuntimeException("Unable to device type for desired capabilities: $this. Available runtimes: ${simulatorRepository.listDeviceTypes()}")
+}
+
+private fun DesiredCapabilities.toRuntime(simulatorRepository: SimulatorRepository): SimulatorRuntime {
+    return simulatorRepository.listRuntimes().find { it.version == this.osVersion }
+        ?: throw RuntimeException("Unable to find runtime for desired capabilities: $this. Available runtimes: ${simulatorRepository.listRuntimes()}")
 }
