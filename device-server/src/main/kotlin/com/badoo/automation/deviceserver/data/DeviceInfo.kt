@@ -1,6 +1,7 @@
 package com.badoo.automation.deviceserver.data
 
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlDevice
+import com.badoo.automation.deviceserver.simctl.models.Simulator
 
 typealias UDID = String
 
@@ -14,6 +15,9 @@ data class DeviceInfo (
 ) {
     constructor(device: FBSimctlDevice):
             this(device.udid, device.model, device.os, device.arch, device.name)
+
+    constructor(device: Simulator):
+            this(device.udid, device.name, "iOS ${device.osVersion}", "x86", device.name)
 
         override fun equals(other: Any?): Boolean {
                 if (this === other) return true
