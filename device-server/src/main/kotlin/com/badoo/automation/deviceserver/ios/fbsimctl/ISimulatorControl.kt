@@ -22,12 +22,6 @@ interface ISimulatorControl {
      */
     fun listDevice(udid: UDID): FBSimctlDevice?
     fun listApps(udid: UDID): List<FBSimctlAppInfo>
-    /**
-     * returns path to device sets
-     * E.g. "/Users/qa/Library/Developer/CoreSimulator/Devices"
-     */
-    fun defaultDeviceSet(): String
-
     fun eraseSimulator(udid: UDID): String
     fun create(model: String?, os: String?): FBSimctlDevice
     fun diagnose(udid: UDID): FBSimctlDeviceDiagnosticInfo

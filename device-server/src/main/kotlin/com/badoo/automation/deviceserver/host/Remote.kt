@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver.host
 
-import XCRunSimctl
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.*
@@ -21,7 +20,6 @@ class Remote(
     override val localExecutor: IShellCommand = ShellCommand(),
     override val remoteExecutor: IShellCommand = ShellCommand(),
     override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(), FBSimctlResponseParser()),
-    override val xcrunSimctl: XCRunSimctl = XCRunSimctl(remoteExecutor),
     appConfig: ApplicationConfiguration = ApplicationConfiguration()
 ) : IRemote {
     companion object {

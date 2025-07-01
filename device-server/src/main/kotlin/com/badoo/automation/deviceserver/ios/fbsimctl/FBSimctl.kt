@@ -54,21 +54,6 @@ class FBSimctl(
 
     override fun listApps(udid: UDID): List<FBSimctlAppInfo> = parser.parseApplicationsList(fbsimctl(cmd = "list_apps", udid = udid))
 
-    /**
-     * returns path to device sets
-     * E.g. "/Users/qa/Library/Developer/CoreSimulator/Devices"
-     */
-    override fun defaultDeviceSet(): String {
-        val response = fbsimctl("list_device_sets", jsonFormat = true)
-        val deviceSet = parser.parseDeviceSets(response).firstOrNull()
-
-        if (deviceSet == null) {
-            throw FBSimctlError("No device_sets returned by fbsimctl")
-        } else {
-            return deviceSet
-        }
-    }
-
     override fun eraseSimulator(udid: UDID) = fbsimctl(cmd = "erase", udid = udid)
 
     override fun create(model: String?, os: String?): FBSimctlDevice {

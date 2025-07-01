@@ -10,6 +10,7 @@ import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundEx
 import com.badoo.automation.deviceserver.ios.device.*
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
+import com.badoo.automation.deviceserver.simctl.models.Simulator
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.WdaDeviceBundle
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -43,6 +44,14 @@ class DevicesNode(
     )
 
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
+
+    override fun deleteMainSimulator(udid: UDID) {
+        TODO("not implemented")
+    }
+
+    override fun createMainSimulator(desiredCaps: DesiredCapabilities, bootWaitDuration: Duration): Simulator {
+        TODO("not implemented")
+    }
 
     override fun deployApplication(appBundle: ApplicationBundle) {
         val appDirectory = appBundle.appDirectory!!
@@ -187,10 +196,6 @@ class DevicesNode(
 
             return true
         }
-    }
-
-    override fun deleteDevice(deviceRef: DeviceRef, reason: String): Boolean {
-        return deleteRelease(deviceRef, reason)
     }
 
     override fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO {

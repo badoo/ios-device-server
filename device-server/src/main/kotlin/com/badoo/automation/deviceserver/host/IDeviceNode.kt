@@ -4,9 +4,11 @@ import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.ios.IDevice
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
+import com.badoo.automation.deviceserver.simctl.models.Simulator
 import java.io.File
 import java.net.URL
 import java.nio.file.Path
+import java.time.Duration
 import java.util.regex.Pattern
 
 interface IDeviceNode {
@@ -67,11 +69,12 @@ interface IDeviceNode {
     fun prepareNode()
     fun list(): List<DeviceDTO>
     fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean
-    fun deleteDevice(deviceRef: DeviceRef, reason: String): Boolean
     fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO
     fun totalCapacity(desiredCaps: DesiredCapabilities): Int
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
     fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO
+    fun createMainSimulator(desiredCaps: DesiredCapabilities, bootWaitDuration: Duration): Simulator
+    fun deleteMainSimulator(udid: UDID)
     fun dispose()
     fun reboot()
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)

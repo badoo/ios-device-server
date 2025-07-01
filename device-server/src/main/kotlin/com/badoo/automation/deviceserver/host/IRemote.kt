@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver.host
 
-import XCRunSimctl
 import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.IShellCommand
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
@@ -39,7 +38,6 @@ interface IRemote {
      * @return Set<Map<String, Any>> parsed JSON
      */
     val fbsimctl: FBSimctl
-    val xcrunSimctl: XCRunSimctl
     fun isDirectory(path: String): Boolean
     fun rm(path: String, timeOut: Duration = Duration.ofMinutes(3))
 }
