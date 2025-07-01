@@ -28,7 +28,5 @@ data class DeviceInfo (
             return udid == other.udid
         }
 
-    fun osMajorVersion(): Int {
-        return os.substringAfter("iOS").trim().split(".").first().toInt()
-    }
+    val osMajorVersion: Int = os.substringAfter("iOS").trim().split(".").first().toInt()
 }

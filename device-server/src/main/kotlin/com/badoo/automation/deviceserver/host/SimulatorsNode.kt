@@ -244,7 +244,7 @@ class SimulatorsNode(
                 capabilities = ActualCapabilities(
                     setLocation = true,
                     terminateApp = true,
-                    remoteNotifications = remoteNotificationsSupported(device.deviceInfo.osMajorVersion()),
+                    remoteNotifications = remoteNotificationsSupported(device.deviceInfo.osMajorVersion),
                     videoCapture = true
                 )
             )

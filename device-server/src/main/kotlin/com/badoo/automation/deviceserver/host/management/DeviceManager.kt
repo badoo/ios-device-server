@@ -296,10 +296,6 @@ class DeviceManager(
         nodeRegistry.deleteReleaseDevice(ref, reason)
     }
 
-    fun deleteDevice(ref: DeviceRef, reason: String) {
-        nodeRegistry.deleteDevice(ref, reason)
-    }
-
     fun getDeviceRefs(): List<DeviceDTO> {
         return nodeRegistry.activeDevices.deviceList()
     }

@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.data.DeviceState
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
-import com.badoo.automation.deviceserver.host.management.DesiredCapabilitiesMatcher
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
@@ -24,7 +23,6 @@ class DeviceSlots(
     private val configuredDevices: Set<ConfiguredDevice>
 ) {
     private val activeSlots = mutableListOf<DeviceSlot>()
-    private val dcMatcher = DesiredCapabilitiesMatcher()
     private val removedSlots = ConcurrentLinkedQueue<RemovedSlot>()
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker: Marker = MapEntriesAppendingMarker(
@@ -119,7 +117,9 @@ class DeviceSlots(
     }
 
     fun totalCapacity(desiredCapabilities: DesiredCapabilities): Int {
-        return activeSlots.count {  dcMatcher.isMatch(it.device.deviceInfo, desiredCapabilities) }
+        return activeSlots.count {
+            it.device.deviceInfo.matchesDesiredCapabilities(desiredCapabilities)
+        }
     }
 
     fun dispose() {
@@ -131,7 +131,7 @@ class DeviceSlots(
 
     private fun availableSlots(desiredCapabilities: DesiredCapabilities): List<DeviceSlot> {
         return activeSlots.filter {
-            !it.isReserved() && dcMatcher.isMatch(it.device.deviceInfo, desiredCapabilities)
+            !it.isReserved() && it.device.deviceInfo.matchesDesiredCapabilities(desiredCapabilities)
         }.toList()
     }
 
@@ -194,4 +194,8 @@ class DeviceSlots(
     }
 
     private data class RemovedSlot(val udid: UDID)
+
+    private fun DeviceInfo.matchesDesiredCapabilities(capabilities: DesiredCapabilities): Boolean {
+        return capabilities.udid == udid || capabilities.osMajorVersion == osMajorVersion
+    }
 }

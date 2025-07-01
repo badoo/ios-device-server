@@ -84,7 +84,7 @@ class XCTestInstrumentationAgent(
 
     private val xctestRunTemplate: String by lazy {
         if (isRealDevice) {
-            if (deviceInfo.osMajorVersion() >= 17) {
+            if (deviceInfo.osMajorVersion >= 17) {
                 xctestrunRealDeviceTemplateXcode15
             } else {
                 xctestrunRealDeviceTemplateXcode13
