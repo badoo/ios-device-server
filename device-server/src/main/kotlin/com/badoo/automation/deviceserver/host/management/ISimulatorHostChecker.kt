@@ -95,19 +95,15 @@ class SimulatorHostChecker(
             cleanupSimulatorServices()
         }
 
-        val deviceSetsPath = remote.fbsimctl.defaultDeviceSet()
-        check(!deviceSetsPath.isBlank()) { "Device sets must not be blank" } // fbsimctl.defaultDeviceSet will throw if empty. but paranoid mode on.
+        val tempFolder = ApplicationConfiguration().tempFolder.absolutePath
 
-        // TODO: Use $TMPDIR instead of /private/var/folders/*/*/*
         val caches = listOf(
-                "/var/folders/*/*/*/*-*-*/*.app",
-                "/var/folders/*/*/*/fbsimctl-*",
-                "/var/folders/*/*/*/videoRecording_*",
-                "/var/folders/*/*/*/derivedDataDir_*",
-                "/var/folders/*/*/*/xctestRunDir_*",
-                "/var/folders/*/*/*/device_agent_log_*",
+                "${tempFolder}/fbsimctl-*",
+                "${tempFolder}/videoRecording_*",
+                "${tempFolder}/derivedDataDir_*",
+                "${tempFolder}/xctestRunDir_*",
+                "${tempFolder}/device_agent_log_*",
                 "/private/var/tmp/test-session-systemlogs-*.logarchive",
-                "$deviceSetsPath/*/data/Library/Caches/com.apple.mobile.installd.staging/*/*.app"
         )
 
         caches.forEach { path ->
