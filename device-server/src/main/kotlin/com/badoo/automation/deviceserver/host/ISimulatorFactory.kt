@@ -14,9 +14,8 @@ interface ISimulatorFactory {
         simulatorModel: com.badoo.automation.deviceserver.simctl.models.Simulator,
         ports: DeviceAllocatedPorts,
         wdaSimulatorBundles: WdaSimulatorBundles,
-        headless: Boolean,
         useWda: Boolean
     ): ISimulator {
-        return Simulator(ref, remote, DeviceInfo(simulatorModel), ports, wdaSimulatorBundles, headless, useWda)
+        return Simulator(ref, remote, DeviceInfo(simulatorModel), ports, wdaSimulatorBundles, useWda)
     }
 }

@@ -165,7 +165,6 @@ class SimulatorsNode(
                 simulatorModel = simulatorModel,
                 ports = ports,
                 wdaSimulatorBundles = wdaSimulatorBundles,
-                headless = desiredCaps.headless,
                 useWda = desiredCaps.useWda
             )
 

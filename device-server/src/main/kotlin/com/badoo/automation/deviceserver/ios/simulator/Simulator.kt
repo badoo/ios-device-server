@@ -2,7 +2,6 @@ package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
@@ -33,7 +32,6 @@ class Simulator(
     override val deviceInfo: DeviceInfo,
     private val allocatedPorts: DeviceAllocatedPorts,
     wdaSimulatorBundles: WdaSimulatorBundles,
-    headless: Boolean,
     private val useWda: Boolean,
     private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
     private val trustStoreFile: String = appConfig.trustStorePath,
