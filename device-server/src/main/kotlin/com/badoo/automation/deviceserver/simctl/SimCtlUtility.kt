@@ -1,10 +1,10 @@
 package com.badoo.automation.deviceserver.simctl
 
 import com.badoo.automation.deviceserver.command.IShellCommand
+import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.simctl.models.DeviceType
 import com.badoo.automation.deviceserver.simctl.models.Simulator
 import com.badoo.automation.deviceserver.simctl.models.SimulatorRuntime
-import com.badoo.automation.deviceserver.simctl.models.UDID
 import kotlinx.serialization.json.Json
 
 internal class SimCtlUtility(
@@ -110,16 +110,16 @@ internal class SimCtlUtility(
         }
     }
 
-    fun shutdownSimulator(udid: UDID) {
+    fun shutdownSimulator(udid: UDID, ignoreError: Boolean) {
         val command = listOf("/usr/bin/xcrun", "simctl", "shutdown", udid)
         val result = commandExecutor.exec(command)
-        if (!result.isSuccess) {
+        if (!result.isSuccess && !ignoreError) {
             throw SimCtlException("Failed to shutdown simulator with UDID '$udid': ${result.stdErr}")
         }
     }
 
     fun shutdownAllSimulators() {
-        shutdownSimulator("all")
+        shutdownSimulator("all", ignoreError = true)
     }
     // endregion
 
