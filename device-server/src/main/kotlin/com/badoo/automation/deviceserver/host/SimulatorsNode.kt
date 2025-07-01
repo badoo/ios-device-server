@@ -13,6 +13,9 @@ import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
 import com.badoo.automation.deviceserver.ios.simulator.ISimulator
+import com.badoo.automation.deviceserver.repository.SimulatorRegistry
+import com.badoo.automation.deviceserver.repository.SimulatorRepository
+import com.badoo.automation.deviceserver.simctl.models.Simulator
 import com.badoo.automation.deviceserver.util.AppInstaller
 import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
 import com.badoo.automation.deviceserver.util.deviceRefFromUDID
@@ -36,13 +39,17 @@ class SimulatorsNode(
     concurrentBoots: Int,
     private val wdaSimulatorBundles: WdaSimulatorBundles,
     private val applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration(),
-    private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, applicationConfiguration.simulatorBackupPath),
+    private val concurrentBootsSemaphore: Semaphore = Semaphore(concurrentBoots, true),
+    private val simulatorRepository: SimulatorRepository = SimulatorRepository(remote.remoteExecutor, concurrentBootsSemaphore),
+    private val simulatorRegistry: SimulatorRegistry = SimulatorRegistry(
+        registryFile = File(System.getProperty("user.home"), ".iosctl/simulator_registry_$publicHostName.json")
+    ),
+    private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, simulatorRepository, simulatorRegistry),
     private val portAllocator: PortAllocator = PortAllocator(remote),
     private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
 ) : IDeviceNode {
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
     private val simulatorsBootExecutorService: ExecutorService = Executors.newFixedThreadPool(simulatorLimit)
-    private val concurrentBoot: ExecutorService = Executors.newFixedThreadPool(concurrentBoots)
     private val prepareTasks = ConcurrentHashMap<String, Future<*>>()
 
     override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
@@ -115,6 +122,14 @@ class SimulatorsNode(
     private val createdSimulators = ConcurrentHashMap<DeviceRef, ISimulator>()
     private val allocatedPorts = HashMap<DeviceRef, DeviceAllocatedPorts>()
 
+    override fun createMainSimulator(desiredCaps: DesiredCapabilities, bootWaitDuration: Duration): Simulator {
+        return simulatorProvider.createMainSimulator(desiredCaps, bootWaitDuration)
+    }
+
+    override fun deleteMainSimulator(udid: UDID) {
+        simulatorProvider.deleteMainSimulator(udid)
+    }
+
     override fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO {
         synchronized(this) {
             if (createdSimulators.size >= simulatorLimit) {
@@ -124,18 +139,18 @@ class SimulatorsNode(
             }
 
             val usedUdids = createdSimulators.map { it.value.udid }.toSet()
-            val fbSimctlDevice = simulatorProvider.provideSimulator(desiredCaps, usedUdids)
+            val simulatorModel: Simulator = simulatorProvider.createSimulatorClone(desiredCaps, usedUdids)
 
-            if (fbSimctlDevice == null) {
+            if (simulatorModel == null) {
                 val message = "$this could not construct or match a simulator for $desiredCaps"
                 logger.error(logMarker, message)
                 throw RuntimeException(message)
             }
 
-            val ref = deviceRefFromUDID(fbSimctlDevice.udid, remote.publicHostName)
+            val ref = deviceRefFromUDID(simulatorModel.udid, remote.publicHostName)
             val simLogMarker = MapEntriesAppendingMarker(mapOf(
                 HOSTNAME to remote.hostName,
-                UDID to fbSimctlDevice.udid,
+                UDID to simulatorModel.udid,
                 DEVICE_REF to ref
             ))
 
@@ -144,15 +159,20 @@ class SimulatorsNode(
             val ports = portAllocator.allocateDAP()
             allocatedPorts[ref] = ports
 
-            val simulator = simulatorFactory.newSimulator(ref, remote, fbSimctlDevice, ports, simulatorProvider.deviceSetPath,
-                    wdaSimulatorBundles, concurrentBoot, desiredCaps.headless, desiredCaps.useWda)
-            cancelRunningSimulatorTask(ref, "createDeviceAsync")
-
-            prepareTasks[ref] = simulatorsBootExecutorService.submit {
-                simulator.prepareAsync()
-            }
+            val simulator = simulatorFactory.newSimulator(
+                ref = ref,
+                remote = remote,
+                simulatorModel = simulatorModel,
+                ports = ports,
+                wdaSimulatorBundles = wdaSimulatorBundles,
+                headless = desiredCaps.headless,
+                useWda = desiredCaps.useWda
+            )
 
             createdSimulators[ref] = simulator
+            prepareTasks[ref] = simulatorsBootExecutorService.submit {
+                simulator.prepareAsync(concurrentBootsSemaphore)
+            }
 
             logger.debug(simLogMarker, "Created simulator $ref")
 
@@ -257,10 +277,10 @@ class SimulatorsNode(
 
     override fun dispose() {
         logger.info(logMarker, "Finalising simulator pool for ${remote.hostName}")
+        val simulatorsToDelete = createdSimulators.keys
 
-        createdSimulators.toList().parallelStream().forEach { (_, simulator) ->
-            cancelRunningSimulatorTask(simulator.ref, "dispose")
-            simulator.release("Finalising pool for ${remote.hostName}")
+        simulatorsToDelete.parallelStream().forEach {
+            deleteRelease(it, "Finalising pool for ${remote.hostName}")
         }
 
         hostChecker.killDiskCleanupThread()
@@ -369,23 +389,9 @@ class SimulatorsNode(
 
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
         val iSimulator = createdSimulators[deviceRef] ?: return false
-
         cancelRunningSimulatorTask(deviceRef, "deleteRelease")
-
         iSimulator.release("deleteRelease $reason $deviceRef")
-
-        createdSimulators.remove(deviceRef)
-        val entries = allocatedPorts[deviceRef] ?: return true
-        portAllocator.deallocateDAP(entries)
-
-        return true
-    }
-
-    override fun deleteDevice(deviceRef: DeviceRef, reason: String): Boolean {
-        val iSimulator = createdSimulators[deviceRef] ?: return false
-        cancelRunningSimulatorTask(deviceRef, "deleteRelease")
-        iSimulator.delete("deleteForcefully $reason $deviceRef")
-        logger.info(logMarker, "Deleted Simulator $deviceRef successfully")
+        simulatorProvider.deleteSimulatorClone(iSimulator.udid)
         createdSimulators.remove(deviceRef)
         val entries = allocatedPorts[deviceRef] ?: return true
         portAllocator.deallocateDAP(entries)
