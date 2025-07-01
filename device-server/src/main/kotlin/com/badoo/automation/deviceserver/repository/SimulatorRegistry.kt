@@ -16,9 +16,9 @@ data class SimulatorRegistryData(
 )
 
 class SimulatorRegistry (
-    private val data: SimulatorRegistryData = SimulatorRegistryData(),
-    private val registryFile: File = File(System.getProperty("user.home"), ".iosctl/simulator_registry.json"),
+    private val registryFile: File,
     private val dataPersistenceService: DataPersistenceService = DataPersistenceService(registryFile),
+    private val data: SimulatorRegistryData = SimulatorRegistryData(),
     private val lock: ReentrantLock = ReentrantLock()
 ) {
     init {

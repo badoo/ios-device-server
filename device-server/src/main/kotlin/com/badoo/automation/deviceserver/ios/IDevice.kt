@@ -27,7 +27,6 @@ interface IDevice {
     fun lastCrashLog(): CrashLog
     fun endpointFor(port: Int): URL
     fun release(reason: String)
-    fun delete(reason: String)
     fun installApplication(appInstaller: AppInstaller, appBundleId: String, appBinaryPath: File, bundleId: String)
     fun getInstallTask(): Future<InstallResult>?
 
