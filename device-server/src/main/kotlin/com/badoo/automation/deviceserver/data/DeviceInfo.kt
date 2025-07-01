@@ -29,4 +29,5 @@ data class DeviceInfo (
         }
 
     val osMajorVersion: Int = os.substringAfter("iOS").trim().split(".").first().toInt()
+    val isRemoteNotificationsSupported get() : Boolean = osMajorVersion > 15
 }

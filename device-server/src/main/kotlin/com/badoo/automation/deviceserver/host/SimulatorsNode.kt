@@ -48,80 +48,18 @@ class SimulatorsNode(
     private val portAllocator: PortAllocator = PortAllocator(remote),
     private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
 ) : IDeviceNode {
-    private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
     private val simulatorsBootExecutorService: ExecutorService = Executors.newFixedThreadPool(simulatorLimit)
     private val prepareTasks = ConcurrentHashMap<String, Future<*>>()
-
-    override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
-        val applicationContainer = getDeviceFor(ref).applicationContainer(plistEntry.bundleId)
-        val path = File(plistEntry.fileName).toPath()
-        val key = plistEntry.key
-        val value = plistEntry.value
-
-        if (plistEntry.command == "set") {
-            applicationContainer.setPlistValue(path, key, value)
-        } else {
-            val type = plistEntry.type ?: throw RuntimeException("Unable to add new property $key as it requires value type.")
-            applicationContainer.addPlistValue(path, key, value, type)
-        }
-    }
-
-    private val appInstaller: AppInstaller = AppInstaller(remote)
-
-    override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
-        val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
-            ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
-
-        val device: ISimulator = getDeviceFor(deviceRef)
-        device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath, appBundleDto.bundleId)
-    }
-
-    override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Any> {
-        return getDeviceFor(deviceRef).appInstallationStatus()
-    }
-
-    override fun deployApplication(appBundle: ApplicationBundle) {
-        val appDirectory: File = appBundle.appDirectory!!
-        val key = appBundle.appUrl.toExternalForm()
-        appBinariesCache[key] = appDirectory
-    }
-
-    override fun deleteAppData(deviceRef: DeviceRef, bundleId: String) {
-        return getDeviceFor(deviceRef).dataContainer(bundleId).delete()
-    }
-
-    override val remoteAddress: String get() = publicHostName
-
-    private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val logMarker = MapEntriesAppendingMarker(mapOf(
-            HOSTNAME to remote.publicHostName
-    ))
-
-    @Volatile
-    private var macOSVersion: String = "0"
-
-    override fun prepareNode() {
-        logger.info(logMarker, "Preparing node ${remote.hostName}")
-        hostChecker.checkPrerequisites()
-        hostChecker.createDirectories()
-
-        hostChecker.cleanup()
-        hostChecker.setupHost()
-        portAllocator.refreshPortAvailability()
-
-        macOSVersion = getMacOSVersion()
-        logger.info(logMarker, "Prepared node ${remote.hostName}. macOS version $macOSVersion")
-    }
-
-    private val supportedArchitectures = listOf("x86_64")
-
-    override fun getDeviceFor(ref: DeviceRef): ISimulator {
-        return createdSimulators[ref]!! //FIXME: replace with explicit unwrapping
-    }
 
     private val createdSimulators = ConcurrentHashMap<DeviceRef, ISimulator>()
     private val allocatedPorts = HashMap<DeviceRef, DeviceAllocatedPorts>()
 
+    private val logger = LoggerFactory.getLogger(javaClass.simpleName)
+    private val logMarker = MapEntriesAppendingMarker(mapOf(
+        HOSTNAME to remote.publicHostName
+    ))
+
+    // region: Main Simulator operations: Create, Delete
     override fun createMainSimulator(desiredCaps: DesiredCapabilities, bootWaitDuration: Duration): Simulator {
         return simulatorProvider.createMainSimulator(desiredCaps, bootWaitDuration)
     }
@@ -129,7 +67,9 @@ class SimulatorsNode(
     override fun deleteMainSimulator(udid: UDID) {
         simulatorProvider.deleteMainSimulator(udid)
     }
+    // endregion
 
+    // region: Simulator Clone operations: Create, Delete
     override fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO {
         synchronized(this) {
             if (createdSimulators.size >= simulatorLimit) {
@@ -175,216 +115,9 @@ class SimulatorsNode(
 
             logger.debug(simLogMarker, "Created simulator $ref")
 
-            return simulatorToDTO(simulator)
+            return DeviceDTO(simulator)
         }
     }
-
-    override fun resetMedia(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).media.reset()
-    }
-
-    override fun listMedia(deviceRef: DeviceRef): List<String> {
-        return getDeviceFor(deviceRef).media.list()
-    }
-
-    override fun listPhotoData(deviceRef: DeviceRef): List<String> {
-        return getDeviceFor(deviceRef).media.listPhotoData()
-    }
-
-    override fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray) {
-        getDeviceFor(deviceRef).media.addMedia(File(fileName), data)
-    }
-
-    override fun syslog(deviceRef: DeviceRef): File {
-        return getDeviceFor(deviceRef).osLog.osLogFile
-    }
-
-    override fun instrumentationAgentLog(deviceRef: DeviceRef): File {
-        return getDeviceFor(deviceRef).instrumentationAgentLog
-    }
-
-    override fun deleteInstrumentationAgentLog(deviceRef: DeviceRef) {
-        val logFile = getDeviceFor(deviceRef).instrumentationAgentLog
-        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
-    }
-
-    override fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
-        getDeviceFor(deviceRef).osLog.startWritingLog(sysLogCaptureOptions)
-    }
-
-    override fun syslogStop(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).osLog.stopWritingLog()
-    }
-
-    override fun syslogDelete(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).osLog.deleteLogFiles()
-    }
-
-    private fun remoteNotificationsSupported(simulatorOSVersion: Int): Boolean {
-        return simulatorOSVersion >= 16 && macOSVersion.split(".").first().toInt() >= 13
-    }
-
-    private fun getMacOSVersion(): String {
-        val commandResult: CommandResult = remote.shell("/usr/bin/sw_vers -productVersion", returnOnFailure = false)
-        return commandResult.stdOut.trim()
-    }
-
-    private fun simulatorToDTO(device: ISimulator): DeviceDTO {
-        with(device) {
-            return DeviceDTO(
-                ref,
-                deviceState,
-                wdaEndpoint,
-                calabashPort,
-                calabashEndpoint,
-                mjpegServerPort,
-                device.deviceInfo,
-                device.lastException?.toDto(),
-                capabilities = ActualCapabilities(
-                    setLocation = true,
-                    terminateApp = true,
-                    remoteNotifications = remoteNotificationsSupported(device.deviceInfo.osMajorVersion),
-                    videoCapture = true
-                )
-            )
-        }
-    }
-
-    override fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray) {
-        getDeviceFor(deviceRef).sendPushNotification(bundleId, notificationContent)
-    }
-
-    override fun sendPasteboard(deviceRef: DeviceRef, payload: ByteArray) {
-        getDeviceFor(deviceRef).sendPasteboard(payload)
-    }
-
-    override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
-        getDeviceFor(deviceRef).setPermissions(appPermissions.bundleId, appPermissions.permissions)
-    }
-
-    override fun capacityRemaining(desiredCaps: DesiredCapabilities): Float {
-        return (simulatorLimit - createdSimulators.size) * 1F / simulatorLimit
-    }
-
-    override fun clearSafariCookies(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).clearSafariCookies()
-    }
-
-    override fun shake(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).shake()
-    }
-
-    override fun dispose() {
-        logger.info(logMarker, "Finalising simulator pool for ${remote.hostName}")
-        val simulatorsToDelete = createdSimulators.keys
-
-        simulatorsToDelete.parallelStream().forEach {
-            deleteRelease(it, "Finalising pool for ${remote.hostName}")
-        }
-
-        hostChecker.killDiskCleanupThread()
-
-        logger.info(logMarker, "Finalised simulator pool for ${remote.hostName}")
-    }
-
-    override fun getNodeInfo(): NodeInfo {
-        return NodeInfo.getNodeInfo(remote)
-    }
-
-    override fun reboot() {
-        val uptimeInfoBeforeReboot = getNodeInfo()
-        logger.info(logMarker, "Scheduling node for reboot $publicHostName. Current uptime: [${uptimeInfoBeforeReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
-
-        try {
-            remote.shell("sudo /sbin/reboot", returnOnFailure = true)
-        } catch (e: SshConnectionException) {
-            // ignore
-        }
-
-        Thread.sleep(Duration.ofSeconds(60).toMillis())
-
-        var isReachable = false
-
-        pollFor(
-            Duration.ofSeconds(300),
-            "Waiting to be reachable after reboot",
-            true,
-            Duration.ofSeconds(10),
-            logger,
-            logMarker
-        ) {
-            isReachable = isReachable()
-            isReachable
-        }
-
-        if (!isReachable) {
-            logger.error(logMarker, "Node $publicHostName node is not reachable after reboot")
-            return
-        }
-
-        val uptimeInfoAfterReboot = getNodeInfo()
-        val wasRebooted = uptimeInfoAfterReboot.bootTime > uptimeInfoBeforeReboot.bootTime
-
-        if (wasRebooted) {
-            logger.info(logMarker, "Node $publicHostName was rebooted successfully. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
-        } else {
-            logger.error(logMarker, "Node $publicHostName was not rebooted. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
-        }
-    }
-
-    override fun endpointFor(deviceRef: DeviceRef, port: Int): URL {
-        return getDeviceFor(deviceRef).endpointFor(port)
-    }
-
-    override fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO {
-        return simulatorToDTO(getDeviceFor(deviceRef))
-    }
-
-    override fun lastCrashLog(deviceRef: DeviceRef): CrashLog {
-        return getDeviceFor(deviceRef).lastCrashLog()
-    }
-
-    override fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo> = getDeviceFor(deviceRef).listApps()
-
-    override fun locationListScenarios(deviceRef: DeviceRef): List<String> {
-        return getDeviceFor(deviceRef).locationManager.listScenarios()
-    }
-
-    override fun locationClear(deviceRef: DeviceRef) {
-        getDeviceFor(deviceRef).locationManager.clear()
-    }
-
-    override fun locationSet(deviceRef: DeviceRef, latitude: Double, longitude: Double) {
-        getDeviceFor(deviceRef).locationManager.setLocation(latitude, longitude)
-    }
-
-    override fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String) {
-        getDeviceFor(deviceRef).locationManager.runScenario(scenarioName)
-    }
-
-    override fun locationStartLocationSequence(
-        deviceRef: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>
-    ) {
-        getDeviceFor(deviceRef).locationManager.startLocationSequence(speed, distance, interval, waypoints)
-    }
-
-    override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
-        return getDeviceFor(deviceRef).crashLogs(pastMinutes)
-    }
-
-    override fun crashLogs(deviceRef: DeviceRef, appName: String?): List<CrashLog> {
-        throw NotImplementedError()
-    }
-
-    override fun deleteCrashLogs(deviceRef: DeviceRef): Boolean {
-        return getDeviceFor(deviceRef).deleteCrashLogs()
-    }
-
-    override fun list(): List<DeviceDTO> {
-        return createdSimulators.map { simulatorToDTO(it.value) }
-    }
-
-    override fun isReachable(): Boolean = remote.isReachable()
 
     override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
         val iSimulator = createdSimulators[deviceRef] ?: return false
@@ -437,19 +170,293 @@ class SimulatorsNode(
         }
         prepareTasks.remove(deviceRef)
     }
+    // endregion
 
-    override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
-        return getDeviceFor(deviceRef).status()
+    // region: Node info operations: List Simulators, NodeInfo, getDeviceFor(ref)
+    override fun list(): List<DeviceDTO> {
+        return createdSimulators.map { DeviceDTO(it.value) }
     }
 
+    override fun getNodeInfo(): NodeInfo {
+        return NodeInfo.getNodeInfo(remote)
+    }
+
+    override fun getDeviceFor(ref: DeviceRef): ISimulator {
+        return createdSimulators[ref]!! //FIXME: replace with explicit unwrapping
+    }
+    // endregion
+
+    // region: Node operations: Prepare & Reboot & Dispose
+    override fun prepareNode() {
+        logger.info(logMarker, "Preparing node ${remote.hostName}")
+        hostChecker.checkPrerequisites()
+        hostChecker.createDirectories()
+        hostChecker.cleanup()
+        hostChecker.setupHost()
+        portAllocator.refreshPortAvailability()
+    }
+
+    override fun dispose() {
+        logger.info(logMarker, "Finalising simulator pool for ${remote.hostName}")
+        val simulatorsToDelete = createdSimulators.keys
+
+        simulatorsToDelete.parallelStream().forEach {
+            deleteRelease(it, "Finalising pool for ${remote.hostName}")
+        }
+
+        hostChecker.killDiskCleanupThread()
+
+        logger.info(logMarker, "Finalised simulator pool for ${remote.hostName}")
+    }
+
+    override fun reboot() {
+        val uptimeInfoBeforeReboot = getNodeInfo()
+        logger.info(logMarker, "Scheduling node for reboot $publicHostName. Current uptime: [${uptimeInfoBeforeReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
+
+        try {
+            remote.shell("sudo /sbin/reboot", returnOnFailure = true)
+        } catch (e: SshConnectionException) {
+            // ignore
+        }
+
+        Thread.sleep(Duration.ofSeconds(60).toMillis())
+
+        var isReachable = false
+
+        pollFor(
+            Duration.ofSeconds(300),
+            "Waiting to be reachable after reboot",
+            true,
+            Duration.ofSeconds(10),
+            logger,
+            logMarker
+        ) {
+            isReachable = isReachable()
+            isReachable
+        }
+
+        if (!isReachable) {
+            logger.error(logMarker, "Node $publicHostName node is not reachable after reboot")
+            return
+        }
+
+        val uptimeInfoAfterReboot = getNodeInfo()
+        val wasRebooted = uptimeInfoAfterReboot.bootTime > uptimeInfoBeforeReboot.bootTime
+
+        if (wasRebooted) {
+            logger.info(logMarker, "Node $publicHostName was rebooted successfully. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
+        } else {
+            logger.error(logMarker, "Node $publicHostName was not rebooted. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
+        }
+    }
+    // endregion
+
+    // region: Node capabilities & capacity operations
+    override fun isReachable(): Boolean = remote.isReachable()
+
     override fun supports(desiredCaps: DesiredCapabilities): Boolean {
-        return desiredCaps.arch == null || supportedArchitectures.contains(desiredCaps.arch)
+        return desiredCaps.arch == null || listOf("x86_64").contains(desiredCaps.arch)
+    }
+
+    override fun capacityRemaining(desiredCaps: DesiredCapabilities): Float {
+        return (simulatorLimit - createdSimulators.size) * 1F / simulatorLimit
     }
 
     override fun totalCapacity(desiredCaps: DesiredCapabilities): Int {
         return if (supports(desiredCaps)) simulatorLimit else 0
     }
+    // endregion
 
+    // region: Node Standard Object methods
+    override fun toString(): String {
+        return "${javaClass.simpleName} at $publicHostName"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as SimulatorsNode
+
+        return publicHostName == other.publicHostName
+    }
+
+    override fun hashCode(): Int {
+        return publicHostName.hashCode()
+    }
+    // endregion
+
+    // region: =============================================
+    // endregion
+
+    // region: Simulator App instalation operations
+    private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
+
+    override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
+        val applicationContainer = getDeviceFor(ref).applicationContainer(plistEntry.bundleId)
+        val path = File(plistEntry.fileName).toPath()
+        val key = plistEntry.key
+        val value = plistEntry.value
+
+        if (plistEntry.command == "set") {
+            applicationContainer.setPlistValue(path, key, value)
+        } else {
+            val type = plistEntry.type ?: throw RuntimeException("Unable to add new property $key as it requires value type.")
+            applicationContainer.addPlistValue(path, key, value, type)
+        }
+    }
+
+    private val appInstaller: AppInstaller = AppInstaller(remote)
+
+    override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
+        val appBinaryPath = appBinariesCache[appBundleDto.appUrl]
+            ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")
+
+        val device: ISimulator = getDeviceFor(deviceRef)
+        device.installApplication(appInstaller, appBundleDto.appUrl, appBinaryPath, appBundleDto.bundleId)
+    }
+
+    override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
+        getDeviceFor(deviceRef).uninstallApplication(bundleId, appInstaller)
+    }
+
+    override fun appInstallationStatus(deviceRef: DeviceRef): Map<String, Any> {
+        return getDeviceFor(deviceRef).appInstallationStatus()
+    }
+
+    override fun deployApplication(appBundle: ApplicationBundle) {
+        val appDirectory: File = appBundle.appDirectory!!
+        val key = appBundle.appUrl.toExternalForm()
+        appBinariesCache[key] = appDirectory
+    }
+
+    override fun deleteAppData(deviceRef: DeviceRef, bundleId: String) {
+        return getDeviceFor(deviceRef).dataContainer(bundleId).delete()
+    }
+    // endregion
+
+    // region: Simulator enquiry operations: State, EndpointFor(port) & DeviceDTO & List Apps
+    override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
+        return getDeviceFor(deviceRef).status()
+    }
+
+    override fun endpointFor(deviceRef: DeviceRef, port: Int): URL {
+        return getDeviceFor(deviceRef).endpointFor(port)
+    }
+
+    override fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO {
+        return DeviceDTO(getDeviceFor(deviceRef))
+    }
+
+    override fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo> = getDeviceFor(deviceRef).listApps()
+    // endregion
+
+    // region: Simulator Media operations
+    override fun resetMedia(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).media.reset()
+    }
+
+    override fun listMedia(deviceRef: DeviceRef): List<String> {
+        return getDeviceFor(deviceRef).media.list()
+    }
+
+    override fun listPhotoData(deviceRef: DeviceRef): List<String> {
+        return getDeviceFor(deviceRef).media.listPhotoData()
+    }
+
+    override fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray) {
+        getDeviceFor(deviceRef).media.addMedia(File(fileName), data)
+    }
+    // endregion
+
+    // region: Simulator Syslog operations
+    override fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
+        getDeviceFor(deviceRef).osLog.startWritingLog(sysLogCaptureOptions)
+    }
+
+    override fun syslogStop(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).osLog.stopWritingLog()
+    }
+
+    override fun syslogDelete(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).osLog.deleteLogFiles()
+    }
+    // endregion
+
+    // region: Simulator Push Notification & Pasteboard & Permissions & Shake operations
+    override fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray) {
+        getDeviceFor(deviceRef).sendPushNotification(bundleId, notificationContent)
+    }
+
+    override fun sendPasteboard(deviceRef: DeviceRef, payload: ByteArray) {
+        getDeviceFor(deviceRef).sendPasteboard(payload)
+    }
+
+    override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
+        getDeviceFor(deviceRef).setPermissions(appPermissions.bundleId, appPermissions.permissions)
+    }
+
+    override fun shake(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).shake()
+    }
+    // endregion
+
+    // region: Simulator Location operations
+    override fun locationListScenarios(deviceRef: DeviceRef): List<String> {
+        return getDeviceFor(deviceRef).locationManager.listScenarios()
+    }
+
+    override fun locationClear(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).locationManager.clear()
+    }
+
+    override fun locationSet(deviceRef: DeviceRef, latitude: Double, longitude: Double) {
+        getDeviceFor(deviceRef).locationManager.setLocation(latitude, longitude)
+    }
+
+    override fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String) {
+        getDeviceFor(deviceRef).locationManager.runScenario(scenarioName)
+    }
+
+    override fun locationStartLocationSequence(
+        deviceRef: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>
+    ) {
+        getDeviceFor(deviceRef).locationManager.startLocationSequence(speed, distance, interval, waypoints)
+    }
+    // endregion
+
+    // region: Simulator Crash Log operations
+    override fun syslog(deviceRef: DeviceRef): File {
+        return getDeviceFor(deviceRef).osLog.osLogFile
+    }
+
+    override fun lastCrashLog(deviceRef: DeviceRef): CrashLog {
+        return getDeviceFor(deviceRef).lastCrashLog()
+    }
+
+    override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
+        return getDeviceFor(deviceRef).crashLogs(pastMinutes)
+    }
+
+    override fun crashLogs(deviceRef: DeviceRef, appName: String?): List<CrashLog> {
+        throw NotImplementedError()
+    }
+
+    override fun deleteCrashLogs(deviceRef: DeviceRef): Boolean {
+        return getDeviceFor(deviceRef).deleteCrashLogs()
+    }
+
+    override fun instrumentationAgentLog(deviceRef: DeviceRef): File {
+        return getDeviceFor(deviceRef).instrumentationAgentLog
+    }
+
+    override fun deleteInstrumentationAgentLog(deviceRef: DeviceRef) {
+        val logFile = getDeviceFor(deviceRef).instrumentationAgentLog
+        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+    }
+    // endregion
+
+    // region: Simulator Video Recording operations
     override fun videoRecordingDelete(deviceRef: DeviceRef) {
         getDeviceFor(deviceRef).videoRecorder.delete()
     }
@@ -469,7 +476,9 @@ class SimulatorsNode(
     override fun videoRecordingStop(deviceRef: DeviceRef) {
         getDeviceFor(deviceRef).videoRecorder.stop()
     }
+    // endregion
 
+    // region: Simulator Data Container operations (file operations)
     override fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String> {
         return getDeviceFor(deviceRef).dataContainer(dataPath.bundleId).listFiles(dataPath.path)
     }
@@ -493,15 +502,19 @@ class SimulatorsNode(
     override fun deleteFile(ref: DeviceRef, path: Path) {
         getDeviceFor(ref).sharedContainer().delete(path)
     }
+    // endregion
 
+    // region: Simulator Safari operations
     override fun openUrl(deviceRef: DeviceRef, url: String) {
         getDeviceFor(deviceRef).openUrl(url)
     }
 
-    override fun uninstallApplication(deviceRef: DeviceRef, bundleId: String) {
-        getDeviceFor(deviceRef).uninstallApplication(bundleId, appInstaller)
+    override fun clearSafariCookies(deviceRef: DeviceRef) {
+        getDeviceFor(deviceRef).clearSafariCookies()
     }
+    // endregion
 
+    // region: Simulator Environment variables operations
     override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
         getDeviceFor(deviceRef).setEnvironmentVariables(envs)
     }
@@ -509,21 +522,5 @@ class SimulatorsNode(
     override fun getEnvironmentVariable(deviceRef: DeviceRef, variableName: String): String {
         return getDeviceFor(deviceRef).getEnvironmentVariable(variableName)
     }
-
-    override fun toString(): String {
-        return "${javaClass.simpleName} at $remoteAddress"
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as SimulatorsNode
-
-        return publicHostName == other.publicHostName
-    }
-
-    override fun hashCode(): Int {
-        return publicHostName.hashCode()
-    }
+    // endregion
 }

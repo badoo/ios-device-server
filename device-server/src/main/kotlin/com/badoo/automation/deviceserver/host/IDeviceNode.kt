@@ -64,7 +64,6 @@ interface IDeviceNode {
         }
     }
 
-    val remoteAddress: String
     fun isReachable(): Boolean
     fun prepareNode()
     fun list(): List<DeviceDTO>

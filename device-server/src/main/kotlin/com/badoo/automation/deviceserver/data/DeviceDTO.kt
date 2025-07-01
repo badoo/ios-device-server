@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.data
 
+import com.badoo.automation.deviceserver.ios.simulator.ISimulator
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URI
 
@@ -13,7 +14,24 @@ data class DeviceDTO(
         val info: DeviceInfo,
         val last_error: ErrorDto?,
         val capabilities: ActualCapabilities?
-)
+) {
+        constructor(simulator: ISimulator) : this(
+                ref = simulator.ref,
+                state = simulator.deviceState,
+                wda_endpoint = simulator.wdaEndpoint,
+                calabash_port = simulator.calabashPort,
+                calabash_endpoint = simulator.calabashEndpoint,
+                mjpeg_server_port = simulator.mjpegServerPort,
+                info = simulator.deviceInfo,
+                last_error = simulator.lastException?.toDto(),
+                capabilities = ActualCapabilities(
+                        setLocation = true,
+                        terminateApp = true,
+                        remoteNotifications = simulator.deviceInfo.isRemoteNotificationsSupported,
+                        videoCapture = true
+                )
+        )
+}
 
 data class ActualCapabilities(
         @JsonProperty("set_location")
