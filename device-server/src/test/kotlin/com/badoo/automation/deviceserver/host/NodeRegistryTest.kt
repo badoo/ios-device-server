@@ -36,8 +36,8 @@ class NodeRegistryTest {
 
     @Before
     fun setUp() {
-        whenever(wrappedNode1.remoteAddress).thenReturn("n1")
-        whenever(wrappedNode2.remoteAddress).thenReturn("n2")
+        whenever(wrappedNode1.publicHostName).thenReturn("n1")
+        whenever(wrappedNode2.publicHostName).thenReturn("n2")
         whenever(wrappedNode1.publicHostName).thenReturn("n1")
         whenever(wrappedNode2.publicHostName).thenReturn("n2")
 

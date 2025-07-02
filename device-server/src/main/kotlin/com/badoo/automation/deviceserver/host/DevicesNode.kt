@@ -132,8 +132,6 @@ class DevicesNode(
         throw(NotImplementedError("Delete file is not supported by physical devices"))
     }
 
-    override val remoteAddress: String get() = remote.hostName
-
     private val deviceInfoProvider = DeviceInfoProvider(remote)
     private val slots: DeviceSlots = DeviceSlots(remote, wdaDeviceBundles, portAllocator, deviceInfoProvider, configuredDevices)
 

@@ -120,7 +120,7 @@ class NodeWrapper(
                         if (healthCheckAttempts >= maxHealthCheckAttempts) {
                             isReachable = false
                             registry.removeIfPresent(this)
-                            val message = "Removing node [${node.remoteAddress}]: cannot reach the node for $maxHealthCheckAttempts tries"
+                            val message = "Removing node [${node.publicHostName}]: cannot reach the node for $maxHealthCheckAttempts tries"
                             logger.error(logMarker, message)
                             throw RuntimeException(message)
                         }

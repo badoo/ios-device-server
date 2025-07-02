@@ -30,16 +30,16 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
 
     fun add(wrapper: NodeWrapper) {
         if (nodeWrappers.contains(wrapper)) {
-            logger.warn("${wrapper.node.remoteAddress} is already registered")
+            logger.warn("${wrapper.node.publicHostName} is already registered")
         } else {
             nodeWrappers.add(wrapper)
-            logger.info("Registered node ${wrapper.node.remoteAddress}")
+            logger.info("Registered node ${wrapper.node.publicHostName}")
         }
     }
 
     fun removeIfPresent(wrapper: NodeWrapper) {
         nodeWrappers.remove(wrapper)
-        logger.info("Unregistered node ${wrapper.node.remoteAddress}")
+        logger.info("Unregistered node ${wrapper.node.publicHostName}")
         activeDevices.unregisterNodeDevices(wrapper.node)
     }
 

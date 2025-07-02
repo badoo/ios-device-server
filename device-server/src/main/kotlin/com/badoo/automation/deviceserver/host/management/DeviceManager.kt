@@ -287,7 +287,7 @@ class DeviceManager(
             return nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, userId)
         } catch (e: NoNodesRegisteredException) {
             val erredNodes = autoRegistrar.nodeWrappers.filter { n -> n.lastError != null }
-            val errors = erredNodes.joinToString { n -> "${n.node.remoteAddress} -> ${n.lastError?.localizedMessage}" }
+            val errors = erredNodes.joinToString { n -> "${n.node.publicHostName} -> ${n.lastError?.localizedMessage}" }
             throw(NoNodesRegisteredException(e.message + "\n$errors"))
         }
     }
@@ -435,7 +435,7 @@ class DeviceManager(
                 try {
                     nodeWrapper.node.deployApplication(appBundle)
                 } catch (e: RuntimeException) {
-                    logger.error(marker, "Failed to deploy application ${dto.appUrl} to ${nodeWrapper.node.remoteAddress}. Error: ${e.message}", e)
+                    logger.error(marker, "Failed to deploy application ${dto.appUrl} to ${nodeWrapper.node.publicHostName}. Error: ${e.message}", e)
                 }
             }
             tasks.add(task)
