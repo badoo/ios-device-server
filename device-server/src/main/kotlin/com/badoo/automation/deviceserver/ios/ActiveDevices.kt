@@ -85,7 +85,7 @@ class ActiveDevices(
     fun releaseDevice(ref: DeviceRef, reason: String) {
         logger.debug("Releasing a device due to reason: $reason")
         val session = sessionByRef(ref)
-        session.node.deleteRelease(session.ref, reason)
+        session.node.deleteReleaseDeviceForTests(session.ref, reason)
         unregisterDeleteDevice(session.ref)
     }
 

@@ -118,7 +118,7 @@ class SimulatorsNode(
         }
     }
 
-    override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
+    override fun deleteReleaseDeviceForTests(deviceRef: DeviceRef, reason: String): Boolean {
         val iSimulator = createdSimulators[deviceRef] ?: return false
         cancelRunningSimulatorTask(deviceRef, "deleteRelease")
         iSimulator.release("deleteRelease $reason $deviceRef")
@@ -200,7 +200,7 @@ class SimulatorsNode(
         val simulatorsToDelete = createdSimulators.keys
 
         simulatorsToDelete.parallelStream().forEach {
-            deleteRelease(it, "Finalising pool for ${remote.hostName}")
+            deleteReleaseDeviceForTests(it, "Finalising pool for ${remote.hostName}")
         }
 
         hostChecker.killDiskCleanupThread()

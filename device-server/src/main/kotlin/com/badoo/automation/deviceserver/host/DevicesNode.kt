@@ -187,7 +187,7 @@ class DevicesNode(
         return remote.isReachable()
     }
 
-    override fun deleteRelease(deviceRef: DeviceRef, reason: String): Boolean {
+    override fun deleteReleaseDeviceForTests(deviceRef: DeviceRef, reason: String): Boolean {
         synchronized(this) {
             slotByExternalRef(deviceRef).release()
             activeRefs.remove(deviceRef)
