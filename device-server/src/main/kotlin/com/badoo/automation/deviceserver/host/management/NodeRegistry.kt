@@ -76,7 +76,7 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
                 .maxBy { node -> node.capacityRemaining(desiredCapabilities) }
                 ?: throw NoAliveNodesException("No alive nodes are available to create device at the moment")
 
-        val dto = node.createDeviceAsync(desiredCapabilities)
+        val dto = node.createDeviceForTests(desiredCapabilities)
         logger.info("Create device dto $dto ")
 
         val logMarker: Marker = MapEntriesAppendingMarker(mutableMapOf(

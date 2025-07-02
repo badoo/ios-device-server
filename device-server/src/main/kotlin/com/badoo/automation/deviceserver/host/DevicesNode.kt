@@ -223,7 +223,7 @@ class DevicesNode(
         }
     }
 
-    override fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO {
+    override fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
         lateinit var slot: DeviceSlot
 
         synchronized(this) {

@@ -71,7 +71,7 @@ interface IDeviceNode {
     fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO
     fun totalCapacity(desiredCaps: DesiredCapabilities): Int
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
-    fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO
+    fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO
     fun createMainSimulator(desiredCaps: DesiredCapabilities, bootWaitDuration: Duration): Simulator
     fun deleteMainSimulator(udid: UDID)
     fun dispose()

@@ -83,8 +83,8 @@ class NodeRegistryTest {
         val deviceTimeout = Duration.ofSeconds(0)
         whenever(nodeWrapper1.isAlive()).thenReturn(true)
         whenever(nodeWrapper2.isAlive()).thenReturn(true)
-        whenever(wrappedNode1.createDeviceAsync(desiredCapabilities)).then { deviceDTOStub("") }
-        whenever(wrappedNode2.createDeviceAsync(desiredCapabilities)).then { deviceDTOStub("") }
+        whenever(wrappedNode1.createDeviceForTests(desiredCapabilities)).then { deviceDTOStub("") }
+        whenever(wrappedNode2.createDeviceForTests(desiredCapabilities)).then { deviceDTOStub("") }
 
         whenever(wrappedNode1.capacityRemaining(desiredCapabilities)).thenReturn(capacityBusy)
         whenever(wrappedNode2.capacityRemaining(desiredCapabilities)).thenReturn(capacityNotBusy)
@@ -100,7 +100,7 @@ class NodeRegistryTest {
     fun createDeviceIgnoresDisabledNodes() {
         // arrange
         whenever(nodeWrapper1.isAlive()).thenReturn(true)
-        whenever(wrappedNode1.createDeviceAsync(desiredCapabilities)).then { deviceDTOStub("") }
+        whenever(wrappedNode1.createDeviceForTests(desiredCapabilities)).then { deviceDTOStub("") }
         whenever(wrappedNode1.capacityRemaining(desiredCapabilities)).thenReturn(capacityNotBusy)
         assertNotNull(nodeRegistry.createDeviceAsync(desiredCapabilities, Duration.ZERO, null))
 

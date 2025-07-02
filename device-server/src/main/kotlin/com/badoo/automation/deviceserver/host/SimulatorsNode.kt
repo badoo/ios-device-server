@@ -4,7 +4,6 @@ import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
-import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
@@ -70,7 +69,7 @@ class SimulatorsNode(
     // endregion
 
     // region: Simulator Clone operations: Create, Delete
-    override fun createDeviceAsync(desiredCaps: DesiredCapabilities): DeviceDTO {
+    override fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
         synchronized(this) {
             if (createdSimulators.size >= simulatorLimit) {
                 val message = "$this was asked for a newSimulator, but is already at capacity $simulatorLimit"
