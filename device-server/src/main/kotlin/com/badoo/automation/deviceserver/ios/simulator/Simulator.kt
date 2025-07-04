@@ -447,25 +447,19 @@ class Simulator(
     }
 
     private fun useSoftwareKeyboard() {
-        try {
-            val devicePreferencesResult = remote.execIgnoringErrors(listOf("/usr/bin/defaults", "read", "com.apple.iphonesimulator", "DevicePreferences"))
-            if (devicePreferencesResult.isSuccess) {
-                if (devicePreferencesResult.stdOut.contains(udid)) {
-                    return
-                }
+        val devicePreferencesResult = remote.execIgnoringErrors(listOf("/usr/bin/defaults", "read", "com.apple.iphonesimulator", "DevicePreferences"))
+        if (devicePreferencesResult.isSuccess) {
+            if (devicePreferencesResult.stdOut.contains(udid)) {
+                return
             }
+        }
 
-            val dict = "<dict><key>ConnectHardwareKeyboard</key><integer>0</integer></dict>"
-            val cmd = listOf("/usr/bin/defaults", "write", "com.apple.iphonesimulator", "DevicePreferences", "-dict-add", udid, dict)
-            val result = remote.execIgnoringErrors(cmd)
+        val dict = "<dict><key>ConnectHardwareKeyboard</key><integer>0</integer></dict>"
+        val cmd = listOf("/usr/bin/defaults", "write", "com.apple.iphonesimulator", "DevicePreferences", "-dict-add", udid, dict)
+        val result = remote.execIgnoringErrors(cmd)
 
-            val simulatorApp = "/Simulator.app/"
-
-            if (result.isSuccess && result.stdOut.lines().none { it.contains(simulatorApp) }) {
-                remote.shell("open -a Simulator.app")
-            }
-        } catch (t: Throwable) {
-            logger.error(logMarker, "Failed to launch Simulator.app application. Error ${t.javaClass.name} ${t.message}")
+        if (!result.isSuccess) {
+            logger.error(logMarker, "Failed to set up software keyboard for simulator $udid. Result: $result")
         }
     }
 
