@@ -180,7 +180,7 @@ class Simulator(
                 simulatorBootExecutor,
                 bootTasks,
                 {
-                    withSemapthore(concurrentBootsSemaphore, "Booting of ${this@Simulator}") {
+                    concurrentBootsSemaphore.withSemaphore("Boot operation of ${this@Simulator}", logger, logMarker) {
                         logger.info(logMarker, "Booting ${this@Simulator}")
                         val nanos = measureNanoTime {
                             bootSimulator()
@@ -760,18 +760,6 @@ class Simulator(
                 // FIXME: force shutdown failed sim
                 logger.error(logMarker, "Execute critical block finished with exception. Message: [${e.message}]", e)
             }
-        }
-    }
-
-    private fun withSemapthore(semaphore: Semaphore, actionName: String, action: () -> Unit) {
-        try {
-            logger.info(logMarker, "Will acquire a semaphore for executing action <$actionName>")
-            semaphore.acquire()
-            logger.info(logMarker, "Have acquired a semaphore for executing action <$actionName>. Executing action now")
-            action()
-        } finally {
-            semaphore.release()
-            logger.info(logMarker, "Have released a semaphore for executing action <$actionName>. Semaphore is now available for other actions")
         }
     }
 
