@@ -109,7 +109,7 @@ class SimulatorsNode(
 
             createdSimulators[ref] = simulator
             prepareTasks[ref] = simulatorsBootExecutorService.submit {
-                simulator.prepareAsync(concurrentBootsSemaphore)
+                simulator.bootAndPrepareSimulatorForTests(concurrentBootsSemaphore)
             }
 
             logger.debug(simLogMarker, "Created simulator $ref")

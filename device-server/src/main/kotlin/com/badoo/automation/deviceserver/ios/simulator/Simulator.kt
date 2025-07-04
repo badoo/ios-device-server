@@ -147,7 +147,7 @@ class Simulator(
     var simulatorBootExecutor2: ExecutorService? = null
     var bootTasks2: List<Future<*>>? = null
 
-    override fun prepareAsync(concurrentBootsSemaphore: Semaphore) {
+    override fun bootAndPrepareSimulatorForTests(concurrentBootsSemaphore: Semaphore) {
         executeCriticalWithLock {
             if (deviceState == DeviceState.CREATING) {
                 throw java.lang.IllegalStateException("Simulator $udid is already in state $deviceState")
