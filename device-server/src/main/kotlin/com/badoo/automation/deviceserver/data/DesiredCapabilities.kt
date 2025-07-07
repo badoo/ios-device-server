@@ -6,8 +6,6 @@ data class DesiredCapabilities(
         val udid: String?,
         val model: String?,
         val os: String?,
-        val headless: Boolean = false,
-        val existing: Boolean = true,
         val arch: String? = null,
 
         @JsonProperty("use_wda")

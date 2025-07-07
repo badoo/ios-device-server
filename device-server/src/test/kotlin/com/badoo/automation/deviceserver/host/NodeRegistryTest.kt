@@ -25,8 +25,7 @@ import kotlin.test.assertNotNull
 class NodeRegistryTest {
     private val activeDevices: ActiveDevices = mockThis()
     private val nodeRegistry: NodeRegistry = NodeRegistry(activeDevices)
-    private val headless = true
-    private val desiredCapabilities = DesiredCapabilities("udid", "model", "os", headless)
+    private val desiredCapabilities = DesiredCapabilities("udid", "model", "os")
     private val nodeWrapper1: NodeWrapper = mockThis("wrapper1")
     private val nodeWrapper2: NodeWrapper = mockThis("wrapper2")
     private val wrappedNode1: IDeviceNode = mockThis("node1")

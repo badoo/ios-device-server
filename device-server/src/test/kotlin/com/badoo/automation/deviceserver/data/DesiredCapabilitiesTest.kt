@@ -6,8 +6,6 @@ import kotlin.test.assertEquals
 
 
 class DesiredCapabilitiesTest {
-    private val headless = true
-
     private fun fromJson(json: String): DesiredCapabilities {
         return JsonMapper().fromJson(json)
     }
@@ -17,7 +15,7 @@ class DesiredCapabilitiesTest {
         val json = "{}"
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(null, null, null, headless), actual)
+        assertEquals(DesiredCapabilities(null, null, null), actual)
     }
 
     @Test
@@ -25,7 +23,7 @@ class DesiredCapabilitiesTest {
         val json = """{"model":"iPhone 6", "os": "iOS 11.0"}"""
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(null, "iPhone 6", "iOS 11.0", headless), actual)
+        assertEquals(DesiredCapabilities(null, "iPhone 6", "iOS 11.0"), actual)
     }
 
     @Test
@@ -34,31 +32,7 @@ class DesiredCapabilitiesTest {
         val json = """{"udid":"$udid"}"""
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(udid, null, null, headless), actual)
-    }
-
-    @Test
-    fun fromJsonParsesHeadlessFalseCapability() {
-        val json = """{"headless": false}"""
-        val actual = fromJson(json)
-
-        assertEquals(DesiredCapabilities(null, null, null, false), actual)
-    }
-
-    @Test
-    fun fromJsonParsesHeadlessBoolAsTextCapability() {
-        val json = """{"headless": "false"}"""
-        val actual = fromJson(json)
-
-        assertEquals(DesiredCapabilities(null, null, null, false), actual)
-    }
-
-    @Test
-    fun fromJsonParsesHeadlessDefaultCapability() {
-        val json = """{}"""
-        val actual = fromJson(json)
-
-        assertEquals(DesiredCapabilities(null, null, null, true, true), actual)
+        assertEquals(DesiredCapabilities(udid, null, null), actual)
     }
 
     @Test
@@ -66,7 +40,7 @@ class DesiredCapabilitiesTest {
         val json = """{"use_wda": false}"""
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(null, null, null, true, true, useWda = false), actual)
+        assertEquals(DesiredCapabilities(null, null, null, useWda = false), actual)
     }
 
     @Test
@@ -74,6 +48,6 @@ class DesiredCapabilitiesTest {
         val json = """{"use_wda": "false"}"""
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(null, null, null, true, useWda = false), actual)
+        assertEquals(DesiredCapabilities(null, null, null, useWda = false), actual)
     }
 }

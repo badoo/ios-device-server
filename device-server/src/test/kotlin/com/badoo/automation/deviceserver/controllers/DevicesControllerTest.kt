@@ -29,8 +29,7 @@ class DevicesControllerTest {
     private val model = "MODEL"
     private val udid = "UDID-1"
     private val os = "OS"
-    private val headless = true
-    private val desiredCaps = DesiredCapabilities(udid, model, os, headless)
+    private val desiredCaps = DesiredCapabilities(udid, model, os)
     private val desiredCapsNoUdid = DesiredCapabilities(null, model, os)
     private val expectedDeviceRef: DeviceRef = "hello"
     private val expectedDeviceDTO = deviceDTOStub(expectedDeviceRef)
@@ -69,7 +68,7 @@ class DevicesControllerTest {
 
     @Test
     fun createDeviceNoUdid() {
-        val desiredCapsWithEmptyUdid = DesiredCapabilities(null, model, os, headless)
+        val desiredCapsWithEmptyUdid = DesiredCapabilities(null, model, os)
         whenever(deviceManager.createDeviceAsync(desiredCapsWithEmptyUdid, null)).thenReturn(expectedDeviceDTO)
 
         val actualDeviceRef = deviceServer.createDevice(desiredCapsNoUdid, null)
