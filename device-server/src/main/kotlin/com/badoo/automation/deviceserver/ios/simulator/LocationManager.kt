@@ -9,7 +9,7 @@ class LocationManager(
     private val udid: UDID
 ) {
     fun clear() {
-        val result = remote.shell("/usr/bin/xcrun simctl location $udid clear")
+        val result = remote.commandExecutor.exec(listOf("/usr/bin/xcrun", "simctl", "location", udid, "clear"))
 
         if (!result.isSuccess) {
             throw RuntimeException("Could not clear location on device $udid: $result")
@@ -17,7 +17,7 @@ class LocationManager(
     }
 
     fun listScenarios(): List<String> {
-        val result = remote.shell("/usr/bin/xcrun simctl location $udid list")
+        val result = remote.commandExecutor.exec(listOf("/usr/bin/xcrun", "simctl", "location", udid, "list"))
 
         if (!result.isSuccess) {
             throw RuntimeException("Could not list location scenarios on device $udid: $result")
@@ -27,7 +27,7 @@ class LocationManager(
     }
 
     fun setLocation(latitude: Double, longitude: Double) {
-        val result = remote.shell("/usr/bin/xcrun simctl location $udid set ${latitude},${longitude}")
+        val result = remote.commandExecutor.exec(listOf("/usr/bin/xcrun", "simctl", "location", udid,"set", "$latitude", "$longitude"))
 
         if (!result.isSuccess) {
             throw RuntimeException("Could not set location to ${latitude},${longitude} on device $udid: $result")
@@ -35,7 +35,7 @@ class LocationManager(
     }
 
     fun runScenario(scenarioName: String) {
-        val result = remote.shell("/usr/bin/xcrun simctl location $udid run \"$scenarioName\"")
+        val result = remote.commandExecutor.exec(listOf("/usr/bin/xcrun", "simctl", "location", udid, "run", scenarioName))
 
         if (!result.isSuccess) {
             throw RuntimeException("Could not run scenario \"$scenarioName\" on device $udid: $result")
@@ -51,24 +51,25 @@ class LocationManager(
             "Coordinates list must not be empty."
         }
 
-        val command = StringBuilder("/usr/bin/xcrun simctl location $udid start")
+        val command = mutableListOf("/usr/bin/xcrun", "simctl", "location", udid, "start")
 
         if (speed > 0) {
-            command.append(" --speed=$speed")
+            command.add("--speed=$speed")
         }
 
         if (distance > 0) {
-            command.append(" --distance=$distance")
+            command.add("--distance=$distance")
         }
 
         if (interval > 0) {
-            command.append(" --interval=$interval")
+            command.add("--interval=$interval")
         }
 
-        command.append(" ")
-        command.append(coords.joinToString(" ") { "${it.latitude},${it.longitude}" })
+        coords.forEach {
+            command.add("${it.latitude},${it.longitude}")
+        }
 
-        val result = remote.shell(command.toString())
+        val result = remote.commandExecutor.exec(command)
 
         if (!result.isSuccess) {
             throw RuntimeException("Could not start location sequence on device $udid: $result")

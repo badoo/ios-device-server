@@ -212,7 +212,7 @@ class SimulatorsNode(
         logger.info(logMarker, "Scheduling node for reboot $publicHostName. Current uptime: [${uptimeInfoBeforeReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
 
         try {
-            remote.shell("sudo /sbin/reboot", returnOnFailure = true)
+            remote.commandExecutor.exec(listOf("/usr/bin/sudo", "/sbin/reboot"), returnFailure = true)
         } catch (e: SshConnectionException) {
             // ignore
         }

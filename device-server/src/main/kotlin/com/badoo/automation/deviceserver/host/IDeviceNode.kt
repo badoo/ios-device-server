@@ -112,7 +112,7 @@ data class NodeInfo(
             val uptime = uptimeInfo[1]
             val bootTime = uptimeInfo[2].split(bootTimeSplitPattern).first { it.matches(numberRegex) }.toLong()
 
-            val nodeInfo = remote.shell("/usr/sbin/system_profiler SPHardwareDataType").stdOut.trim().lines()
+            val nodeInfo = remote.commandExecutor.exec(listOf("/usr/sbin/system_profiler","SPHardwareDataType")).stdOut.trim().lines()
 
             return NodeInfo(
                 currentDate = currentDate,

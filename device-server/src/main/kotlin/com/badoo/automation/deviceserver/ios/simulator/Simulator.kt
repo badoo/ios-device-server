@@ -18,7 +18,6 @@ import org.slf4j.Marker
 import java.io.*
 import java.net.URI
 import java.net.URL
-import java.nio.file.Paths
 import java.time.Duration
 import java.util.concurrent.*
 import java.util.concurrent.TimeUnit.NANOSECONDS
@@ -34,7 +33,7 @@ class Simulator(
     wdaSimulatorBundles: WdaSimulatorBundles,
     private val useWda: Boolean,
     private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
-    private val trustStoreFile: String = appConfig.trustStorePath,
+    private val trustStorePath: String = appConfig.trustStorePath,
     private val assetsPath: String = appConfig.assetsPath
 ) : ISimulator {
     private companion object {
@@ -452,13 +451,16 @@ class Simulator(
     }
 
     private fun copyTrustStore() {
+        val trustStore = File(trustStorePath)
+
+        if (trustStorePath.isBlank() || !trustStore.exists()) {
+            logger.warn("Trust store file $trustStorePath does not exist")
+            return
+        }
+
         logger.debug(logMarker, "Copying trust store to ${this@Simulator}")
-        val deviceSetPath = File(appConfig.homeDirectory, "Library/Developer/CoreSimulator/Devices").absolutePath
-        val keyChainLocation = Paths.get(deviceSetPath, udid, "data", "Library", "Keychains").toFile().absolutePath
-        remote.shell("mkdir -p $keyChainLocation", returnOnFailure = false)
-
-        remote.shell("cp $trustStoreFile $keyChainLocation", returnOnFailure = false)
-
+        val targetTrustStore = File(appConfig.homeDirectory, "Library/Developer/CoreSimulator/Devices/${udid}/data/Library/Keychains/${trustStore.name}")
+        trustStore.copyTo(targetTrustStore, overwrite = true)
         logger.info(logMarker, "Copied trust store to ${this@Simulator}")
     }
 
@@ -481,7 +483,6 @@ class Simulator(
 
         logger.info(logMarker, "Copied assets to ${this@Simulator}")
     }
-
 
     private fun isSimulatorShutdown(): Boolean {
         val simulator = simCtlUtility.listDevices().values.flatten().find { it.udid == udid }
@@ -705,7 +706,7 @@ class Simulator(
     }
 
     private fun launchMobileSafari(url: String) {
-        remote.shell("/usr/bin/xcrun simctl openurl $udid $url", true)
+        remote.commandExecutor.exec(listOf("/usr/bin/xcrun", "simctl", "openurl", udid, url))
     }
 
     private fun logTiming(actionName: String, action: () -> Unit) {
@@ -936,11 +937,7 @@ class Simulator(
         if (!result.isSuccess) {
             throw SimulatorError("Failed to list crash logs for $this: $result")
         }
-        return result.stdOut
-            .lineSequence()
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .toList()
+        return result.stdOut.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toList()
     }
 
     override fun deleteCrashLogs(): Boolean {
@@ -980,9 +977,11 @@ class Simulator(
 
         envs.keys.forEach { key ->
             envs[key]?.let { value ->
-                remote.commandExecutor.exec(listOf(
-                    "/usr/bin/xcrun", "simctl", "spawn", udid, "launchctl", "setenv", key, value
-                ))
+                remote.commandExecutor.exec(
+                    listOf(
+                        "/usr/bin/xcrun", "simctl", "spawn", udid, "launchctl", "setenv", key, value
+                    )
+                )
             }
         }
 
@@ -995,6 +994,6 @@ class Simulator(
             throw IllegalArgumentException("Variable name should contain only letters, numbers and underscores. Current value: $variableName")
         }
 
-        return remote.shell("xcrun simctl getenv $udid $variableName").stdOut.trim() // remove last new_line
+        return remote.commandExecutor.exec(listOf("/usr/bin/xcrun", "simctl", "getenv", udid, variableName)).stdOut.trim()
     }
 }
