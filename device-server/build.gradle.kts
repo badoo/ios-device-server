@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktor)
     alias(libs.plugins.graalvm.buildtools)
     id("com.github.ben-manes.versions") version "0.52.0"
@@ -32,6 +33,7 @@ dependencies {
     implementation(libs.ktor.server.status.pages)
     implementation(libs.logback.classic)
 
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     implementation("org.apache.commons:commons-configuration2:2.12.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
