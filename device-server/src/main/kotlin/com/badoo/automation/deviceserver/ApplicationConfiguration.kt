@@ -29,5 +29,4 @@ class ApplicationConfiguration {
     val assetsPath: String = System.getProperty("media.assets.path", "")
     val appBundleCachePath: File = File(System.getProperty("app.bundle.cache.path", File(homeDirectory, ".iosctl/app_bundle_cache").absolutePath))
     val videoRecorderClassName: String = System.getProperty("video.recorder", FFMPEGVideoRecorder::class.qualifiedName)
-    val simulatorBackupPath: String = System.getProperty("simulator.backup.path", File(homeDirectory, ".iosctl/ios_simulator_backups").absolutePath)
 }

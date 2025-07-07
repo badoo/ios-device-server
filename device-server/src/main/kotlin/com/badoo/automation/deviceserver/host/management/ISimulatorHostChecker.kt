@@ -40,12 +40,6 @@ class SimulatorHostChecker(
     private val applicationConfiguration = ApplicationConfiguration()
 
     override fun createDirectories() {
-        if (applicationConfiguration.simulatorBackupPath.isNotBlank()) {
-            with(File(applicationConfiguration.simulatorBackupPath)) {
-                ensureDirectoryExists(logger, logMarker)
-            }
-        }
-
         with(applicationConfiguration.appBundleCachePath) {
             deleteRecursivelyIfExist(logger, logMarker)
             ensureDirectoryExists(logger, logMarker)
