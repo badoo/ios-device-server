@@ -75,7 +75,7 @@ class FFMPEGVideoRecorder(
             redirectError(videoLogFile)
         }
 
-        return remote.localExecutor.startProcess(
+        return remote.commandExecutor.startProcess(
             command = command, environment = System.getenv(), logMarker = logMarker, processBuilder = processBuilder
         )
     }

@@ -99,7 +99,7 @@ class RealDeviceSysLog(
             cmd.add("--quiet")              // set a filter to exclude common noisy processes (see --quiet-list)
         }
 
-        val process: Process = remote.localExecutor.startProcess(cmd, mapOf(), logMarker)
+        val process: Process = remote.commandExecutor.startProcess(cmd, mapOf(), logMarker)
 
         outWritingTask = ShellCommand.outErrReaderExecutor.submit(write(process.inputStream, osLogFile.toPath()))
         errWritingTask = ShellCommand.outErrReaderExecutor.submit(write(process.errorStream, osLogStderr.toPath()))

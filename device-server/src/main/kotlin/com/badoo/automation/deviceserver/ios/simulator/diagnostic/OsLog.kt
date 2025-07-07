@@ -105,7 +105,7 @@ class OsLog(
             cmd.add(predicate)
         }
 
-        val process: Process = remote.remoteExecutor.startProcess(cmd, mapOf(), logMarker)
+        val process: Process = remote.commandExecutor.startProcess(cmd, mapOf(), logMarker)
 
         outWritingTask = ShellCommand.outErrReaderExecutor.submit(write(process.inputStream, osLogFile.toPath()))
         errWritingTask = ShellCommand.outErrReaderExecutor.submit(write(process.errorStream, osLogStderr.toPath()))

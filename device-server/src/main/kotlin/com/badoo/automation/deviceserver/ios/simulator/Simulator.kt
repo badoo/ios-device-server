@@ -42,7 +42,7 @@ class Simulator(
         private val ENV_VAR_VALIDATE_REGEX = "[a-zA-Z0-9_]+$".toRegex()
     }
 
-    private val simCtlUtility: SimCtlUtility = SimCtlUtility(remote.remoteExecutor)
+    private val simCtlUtility: SimCtlUtility = SimCtlUtility(remote.commandExecutor)
 
     override val ref = deviceRef
     override val udid: UDID = deviceInfo.udid
@@ -980,7 +980,7 @@ class Simulator(
 
         envs.keys.forEach { key ->
             envs[key]?.let { value ->
-                remote.remoteExecutor.exec(listOf(
+                remote.commandExecutor.exec(listOf(
                     "/usr/bin/xcrun", "simctl", "spawn", udid, "launchctl", "setenv", key, value
                 ))
             }

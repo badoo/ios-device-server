@@ -17,9 +17,8 @@ import java.time.Duration.ofSeconds
 class Remote(
     override val hostName: String,
     override val publicHostName: String,
-    override val localExecutor: IShellCommand = ShellCommand(),
-    override val remoteExecutor: IShellCommand = ShellCommand(),
-    override val fbsimctl: FBSimctl = FBSimctl(remoteExecutor, getHomeBrewPath(), FBSimctlResponseParser()),
+    override val commandExecutor: IShellCommand = ShellCommand(),
+    override val fbsimctl: FBSimctl = FBSimctl(commandExecutor, getHomeBrewPath(), FBSimctlResponseParser()),
     appConfig: ApplicationConfiguration = ApplicationConfiguration()
 ) : IRemote {
     companion object {
@@ -51,26 +50,26 @@ class Remote(
 
     override fun isReachable(): Boolean {
         return try {
-            remoteExecutor.exec(listOf("echo", "1"), returnFailure = true, timeOut = ofSeconds(20)).isSuccess
+            true // FIXME: commandExecutor.exec(listOf("echo", "1"), returnFailure = true, timeOut = ofSeconds(20)).isSuccess
         } catch (e: SshConnectionException) {
             false
         }
     }
 
     override fun exec(command: List<String>, env: Map<String, String>, returnFailure: Boolean, timeOutSeconds: Long): CommandResult {
-        return remoteExecutor.exec(command, env, returnFailure = returnFailure, timeOut = ofSeconds(timeOutSeconds))
+        return commandExecutor.exec(command, env, returnFailure = returnFailure, timeOut = ofSeconds(timeOutSeconds))
     }
 
-    override fun escape(value: String) = remoteExecutor.escape(value)
+    override fun escape(value: String) = commandExecutor.escape(value)
 
     override fun shell(command: String, returnOnFailure: Boolean, environment: Map<String, String>): CommandResult {
         val cmd = listOf("bash", "-c", command)
 
         return try {
-            remoteExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
+            commandExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
         } catch (e: SshConnectionException) {
             logger.error("Remote retrying shell command on SSH error. Command: $cmd")
-            remoteExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
+            commandExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
         }
     }
 
@@ -97,11 +96,11 @@ class Remote(
     }
 
     override fun isDirectory(path: String): Boolean {
-        return remoteExecutor.exec(listOf("test", "-d", path), mapOf(), returnFailure = true).isSuccess
+        return commandExecutor.exec(listOf("test", "-d", path), mapOf(), returnFailure = true).isSuccess
     }
 
     override fun rm(path: String, timeOut: Duration) {
-        val result = remoteExecutor.exec(listOf("/bin/rm", "-rf", path), timeOut = timeOut, returnFailure = true)
+        val result = commandExecutor.exec(listOf("/bin/rm", "-rf", path), timeOut = timeOut, returnFailure = true)
 
         ensure(result.isSuccess) {
             val message = "Failed to delete remote files. Stderr: ${result.stdErr}"

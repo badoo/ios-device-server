@@ -37,7 +37,7 @@ class SimulatorsNode(
     concurrentBoots: Int,
     private val wdaSimulatorBundles: WdaSimulatorBundles,
     private val concurrentBootsSemaphore: Semaphore = Semaphore(concurrentBoots, true),
-    simulatorRepository: SimulatorRepository = SimulatorRepository(remote.remoteExecutor),
+    simulatorRepository: SimulatorRepository = SimulatorRepository(remote.commandExecutor),
     simulatorRegistry: SimulatorRegistry = SimulatorRegistry(
         registryFile = File(System.getProperty("user.home"), ".iosctl/simulator_registry_$publicHostName.json")
     ),
