@@ -116,10 +116,11 @@ open class ShellCommand(
     private fun streamReader(inputStream: InputStream, stringBuilder: StringBuilder): FutureTask<Unit> {
         return FutureTask {
             try {
-                BufferedReader(InputStreamReader(inputStream, StandardCharsets.UTF_8), 1045696).use { reader ->
-                    var line: String?
-                    while ((reader.readLine().also { line = it }) != null) {
-                        stringBuilder.append(line).append(System.lineSeparator())
+                inputStream.reader(Charsets.UTF_8).use { reader ->
+                    val buffer = CharArray(524288)
+                    var charsRead: Int
+                    while (reader.read(buffer).also { charsRead = it } != -1) {
+                        stringBuilder.append(buffer, 0, charsRead)
                     }
                 }
             } catch (e: IOException) {
