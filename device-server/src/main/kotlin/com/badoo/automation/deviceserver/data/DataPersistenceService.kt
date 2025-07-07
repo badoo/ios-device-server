@@ -30,6 +30,10 @@ class DataPersistenceService(
                 logger.error("File ${file.absolutePath} does not exist.")
                 return null
             }
+            if (file.length() == 0L) {
+                logger.error("File ${file.absolutePath} is empty.")
+                return null
+            }
             val jsonString = file.readText()
             return json.decodeFromString<T>(jsonString)
         } catch (e: Exception) {
