@@ -12,7 +12,7 @@ interface ISimulator: IDevice {
     val media: Media
     val locationManager: LocationManager
 
-    fun bootAndPrepareSimulatorForTests(concurrentBootsSemaphore: Semaphore)
+    fun bootAndPrepareSimulator(concurrentBootsSemaphore: Semaphore, isBaseSimulator: Boolean)
     fun sendPushNotification(bundleId: String, notificationContent: ByteArray)
     fun sendPasteboard(payload: ByteArray)
     fun setPermissions(bundleId: String, permissions: PermissionSet)

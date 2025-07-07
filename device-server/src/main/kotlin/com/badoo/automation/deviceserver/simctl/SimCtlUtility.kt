@@ -1,11 +1,14 @@
 package com.badoo.automation.deviceserver.simctl
 
+import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.IShellCommand
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.simctl.models.DeviceType
 import com.badoo.automation.deviceserver.simctl.models.Simulator
 import com.badoo.automation.deviceserver.simctl.models.SimulatorRuntime
 import kotlinx.serialization.json.Json
+import org.slf4j.Marker
+import java.time.Duration
 
 internal class SimCtlUtility(
     private val commandExecutor: IShellCommand
@@ -94,28 +97,41 @@ internal class SimCtlUtility(
     // endregion
 
     // region: Boot & Shutdown Simulators
-    fun bootSimulator(udid: UDID) {
-        val command = listOf("/usr/bin/xcrun", "simctl", "boot", udid)
-        val result = commandExecutor.exec(command)
+    fun bootSimulator(udid: UDID, disabledServices: List<String>, timeOut: Duration, logMarker: Marker) {
+        val command = mutableListOf("/usr/bin/xcrun", "simctl", "boot", udid)
+        command.addAll(disabledServices)
+        val result = commandExecutor.exec(
+            command = command,
+            timeOut = timeOut,
+            returnFailure = true,
+            logMarker = logMarker
+        )
         if (!result.isSuccess) {
             throw SimCtlException("Failed to boot simulator with UDID '$udid': ${result.stdErr}")
         }
     }
 
-    fun bootStatusSimulator(udid: UDID) {
+    fun bootStatusSimulator(udid: UDID, timeOut: Duration, logMarker: Marker) {
         val command = listOf("/usr/bin/xcrun", "simctl", "bootstatus", udid)
-        val result = commandExecutor.exec(command)
+        val result = commandExecutor.exec(
+            command = command,
+            timeOut = timeOut,
+            returnFailure = true,
+            logMarker = logMarker
+        )
         if (!result.isSuccess) {
             throw SimCtlException("Failed to boot simulator with UDID '$udid': ${result.stdErr}")
         }
     }
 
-    fun shutdownSimulator(udid: UDID, ignoreError: Boolean) {
+    fun shutdownSimulator(udid: UDID, ignoreError: Boolean): CommandResult {
         val command = listOf("/usr/bin/xcrun", "simctl", "shutdown", udid)
         val result = commandExecutor.exec(command)
         if (!result.isSuccess && !ignoreError) {
             throw SimCtlException("Failed to shutdown simulator with UDID '$udid': ${result.stdErr}")
         }
+
+        return result
     }
 
     fun shutdownAllSimulators() {

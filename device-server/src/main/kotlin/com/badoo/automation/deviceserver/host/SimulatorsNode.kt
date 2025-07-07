@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver.host
 
-import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
@@ -37,10 +36,9 @@ class SimulatorsNode(
     private val simulatorLimit: Int,
     concurrentBoots: Int,
     private val wdaSimulatorBundles: WdaSimulatorBundles,
-    private val applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration(),
     private val concurrentBootsSemaphore: Semaphore = Semaphore(concurrentBoots, true),
-    private val simulatorRepository: SimulatorRepository = SimulatorRepository(remote.remoteExecutor, concurrentBootsSemaphore),
-    private val simulatorRegistry: SimulatorRegistry = SimulatorRegistry(
+    simulatorRepository: SimulatorRepository = SimulatorRepository(remote.remoteExecutor),
+    simulatorRegistry: SimulatorRegistry = SimulatorRegistry(
         registryFile = File(System.getProperty("user.home"), ".iosctl/simulator_registry_$publicHostName.json")
     ),
     private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, simulatorRepository, simulatorRegistry),
@@ -58,18 +56,16 @@ class SimulatorsNode(
         HOSTNAME to remote.publicHostName
     ))
 
-    // region: Main Simulator operations: Create, Delete
-    override fun createMainSimulator(desiredCaps: DesiredCapabilities, bootWaitDuration: Duration): Simulator {
-        return simulatorProvider.createMainSimulator(desiredCaps, bootWaitDuration)
-    }
-
-    override fun deleteMainSimulator(udid: UDID) {
-        simulatorProvider.deleteMainSimulator(udid)
-    }
-    // endregion
-
     // region: Simulator Clone operations: Create, Delete
+    override fun createBaseSimulator(desiredCaps: DesiredCapabilities): DeviceDTO {
+        return createSimulatorForTests(desiredCaps, isBaseSimulator = true)
+    }
+
     override fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
+        return createSimulatorForTests(desiredCaps, isBaseSimulator = false)
+    }
+
+    private fun createSimulatorForTests(desiredCaps: DesiredCapabilities, isBaseSimulator: Boolean): DeviceDTO {
         synchronized(this) {
             if (createdSimulators.size >= simulatorLimit) {
                 val message = "$this was asked for a newSimulator, but is already at capacity $simulatorLimit"
@@ -78,12 +74,11 @@ class SimulatorsNode(
             }
 
             val usedUdids = createdSimulators.map { it.value.udid }.toSet()
-            val simulatorModel: Simulator = simulatorProvider.createSimulatorClone(desiredCaps, usedUdids)
 
-            if (simulatorModel == null) {
-                val message = "$this could not construct or match a simulator for $desiredCaps"
-                logger.error(logMarker, message)
-                throw RuntimeException(message)
+            val simulatorModel: Simulator = if (isBaseSimulator) {
+                simulatorProvider.createBaseSimulator(desiredCaps)
+            } else {
+                simulatorProvider.createSimulatorClone(desiredCaps, usedUdids)
             }
 
             val ref = deviceRefFromUDID(simulatorModel.udid, remote.publicHostName)
@@ -109,7 +104,7 @@ class SimulatorsNode(
 
             createdSimulators[ref] = simulator
             prepareTasks[ref] = simulatorsBootExecutorService.submit {
-                simulator.bootAndPrepareSimulatorForTests(concurrentBootsSemaphore)
+                simulator.bootAndPrepareSimulator(concurrentBootsSemaphore, isBaseSimulator)
             }
 
             logger.debug(simLogMarker, "Created simulator $ref")
@@ -119,54 +114,54 @@ class SimulatorsNode(
     }
 
     override fun deleteReleaseDeviceForTests(deviceRef: DeviceRef, reason: String): Boolean {
-        val iSimulator = createdSimulators[deviceRef] ?: return false
-        cancelRunningSimulatorTask(deviceRef, "deleteRelease")
-        iSimulator.release("deleteRelease $reason $deviceRef")
-        simulatorProvider.deleteSimulatorClone(iSimulator.udid)
+        val simulator = createdSimulators[deviceRef]
+            ?: return false
+
+        simulator.release("deleteReleaseDeviceForTests $reason $deviceRef")
+
+        cancelPrepareSimulatorTask(deviceRef, "deleteReleaseDeviceForTests")
+
+        simulatorProvider.deleteSimulator(simulator.udid)
         createdSimulators.remove(deviceRef)
-        val entries = allocatedPorts[deviceRef] ?: return true
-        portAllocator.deallocateDAP(entries)
+
+        allocatedPorts[deviceRef]?.let {
+            portAllocator.deallocateDAP(it)
+        }
+
         return true
     }
 
-    private fun cancelRunningSimulatorTask(deviceRef: DeviceRef, reason: String) {
+    private fun cancelPrepareSimulatorTask(deviceRef: DeviceRef, reason: String) {
         val task = prepareTasks[deviceRef]
+
+        if (task == null || task.isDone) {
+            return
+        }
+
         val markerData = mutableMapOf(
             DEVICE_REF to deviceRef, "action_name" to "cancelRunningSimulatorTask", "action_reason" to reason
         )
         val marker = MapEntriesAppendingMarker(markerData)
         marker.add(logMarker)
 
-        if (task == null) {
-            logger.debug(marker, "No async task found for Simulator $deviceRef while performing $reason")
-        } else {
-            if (task.isDone) {
-                logger.debug(marker, "Async task for Simulator $deviceRef is already done while performing $reason")
-            } else {
-                val startTime = System.nanoTime()
-                task.cancel(true)
-                val duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
-                marker.add(MapEntriesAppendingMarker(mapOf("cancellation_duration" to duration)))
-                logger.error(marker, "Cancelled async task for Simulator $deviceRef while performing $reason. Cancellation took $duration ms")
+        val startTime = System.nanoTime()
+        task.cancel(true)
 
-                val startWaitingTime = System.nanoTime()
-                pollFor(
-                    timeOut = Duration.ofSeconds(60),
-                    reasonName = "Waiting for async task to finish. Device: $deviceRef, reason: $reason",
-                    shouldReturnOnTimeout = true,
-                    retryInterval = Duration.ofMillis(50),
-                    logger = logger,
-                    marker = marker
-                ) {
-                    task.isDone
-                }
-
-                val durationWaitingTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startWaitingTime)
-                marker.add(MapEntriesAppendingMarker(mapOf("cancellation_wait_duration" to durationWaitingTime)))
-                logger.error(marker, "Waited for async task to cancel and finish for Simulator $deviceRef while performing $reason. Waiting time took $durationWaitingTime ms")
-
-            }
+        pollFor(
+            timeOut = Duration.ofSeconds(60),
+            reasonName = "Waiting for async task to finish. Device: $deviceRef, reason: $reason",
+            shouldReturnOnTimeout = true,
+            retryInterval = Duration.ofMillis(50),
+            logger = logger,
+            marker = marker
+        ) {
+            task.isDone
         }
+
+        val durationWaitingTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
+        marker.add(MapEntriesAppendingMarker(mapOf("cancellation_wait_duration" to durationWaitingTime)))
+        logger.info(marker, "Waited for async task to cancel and finish for Simulator $deviceRef while performing $reason. Waiting time took $durationWaitingTime ms")
+
         prepareTasks.remove(deviceRef)
     }
     // endregion
@@ -174,6 +169,10 @@ class SimulatorsNode(
     // region: Node info operations: List Simulators, NodeInfo, getDeviceFor(ref)
     override fun list(): List<DeviceDTO> {
         return createdSimulators.map { DeviceDTO(it.value) }
+    }
+
+    override fun listAllSimulators(): SimulatorsDto {
+        return simulatorProvider.listSimulators()
     }
 
     override fun getNodeInfo(): NodeInfo {

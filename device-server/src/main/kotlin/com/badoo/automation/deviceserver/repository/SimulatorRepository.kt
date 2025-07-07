@@ -9,13 +9,11 @@ import com.badoo.automation.deviceserver.simctl.models.DeviceType
 import com.badoo.automation.deviceserver.simctl.models.Simulator
 import com.badoo.automation.deviceserver.simctl.models.SimulatorPlatform
 import com.badoo.automation.deviceserver.simctl.models.SimulatorRuntime
-import java.util.concurrent.Semaphore
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 class SimulatorRepository(
-    commandExecutor: IShellCommand = ShellCommand(),
-    private val semaphore: Semaphore
+    commandExecutor: IShellCommand = ShellCommand()
 ) {
     private val simCtlUtility: SimCtlUtility = SimCtlUtility(commandExecutor)
     private val lock: ReentrantLock = ReentrantLock()
@@ -65,11 +63,10 @@ class SimulatorRepository(
         }
     }
 
-    fun cloneSimulator(sourceUdid: UDID): Simulator? {
-        val sourceSimulator = findSimulatorByUdid(sourceUdid) ?: throw SimCtlException("Source simulator with UDID '$sourceUdid' not found.")
+    fun cloneSimulator(sourceSimulator: Simulator): Simulator? {
         val cloneName = "${sourceSimulator.name} Clone ${System.currentTimeMillis() / 1000}"
         return lock.withLock {
-            val udid = simCtlUtility.cloneSimulator(sourceUdid, cloneName)
+            val udid = simCtlUtility.cloneSimulator(sourceSimulator.udid, cloneName)
             findSimulatorByUdid(udid)
         }
     }
@@ -83,18 +80,4 @@ class SimulatorRepository(
     fun listDevices() = simCtlUtility.listDevices()
     fun listDeviceTypes() = simCtlUtility.listDeviceTypes()
     fun listRuntimes() = simCtlUtility.listRuntimes()
-
-    fun bootSimulator(udid: UDID) {
-        semaphore.acquire()
-        try {
-            simCtlUtility.bootSimulator(udid)
-            simCtlUtility.bootStatusSimulator(udid)
-        } finally {
-            semaphore.release()
-        }
-    }
-
-    fun shutdownSimulator(udid: UDID, ignoreError: Boolean) {
-        simCtlUtility.shutdownSimulator(udid, ignoreError)
-    }
 }

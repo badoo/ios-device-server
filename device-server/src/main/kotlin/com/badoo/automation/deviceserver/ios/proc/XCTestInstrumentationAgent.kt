@@ -153,7 +153,7 @@ class XCTestInstrumentationAgent(
 
         try {
             pollFor(
-                Duration.ofSeconds(45),
+                Duration.ofSeconds(120),
                 reasonName = "$this Waiting for $instrumentationBundle to start serving requests",
                 retryInterval = Duration.ofSeconds(1),
                 logger = logger,
@@ -168,7 +168,6 @@ class XCTestInstrumentationAgent(
             throw e
         }
 
-        Thread.sleep(2000) // 2 extra should be ok
         logger.debug(logMarker, "$this $instrumentationBundle: $subProcess")
     }
 

@@ -2,7 +2,6 @@ package com.badoo.automation.deviceserver.ios.simulator
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
-import com.badoo.automation.deviceserver.command.ShellUtils
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
@@ -11,6 +10,7 @@ import com.badoo.automation.deviceserver.ios.simulator.data.*
 import com.badoo.automation.deviceserver.ios.simulator.diagnostic.OsLog
 import com.badoo.automation.deviceserver.ios.simulator.video.FFMPEGVideoRecorder
 import com.badoo.automation.deviceserver.ios.simulator.video.VideoRecorder
+import com.badoo.automation.deviceserver.simctl.SimCtlUtility
 import com.badoo.automation.deviceserver.util.*
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
@@ -38,10 +38,11 @@ class Simulator(
     private val assetsPath: String = appConfig.assetsPath
 ) : ISimulator {
     private companion object {
-        private val RESET_TIMEOUT: Duration = Duration.ofMinutes(5)
         private const val SAFARI_BUNDLE_ID = "com.apple.mobilesafari"
         private val ENV_VAR_VALIDATE_REGEX = "[a-zA-Z0-9_]+$".toRegex()
     }
+
+    private val simCtlUtility: SimCtlUtility = SimCtlUtility(remote.remoteExecutor)
 
     override val ref = deviceRef
     override val udid: UDID = deviceInfo.udid
@@ -144,120 +145,56 @@ class Simulator(
         throw NotImplementedError("This is not implemented for Simulator")
     }
 
-    var simulatorBootExecutor2: ExecutorService? = null
-    var bootTasks2: List<Future<*>>? = null
+    var simulatorBootExecutor: ExecutorService? = null
 
-    override fun bootAndPrepareSimulatorForTests(concurrentBootsSemaphore: Semaphore) {
+    override fun bootAndPrepareSimulator(concurrentBootsSemaphore: Semaphore, isBaseSimulator: Boolean) {
+        val startTime = System.nanoTime()
         executeCriticalWithLock {
+            val simulatorType = if (isBaseSimulator) "Base" else "Cloned"
             if (deviceState == DeviceState.CREATING) {
-                throw java.lang.IllegalStateException("Simulator $udid is already in state $deviceState")
+                throw java.lang.IllegalStateException("$simulatorType Simulator $udid is already in state $deviceState")
             }
 
-            logger.info(logMarker, "Starting to boot and prepare ${this@Simulator}")
+            logger.info(logMarker, "Starting to boot and prepare $simulatorType ${this@Simulator}")
 
             deviceState = DeviceState.CREATING
 
-            val simulatorBootExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-            simulatorBootExecutor2 = simulatorBootExecutor
-            val bootTasks: MutableList<Future<*>> = mutableListOf<Future<*>>()
-            bootTasks2 = bootTasks
+            val bootExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+            simulatorBootExecutor = bootExecutor
 
-            scheduleSequentialExecution(
-                simulatorBootExecutor,
-                bootTasks,
-                { useSoftwareKeyboard() },
-                { "Failed to set up software keyboard for simulator $udid" },
-            )
+            scheduleUseSoftwareKeyboard(bootExecutor)
 
-            scheduleSequentialExecution(
-                simulatorBootExecutor,
-                bootTasks,
-                { copyTrustStore() },
-                { "Failed to copy TrustStore for simulator $udid" },
-            )
-
-            scheduleSequentialExecution(
-                simulatorBootExecutor,
-                bootTasks,
-                {
-                    concurrentBootsSemaphore.withSemaphore("Boot operation of ${this@Simulator}", logger, logMarker) {
-                        logger.info(logMarker, "Booting ${this@Simulator}")
-                        val nanos = measureNanoTime {
-                            bootSimulator()
-                            waitUntilSimulatorBooted() // Keep boot + waiting for booted together to ensure a simulator state is not broken
-                        }
-                        val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
-                        logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
-                    }
-                },
-                { "Failed to boot simulator $udid" },
-            )
-
-            scheduleSequentialExecution(
-                simulatorBootExecutor,
-                bootTasks,
-                {
-                    dismissTutorials()
-                },
-                { "Failed to dismiss tutorials for simulator $udid" },
-            )
-
-            scheduleSequentialExecution(
-                simulatorBootExecutor,
-                bootTasks,
-                {
-                    copyMediaAssetsWithRetry()
-                },
-                { "Failed to copy media assets to simulator $udid" },
-            )
-
-
-            if (appConfig.useTestHelperApp) {
-                scheduleSequentialExecution(
-                    simulatorBootExecutor,
-                    bootTasks,
-                    {
-                        installTestHelperApp()
-                    },
-                    { "Failed to install TestHelper app to simulator $udid" },
-                )
+            if (isBaseSimulator) {
+                scheduleCopyTrustStore(bootExecutor)
             }
 
-            scheduleSequentialExecution(
-                simulatorBootExecutor,
-                bootTasks,
-                {
-                    launchMobileSafari("https://localhost")
-                    Thread.sleep(5000)
-                },
-                { "Failed to launch MobileSafari on simulator $udid" },
-            )
+            scheduleBootSimulator(bootExecutor, concurrentBootsSemaphore)
+            scheduleDismissTutorials(bootExecutor)
 
-            if (useWda) {
+            if (isBaseSimulator) {
+                scheduleCopyMediaAssets(bootExecutor)
+                scheduleLaunchMobileSafari(bootExecutor)
+                scheduleWaitForCoreMigrations(bootExecutor)
+            }
+
+            if (useWda && !isBaseSimulator) {
                 scheduleSequentialExecution(
-                    simulatorBootExecutor,
-                    bootTasks,
-                    {
-                        logTiming("starting $instrumentationAgent") {
-                            startWdaWithRetry()
-                        }
-                    },
+                    bootExecutor,
+                    { logTiming("starting $instrumentationAgent") { startWdaWithRetry() } },
                     { "Failed to start instrumentation on simulator $udid" },
                 )
             }
 
-            scheduleSequentialExecution(
-                simulatorBootExecutor,
-                bootTasks,
-                {
-                    startPeriodicHealthCheck()
-                },
-                { "Failed to start periodic health checks on simulator $udid" },
-            )
+            if (!isBaseSimulator) {
+                scheduleSequentialExecution(
+                    bootExecutor,
+                    { startPeriodicHealthCheck() },
+                    { "Failed to start periodic health checks on simulator $udid" },
+                )
+            }
 
             scheduleSequentialExecution(
-                simulatorBootExecutor,
-                bootTasks,
+                bootExecutor,
                 {
                     logger.info(logMarker, "Finished preparing simulator $this")
                     deviceState = DeviceState.CREATED
@@ -265,69 +202,126 @@ class Simulator(
                 { "Failed to prepare simulator $udid" },
             )
 
-            simulatorBootExecutor.shutdown()
+            bootExecutor.shutdown()
 
-            val nanos = measureNanoTime {
-                bootTasks.forEach { it.get() }
+            var isBootFinishedGracefully = false
+            var isBootInterrupted = false
+
+            try {
+                isBootFinishedGracefully = bootExecutor.awaitTermination(10, TimeUnit.MINUTES)
+            } catch (e: InterruptedException) {
+                isBootInterrupted = true
             }
+
+            if (!isBootFinishedGracefully && !isBootInterrupted) {
+                logger.warn(logMarker, "Simulator $udid did not finish booting gracefully. Cancelling boot sequence.")
+                cancelBootSequence()
+            }
+
+            val nanos = System.nanoTime() - startTime
 
             val seconds = NANOSECONDS.toSeconds(nanos)
             val measurement = mutableMapOf(
-                "action_name" to "prepareAsync",
-                "duration" to seconds
+                "action_name" to "bootAndPrepareSimulator",
+                "is_base_simulator" to isBaseSimulator,
+                "duration" to seconds,
+                "is_success" to isBootFinishedGracefully,
+                "is_interrupted" to isBootInterrupted,
             )
             measurement.putAll(commonLogMarkerDetails)
 
-            logger.info(MapEntriesAppendingMarker(measurement), "Device ${this@Simulator} ready in $seconds seconds (total simulator preparation time)")
+            val message: String = if (isBootFinishedGracefully) {
+                "finished gracefully. Total simulator preparation time took $seconds seconds"
+            } else if (isBootInterrupted) {
+                "was interrupted. Interrupted after $seconds seconds"
+            } else {
+                "did not finish gracefully. Timed out after $seconds seconds"
+            }
+
+            logger.info(MapEntriesAppendingMarker(measurement), "$simulatorType ${this@Simulator} boot process ended: $message")
+
+            if (isBootInterrupted) {
+                Thread.currentThread().interrupt()
+            }
         }
     }
 
-    private fun installTestHelperApp() {
-        val testHelperAppBundle = File(appConfig.remoteTestHelperAppBundleRoot, "TestHelper.app")
-        if (!remote.shell("test -d ${testHelperAppBundle.absolutePath}").isSuccess) {
-            logger.error(logMarker, "Failed to install Test Helper app. App directory does not exist: ${testHelperAppBundle.absolutePath}")
-        }
-
-        logger.debug(logMarker, "Installing Test Helper app on Simulator $udid with xcrun simctl")
-
-        val nanos = measureNanoTime {
-            val result = remote.execIgnoringErrors(listOf("xcrun", "simctl", "install", udid, testHelperAppBundle.absolutePath), timeOutSeconds = 120)
-
-            if (!result.isSuccess) {
-                val errorMessage = "Failed to install TestHelper app $testHelperAppBundle.absolutePath to simulator $udid. Result: $result"
-                logger.error(logMarker, errorMessage)
-                throw RuntimeException(errorMessage)
-            }
-
-            pollFor(
-                Duration.ofSeconds(60),
-                "Installing TestHelper host application ${testHelperAppBundle.absolutePath}",
-                true,
-                Duration.ofSeconds(5),
-                logger,
-                logMarker
-            ) {
-                remote.execIgnoringErrors(
-                    listOf(
-                        "/usr/bin/xcrun",
-                        "simctl",
-                        "get_app_container",
-                        udid,
-                        "com.bumble.automation.TestHelper"
-                    )
-                ).isSuccess
-
-            }
-        }
-
-        val seconds = NANOSECONDS.toSeconds(nanos)
-        val measurement = mutableMapOf(
-            "action_name" to "install_TestHelperApp",
-            "duration" to seconds
+    private fun scheduleLaunchMobileSafari(simulatorBootExecutor: ExecutorService) {
+        scheduleSequentialExecution(
+            simulatorBootExecutor,
+            {
+                launchMobileSafari("https://localhost")
+                Thread.sleep(Duration.ofSeconds(10)) // give Safari some time to launch
+            },
+            { "Failed to launch MobileSafari on simulator $udid" },
         )
-        measurement.putAll(commonLogMarkerDetails)
+    }
 
-        logger.debug(MapEntriesAppendingMarker(measurement), "Successfully installed TestHelper app on Simulator with xcrun simctl. Took $seconds seconds")
+    private fun scheduleWaitForCoreMigrations(simulatorBootExecutor: ExecutorService) {
+        scheduleSequentialExecution(
+            simulatorBootExecutor,
+            {
+                Thread.sleep(Duration.ofSeconds(180)) // TODO: replace with proper check for core migrations. Downloading Assets can take a while, so we need to wait for them to finish.
+            },
+            { "Failed to wait for core migrations on simulator $udid" },
+        )
+    }
+
+    private fun scheduleCopyMediaAssets(simulatorBootExecutor: ExecutorService) {
+        scheduleSequentialExecution(
+            simulatorBootExecutor,
+            {
+                copyMediaAssets()
+            },
+            { "Failed to copy media assets to simulator $udid" },
+        )
+    }
+
+    private fun scheduleDismissTutorials(simulatorBootExecutor: ExecutorService) {
+        scheduleSequentialExecution(
+            simulatorBootExecutor,
+            {
+                dismissTutorials()
+            },
+            { "Failed to dismiss tutorials for simulator $udid" },
+        )
+    }
+
+    private fun scheduleBootSimulator(simulatorBootExecutor: ExecutorService, concurrentBootsSemaphore: Semaphore) {
+        scheduleSequentialExecution(
+            simulatorBootExecutor,
+            {
+                concurrentBootsSemaphore.withSemaphore("Boot operation of ${this@Simulator}", logger, logMarker) {
+                    logger.info(logMarker, "Booting ${this@Simulator}")
+                    val nanos = measureNanoTime {
+                        simCtlUtility.bootSimulator(udid = udid, disabledServices = disabledServices(), timeOut = Duration.ofSeconds(180L), logMarker = logMarker)
+
+                        Thread.sleep(1000L) // make sure enough time for initial boot before any other actions
+
+                        simCtlUtility.bootStatusSimulator(udid, Duration.ofSeconds(180), logMarker)
+                    }
+                    val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
+                    logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
+                }
+            },
+            { "Failed to boot simulator $udid" },
+        )
+    }
+
+    private fun scheduleUseSoftwareKeyboard(simulatorBootExecutor: ExecutorService) {
+        scheduleSequentialExecution(
+            simulatorBootExecutor,
+            { useSoftwareKeyboard() },
+            { "Failed to set up software keyboard for simulator $udid" },
+        )
+    }
+
+    private fun scheduleCopyTrustStore(simulatorBootExecutor: ExecutorService) {
+        scheduleSequentialExecution(
+            simulatorBootExecutor,
+            { copyTrustStore() },
+            { "Failed to copy TrustStore for simulator $udid" },
+        )
     }
 
     private fun dismissTutorials() {
@@ -401,7 +395,7 @@ class Simulator(
         }
     }
 
-    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(60), retryInterval: Duration = Duration.ofSeconds(1)) {
+    private fun startWdaWithRetry(pollTimeout: Duration = Duration.ofSeconds(120), retryInterval: Duration = Duration.ofSeconds(1)) {
         val maxRetries = 3
 
         for (attempt in 1..maxRetries) {
@@ -416,14 +410,8 @@ class Simulator(
                 instrumentationAgent.kill()
                 instrumentationAgent.start()
 
-                Thread.sleep(2000) // Wait for WDA to start before sending requests
-
                 pollFor(
-                    pollTimeout,
-                    reasonName = "${this@Simulator} $instrumentationAgent health check",
-                    retryInterval = retryInterval,
-                    logger = logger,
-                    marker = logMarker
+                    pollTimeout, reasonName = "${this@Simulator} $instrumentationAgent health check", retryInterval = retryInterval, logger = logger, marker = logMarker
                 ) {
                     instrumentationAgent.isHealthy()
                 }
@@ -463,24 +451,6 @@ class Simulator(
         }
     }
 
-    private val MEDIA_COPY_ATTEMPTS = 3
-
-    private fun copyMediaAssetsWithRetry() {
-        (1..MEDIA_COPY_ATTEMPTS).forEach {
-            try {
-                logger.info(logMarker, "Copying media assets to simulator. Attempt: $it")
-                copyMediaAssets()
-                logger.info(logMarker, "Copied media assets to simulator successfully")
-                return
-            } catch (e: MediaInconsistentcyException) {
-                logger.error(e.message)
-                if (it == MEDIA_COPY_ATTEMPTS) {
-                    throw e
-                }
-            }
-        }
-    }
-
     private fun copyTrustStore() {
         logger.debug(logMarker, "Copying trust store to ${this@Simulator}")
         val deviceSetPath = File(appConfig.homeDirectory, "Library/Developer/CoreSimulator/Devices").absolutePath
@@ -512,12 +482,12 @@ class Simulator(
         logger.info(logMarker, "Copied assets to ${this@Simulator}")
     }
 
-    private fun listDevices(): String {
-        return remote.shell("/usr/bin/xcrun simctl list devices", returnOnFailure = true).stdOut
-    }
 
     private fun isSimulatorShutdown(): Boolean {
-        return listDevices().lines().find { it.contains(udid) && it.contains("(Shutdown)") } != null
+        val simulator = simCtlUtility.listDevices().values.flatten().find { it.udid == udid }
+            ?: throw RuntimeException("Device Simulator $udid does not exist")
+
+        return simulator.state == "Shutdown"
     }
 
     private fun cancelTask(task: Future<*>, taskName: String) {
@@ -535,24 +505,46 @@ class Simulator(
         }
     }
 
-    private fun shutdown() {
+    private fun cancelBootSequence() {
+        simulatorBootExecutor?.let {
+            it.shutdownNow()
+            val isTerminated = it.awaitTermination(5, TimeUnit.MINUTES)
+            if (isTerminated) {
+                logger.info(logMarker, "Simulator boot executor terminated gracefully for ${this@Simulator}")
+            } else {
+                logger.warn(logMarker, "Simulator boot executor did not terminate gracefully within 3 minutes for ${this@Simulator}. Forcing shutdown.")
+            }
+        }
+    }
+
+    private fun shutdownAndDisposeResources() {
         logger.info(logMarker, "Shutting down ${this@Simulator}")
 
-        simulatorBootExecutor2?.shutdownNow()
-        installTask?.let {
-            cancelTask(it, "installTask")
-        }
-        stopPeriodicHealthCheck()
+        val startTime = System.nanoTime()
         val executor = Executors.newVirtualThreadPerTaskExecutor()
-        val tasks = setOf(
+
+        listOf(
+            { ignoringErrors({ cancelBootSequence() }) },
+            { ignoringErrors({ stopPeriodicHealthCheck() }) },
+            { ignoringErrors({ cancellInstallTask() }) },
             { ignoringErrors({ videoRecorder.dispose() }) },
             { ignoringErrors({ instrumentationAgent.kill() }) },
-        ).map { executor.submit(it) }
-        tasks.forEach { it.get() }
+        ).forEach {
+            executor.submit(it)
+        }
 
-        val result = remote.fbsimctl.shutdown(udid)
+        executor.shutdown()
+        val isTerminated = executor.awaitTermination(5, TimeUnit.MINUTES)
 
-        if (!result.isSuccess && !result.stdErr.contains("current state: Shutdown") && !result.stdOut.contains("current state: Shutdown")) {
+        if (isTerminated) {
+            logger.info(logMarker, "Simulator tasks terminated gracefully for ${this@Simulator}")
+        } else {
+            logger.warn(logMarker, "Simulator tasks did not terminate gracefully for ${this@Simulator}.")
+        }
+
+        val result = simCtlUtility.shutdownSimulator(udid, true)
+
+        if (!result.isSuccess && !result.stdErr.contains("current state: Shutdown")) {
             logger.debug(logMarker, "Error occurred while shutting down simulator $udid. Command exit code: ${result.exitCode}. Result stdErr: ${result.stdErr}")
         }
 
@@ -567,7 +559,14 @@ class Simulator(
             isSimulatorShutdown()
         }
 
-        logger.info(logMarker, "Successfully shut down ${this@Simulator}")
+        val elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startTime)
+        logger.info(logMarker, "Successfully shut down ${this@Simulator} in $elapsedSeconds seconds")
+    }
+
+    private fun cancellInstallTask() {
+        installTask?.let {
+            cancelTask(it, "installTask")
+        }
     }
 
     private fun disabledServices(): List<String> {
@@ -701,27 +700,6 @@ class Simulator(
         return cmdLine
     }
 
-    private fun bootSimulator() {
-        val cmd = listOf("/usr/bin/xcrun", "simctl", "boot", udid) + disabledServices()
-        remote.exec(cmd, mapOf(), false, 120L)
-    }
-
-    private fun waitUntilSimulatorBooted() {
-        Thread.sleep(3000L) // make sure enough time for initial boot before any other actions
-        val startTime = System.nanoTime()
-        val bootResult = remote.exec(listOf("/usr/bin/xcrun", "simctl", "bootstatus", udid), mapOf(), true, 180)
-        val finishTime = System.nanoTime()
-        val elapsedSeconds = NANOSECONDS.toSeconds(finishTime - startTime)
-        if (bootResult.isSuccess) {
-            val message = "Simulator bootstatus $udid successfully booted to sufficient state. Was waiting for $elapsedSeconds seconds."
-            logger.info(logMarker, message)
-        } else {
-            val message =
-                "Simulator bootstatus $udid failed to successfully boot to sufficient state. Was waiting for $elapsedSeconds seconds. Exit code: ${bootResult.exitCode}. StdErr: ${bootResult.stdErr}. StdOut: ${bootResult.stdOut}"
-            logger.error(logMarker, message)
-        }
-    }
-
     private fun writeSimulatorDefaults(setting: String) {
         remote.shell("/usr/bin/xcrun simctl spawn $udid defaults write $setting", true)
     }
@@ -757,8 +735,8 @@ class Simulator(
         }
     }
 
-    private fun scheduleSequentialExecution(simulatorBootExecutor: ExecutorService, bootTasks: MutableList<Future<*>>, action: () -> Unit, lazyErrorMessage: () -> String) {
-        bootTasks.add(simulatorBootExecutor.submit {
+    private fun scheduleSequentialExecution(simulatorBootExecutor: ExecutorService, action: () -> Unit, lazyErrorMessage: () -> String) {
+        simulatorBootExecutor.submit {
             try {
                 action()
             } catch (e: Exception) {
@@ -767,7 +745,7 @@ class Simulator(
                 logger.error(logMarker, lazyErrorMessage(), e)
                 simulatorBootExecutor.shutdownNow()
             }
-        })
+        }
     }
     //endregion
 
@@ -841,10 +819,7 @@ class Simulator(
 
     //region release
     override fun release(reason: String) {
-        logTiming("Full set of actions to release simulator $udid on host ${remote.publicHostName}") {
-            logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ shutdown() }) }
-            logTiming("Dispose resources for simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ videoRecorder.dispose() }) }
-        }
+        logTiming("Shutdown simulator $udid on host ${remote.publicHostName}") { ignoringErrors({ shutdownAndDisposeResources() }) }
     }
 
     private fun ignoringErrors(action: () -> Unit?) {

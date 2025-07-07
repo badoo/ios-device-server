@@ -45,14 +45,6 @@ class DevicesNode(
 
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
 
-    override fun deleteMainSimulator(udid: UDID) {
-        TODO("not implemented")
-    }
-
-    override fun createMainSimulator(desiredCaps: DesiredCapabilities, bootWaitDuration: Duration): Simulator {
-        TODO("not implemented")
-    }
-
     override fun deployApplication(appBundle: ApplicationBundle) {
         val appDirectory = appBundle.appDirectory!!
         val key = appBundle.appUrl.toExternalForm()
@@ -219,6 +211,14 @@ class DevicesNode(
         synchronized(this) {
             return slots.countUnusedSlots(desiredCaps).toFloat()
         }
+    }
+
+    override fun listAllSimulators(): SimulatorsDto {
+        TODO("not implemented")
+    }
+
+    override fun createBaseSimulator(desiredCaps: DesiredCapabilities): DeviceDTO {
+        TODO("not implemented")
     }
 
     override fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO {

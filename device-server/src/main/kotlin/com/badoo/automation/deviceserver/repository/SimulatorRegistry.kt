@@ -11,7 +11,7 @@ import kotlin.concurrent.withLock
 
 @Serializable
 data class SimulatorRegistryData(
-    val mainSimulators: MutableSet<Simulator> = ConcurrentHashMap.newKeySet(),
+    val baseSimulators: MutableSet<Simulator> = ConcurrentHashMap.newKeySet(),
     val clonedSimulators: MutableSet<Simulator> = ConcurrentHashMap.newKeySet(),
 )
 
@@ -29,23 +29,23 @@ class SimulatorRegistry (
         } else {
             val loadedData = dataPersistenceService.loadFromJsonFile<SimulatorRegistryData>()
             if (loadedData != null) {
-                data.mainSimulators.addAll(loadedData.mainSimulators)
+                data.baseSimulators.addAll(loadedData.baseSimulators)
                 data.clonedSimulators.addAll(loadedData.clonedSimulators)
             }
         }
     }
 
-    fun getMainSimulators(): Set<Simulator> {
-        return data.mainSimulators
+    fun getBaseSimulators(): Set<Simulator> {
+        return data.baseSimulators
     }
 
     fun getClonedSimulators(): Set<Simulator> {
         return data.clonedSimulators
     }
 
-    fun addMainSimulator(simulator: Simulator) {
+    fun addBaseSimulator(simulator: Simulator) {
         lock.withLock {
-            data.mainSimulators.add(simulator)
+            data.baseSimulators.add(simulator)
             dataPersistenceService.saveToJsonFile(data)
         }
     }
@@ -57,26 +57,31 @@ class SimulatorRegistry (
         }
     }
 
-    fun removeMainSimulator(simulator: Simulator) {
+    private fun removeBaseSimulator(simulator: Simulator) {
         lock.withLock {
-            data.mainSimulators.remove(simulator)
+            data.baseSimulators.remove(simulator)
             dataPersistenceService.saveToJsonFile(data)
         }
     }
 
-    fun removeMainSimulator(udid: UDID) {
-        data.mainSimulators.find { it.udid == udid }?.let {
-            removeMainSimulator(it)
+    private fun removeBaseSimulator(udid: UDID) {
+        data.baseSimulators.find { it.udid == udid }?.let {
+            removeBaseSimulator(it)
         }
     }
 
-    fun removeSimulatorClone(udid: UDID) {
+    fun removeSimulator(udid: UDID) {
+        removeBaseSimulator(udid)
+        removeSimulatorClone(udid)
+    }
+
+    private fun removeSimulatorClone(udid: UDID) {
         data.clonedSimulators.find { it.udid == udid }?.let {
             removeSimulatorClone(it)
         }
     }
 
-    fun removeSimulatorClone(simulator: Simulator) {
+    private fun removeSimulatorClone(simulator: Simulator) {
         lock.withLock {
             data.clonedSimulators.remove(simulator)
             dataPersistenceService.saveToJsonFile(data)
@@ -85,7 +90,7 @@ class SimulatorRegistry (
 
     fun clear() {
         lock.withLock {
-            data.mainSimulators.clear()
+            data.baseSimulators.clear()
             data.clonedSimulators.clear()
             dataPersistenceService.saveToJsonFile(data)
         }
