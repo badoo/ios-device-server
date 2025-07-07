@@ -1003,12 +1003,15 @@ class Simulator(
             return
         }
 
-        logger.debug(logMarker, "Setting environment variables $envs for Simulator $this")
-        val envsArguments = mutableListOf<String>()
-        envs.keys.forEach {
-            envsArguments.addAll(listOf(it, ShellUtils.escape(envs.getValue(it))))
+        envs.keys.forEach { key ->
+            envs[key]?.let { value ->
+                remote.remoteExecutor.exec(listOf(
+                    "/usr/bin/xcrun", "simctl", "spawn", udid, "launchctl", "setenv", key, value
+                ))
+            }
         }
-        remote.shell("xcrun simctl spawn $udid launchctl setenv ${envsArguments.joinToString(" ")}")
+
+        logger.info(logMarker, "Set environment variables $envs for Simulator $this")
     }
 
     override fun getEnvironmentVariable(variableName: String): String {
