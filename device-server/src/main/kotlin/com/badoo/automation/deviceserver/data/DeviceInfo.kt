@@ -17,7 +17,7 @@ data class DeviceInfo (
             this(device.udid, device.model, device.os, device.arch, device.name)
 
     constructor(device: Simulator):
-            this(device.udid, device.name, "iOS ${device.osVersion}", "x86", device.name)
+            this(device.udid, device.name, "iOS ${device.runtimeIdentifier}", "x86", device.name)
 
         override fun equals(other: Any?): Boolean {
                 if (this === other) return true

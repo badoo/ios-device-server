@@ -82,10 +82,10 @@ internal class SimCtlUtility(
     fun listDevices(): Map<String, List<Simulator>> {
         val result = commandExecutor.exec(SIMCTL_LIST_DEVICES_JSON.split(" "))
         if (result.isSuccess) {
-            val devicesByOsVersion = jsonParser.decodeFromString<Map<String, Map<String, List<Simulator>>>>(result.stdOut).values.first()
-            return devicesByOsVersion.map { (osVersion, simulators) ->
-                simulators.forEach { it.osVersion = osVersion }
-                osVersion to simulators
+            val devicesByRuntimeIdentifier: Map<String, List<Simulator>> = jsonParser.decodeFromString<Map<String, Map<String, List<Simulator>>>>(result.stdOut).values.first()
+            return devicesByRuntimeIdentifier.map { (runtimeIdentifier, simulators) ->
+                simulators.forEach { it.runtimeIdentifier = runtimeIdentifier }
+                runtimeIdentifier to simulators
             }.toMap()
         } else {
             throw SimCtlException("Failed to list device types: ${result.stdErr}")
