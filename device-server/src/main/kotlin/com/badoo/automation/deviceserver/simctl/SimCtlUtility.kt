@@ -6,6 +6,7 @@ import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.simctl.models.DeviceType
 import com.badoo.automation.deviceserver.simctl.models.Simulator
 import com.badoo.automation.deviceserver.simctl.models.SimulatorRuntime
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.slf4j.Marker
 import java.time.Duration
@@ -19,10 +20,16 @@ internal class SimCtlUtility(
         const val SIMCTL_LIST_RUNTIMES_JSON = "/usr/bin/xcrun simctl runtime list --json"
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     private val jsonParser: Json = Json {
         ignoreUnknownKeys = true
         isLenient = true
         prettyPrint = true
+        prettyPrintIndent = "  "
+        allowTrailingComma = true
+        encodeDefaults = true
+        coerceInputValues = true
+        allowComments = true
     }
 
     // region: Create & Clone Simulators

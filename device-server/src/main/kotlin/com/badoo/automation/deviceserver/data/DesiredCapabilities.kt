@@ -1,7 +1,9 @@
 package com.badoo.automation.deviceserver.data
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class DesiredCapabilities(
         val udid: String?,
         val model: String?,
@@ -9,11 +11,10 @@ data class DesiredCapabilities(
         val arch: String? = null,
 
         @JsonProperty("use_wda")
-        val useWda: Boolean = true
+        val useWda: Boolean,
 ) {
-        val osVersion: String? = os?.substringAfter("iOS")?.trim()
-
-        val osMajorVersion: Int? = os?.substringAfter("iOS")?.trim()?.split(".")?.first()?.toInt()
+        val osVersion: String? get() = os?.substringAfter("iOS")?.trim()
+        val osMajorVersion: Int? get() = os?.substringAfter("iOS")?.trim()?.split(".")?.first()?.toInt()
 
         override fun equals(other: Any?): Boolean {
                 if (this === other) return true

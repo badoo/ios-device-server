@@ -66,15 +66,19 @@ class SimulatorProvider(
 }
 
 private fun DesiredCapabilities.toDeviceType(simulatorRepository: SimulatorRepository): DeviceType {
-    check(model != null) { "Device \"model\" cannot be null. $this" }
+    model?.let {
+        return simulatorRepository.listDeviceTypes().find { deviceType -> deviceType.name == it }
+            ?: throw RuntimeException("Unable to device type for desired capabilities: $this. Available runtimes: ${simulatorRepository.listDeviceTypes()}")
+    }
 
-    return simulatorRepository.listDeviceTypes().find { it.name == model }
-        ?: throw RuntimeException("Unable to device type for desired capabilities: $this. Available runtimes: ${simulatorRepository.listDeviceTypes()}")
+    throw RuntimeException("Device \"model\" cannot be null. $this")
 }
 
 private fun DesiredCapabilities.toRuntime(simulatorRepository: SimulatorRepository): SimulatorRuntime {
-    check(osVersion != null) { "Device \"os\" cannot be null. $this" }
+    osVersion?.let {
+        return simulatorRepository.listRuntimes().find { runtime -> runtime.version == it }
+            ?: throw RuntimeException("Unable to find runtime for desired capabilities: $this. Available runtimes: ${simulatorRepository.listRuntimes()}")
+    }
 
-    return simulatorRepository.listRuntimes().find { it.version == osVersion }
-        ?: throw RuntimeException("Unable to find runtime for desired capabilities: $this. Available runtimes: ${simulatorRepository.listRuntimes()}")
+    throw RuntimeException("Device \"osVersion\" cannot be null. $this")
 }
