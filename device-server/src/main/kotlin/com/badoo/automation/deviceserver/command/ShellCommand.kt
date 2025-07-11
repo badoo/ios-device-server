@@ -6,13 +6,11 @@ import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
-import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
-import java.io.InputStreamReader
-import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.util.concurrent.*
+import kotlin.system.measureNanoTime
 
 open class ShellCommand(
     private val commonEnvironment: Map<String, String> = mapOf<String, String>("HOME" to System.getProperty("user.home"))
@@ -43,11 +41,11 @@ open class ShellCommand(
         val stdOutBuilder = StringBuilder()
         val stdErrBuilder = StringBuilder()
 
-        val stdOutReader = outErrReaderExecutor.submit(streamReader(process.inputStream, stdOutBuilder))
-        val stdErrReader = outErrReaderExecutor.submit(streamReader(process.errorStream, stdErrBuilder))
+        val stdOutReader: Future<*> = outErrReaderExecutor.submit(streamReader(process.inputStream, stdOutBuilder))
+        val stdErrReader: Future<*> = outErrReaderExecutor.submit(streamReader(process.errorStream, stdErrBuilder))
 
+        val startTime = System.nanoTime()
         try {
-            val startTime = System.nanoTime()
             val hasExited = process.waitFor(timeOut.toMillis(), TimeUnit.MILLISECONDS)
             val elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
 
@@ -66,6 +64,17 @@ open class ShellCommand(
             )
 
             if (hasExited) {
+                val outReadingTimeNanos = measureNanoTime {
+                    waitForStreamCompletion(stdOutReader, processLogMarker, commandString, pid)
+                    waitForStreamCompletion(stdErrReader, processLogMarker, commandString, pid)
+                }
+
+                val outReadingTimeMillis = TimeUnit.NANOSECONDS.toMillis(outReadingTimeNanos)
+
+                if (outReadingTimeMillis > 10) {
+                    logger.debug(processLogMarker, "Stream reading completed later than command exited. Command: $commandString, PID: $pid. Took: ${outReadingTimeMillis}ms")
+                }
+
                 if (exitCode == 0) {
                     logger.debug(processLogMarker, "Command completed successfully. Command: $commandString, PID: $pid. Took: ${elapsedTime}ms")
                 } else {
@@ -94,7 +103,14 @@ open class ShellCommand(
             }
             return result
         } catch (e: InterruptedException) {
-            logger.error(logMarker, "Got InterruptedException, while executing command $commandString. Will destroy process $pid. Error: ${e.javaClass} ${e.message}", e)
+            val elapsedInterruptedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
+            val timeoutMessage = if (elapsedInterruptedTime > timeOut.toMillis()) {
+                "Elapsed time is greater than expected timeout: ${elapsedInterruptedTime - timeOut.toMillis()} ms. i.e. interrupt came after timeout"
+            } else {
+                "Elapsed time is less than expected timeout: ${elapsedInterruptedTime - timeOut.toMillis()} ms. i.e. interrupt came sooner than expected"
+            }
+
+            logger.error(logMarker, "Got InterruptedException, while executing command $commandString. Will destroy process $pid. Error: ${e.javaClass} . $timeoutMessage", e)
 
             destroyProcess(process, processLogMarker, commandString, pid, logger)
             stdOutReader.cancel(true)
@@ -112,6 +128,16 @@ open class ShellCommand(
         }
     }
 
+    private fun waitForStreamCompletion(futureTask: Future<*>, logMarker: Marker?, commandString: String, pid: Long) {
+        val timeout = 60L
+        try {
+            futureTask.get(timeout, TimeUnit.SECONDS) // Wait for the stream reader to finish
+        } catch (e: TimeoutException) {
+            logger.error(logMarker, "Timeout while waiting for stream reader to finish after $timeout seconds. Command: $commandString, PID: $pid")
+        } catch (e: ExecutionException) {
+            logger.error(logMarker, "Error while executing stream reader. Command: $commandString, PID: $pid", e)
+        }
+    }
 
     private fun streamReader(inputStream: InputStream, stringBuilder: StringBuilder): FutureTask<Unit> {
         return FutureTask {
@@ -119,7 +145,7 @@ open class ShellCommand(
                 inputStream.reader(Charsets.UTF_8).use { reader ->
                     val buffer = CharArray(524288)
                     var charsRead: Int
-                    while (reader.read(buffer).also { charsRead = it } != -1) {
+                    while (reader.read(buffer).also { charsRead = it } != EOF) {
                         stringBuilder.append(buffer, 0, charsRead)
                     }
                 }
@@ -152,6 +178,7 @@ open class ShellCommand(
     }
 
     companion object {
+        private const val EOF = -1
         val outErrReaderExecutor: ExecutorService = Executors.newVirtualThreadPerTaskExecutor()
 
         fun destroyProcess(
