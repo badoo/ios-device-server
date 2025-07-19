@@ -11,11 +11,13 @@ data class Simulator(
     val isAvailable: Boolean, // true or false
     val deviceTypeIdentifier: String, // e.g. "com.apple.CoreSimulator.SimDeviceType.iPhone-15-Pro-Max"
     var runtimeIdentifier: String? = null, // e.g. "com.apple.CoreSimulator.SimRuntime.iOS-18-5"
+    var model: String? = null, // e.g. "iPhone 15 Pro Max" (human-readable name)
+    var osVersion: String? = null, // e.g. "18.5"
     val state: String, // e.g. "Shutdown"
     val name: String // e.g. "iPhone 15 Pro Max"
 ) {
     override fun toString(): String {
-        return "Simulator(name='$name', runtimeIdentifier='$runtimeIdentifier', udid='$udid', state='$state', deviceTypeIdentifier='$deviceTypeIdentifier', isAvailable=$isAvailable, lastBootedAt=$lastBootedAt)"
+        return "Simulator(name='$name', runtimeIdentifier='$runtimeIdentifier', osVersion='$osVersion', udid='$udid', state='$state', deviceTypeIdentifier='$deviceTypeIdentifier', isAvailable=$isAvailable, lastBootedAt=$lastBootedAt)"
     }
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

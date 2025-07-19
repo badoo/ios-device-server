@@ -20,7 +20,25 @@ class SimulatorRepository(
 
     fun findSimulatorByUdid(sourceUdid: UDID): Simulator? {
         val devices = simCtlUtility.listDevices()
-        return devices.values.flatten().firstOrNull { it.udid == sourceUdid } ?: throw SimCtlException("Simulator with UDID '$sourceUdid' not found.")
+        val simulator = devices.values.flatten().firstOrNull { it.udid == sourceUdid } ?: throw SimCtlException("Simulator with UDID '$sourceUdid' not found.")
+        setModel(simulator, sourceUdid)
+        return simulator
+    }
+
+    fun findSimulatorByDeviceTypeAndRuntime(deviceType: DeviceType, deviceRuntime: SimulatorRuntime): Simulator? {
+        val devices = simCtlUtility.listDevices()
+        val simulator = devices.values.flatten().firstOrNull { it.deviceTypeIdentifier == deviceType.identifier && it.runtimeIdentifier == deviceRuntime.runtimeIdentifier}
+        simulator?.let {
+            setModel(it, it.udid)
+        }
+        return simulator
+    }
+
+    private fun setModel(simulator: Simulator, sourceUdid: UDID) {
+        val deviceTypes = simCtlUtility.listDeviceTypes()
+        val model = deviceTypes.find { it.identifier == simulator.deviceTypeIdentifier }?.name
+            ?: throw SimCtlException("Device type for UDID '$sourceUdid' not found. $simulator : $deviceTypes")
+        simulator.model = model
     }
 
     fun platformNameToId(platformName: String): String {

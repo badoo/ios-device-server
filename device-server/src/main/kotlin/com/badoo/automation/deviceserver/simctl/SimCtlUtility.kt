@@ -74,7 +74,11 @@ internal class SimCtlUtility(
     fun listRuntimes(): Set<SimulatorRuntime> {
         val result = commandExecutor.exec(SIMCTL_LIST_RUNTIMES_JSON.split(" "))
         if (result.isSuccess) {
-            return jsonParser.decodeFromString<Map<String, SimulatorRuntime>>(result.stdOut).values.toSet()
+            return try {
+                jsonParser.decodeFromString<Map<String, SimulatorRuntime>>(result.stdOut).values.toSet()
+            } catch (e: kotlinx.serialization.SerializationException) {
+                throw SimCtlException("Failed to decode JSON: ${e.message}.\nOriginal JSON string:\n${result.stdOut}\n=================\n", e)
+            }
         } else {
             throw SimCtlException("Failed to list device types: ${result.stdErr}")
         }
@@ -83,18 +87,32 @@ internal class SimCtlUtility(
     fun listDeviceTypes(): Set<DeviceType> {
         val result = commandExecutor.exec(SIMCTL_LIST_DEVICE_TYPES_JSON.split(" "))
         if (result.isSuccess) {
-            return jsonParser.decodeFromString<Map<String, List<DeviceType>>>(result.stdOut).values.first().toSet()
+            return try {
+                jsonParser.decodeFromString<Map<String, List<DeviceType>>>(result.stdOut).values.first().toSet()
+            } catch (e: kotlinx.serialization.SerializationException) {
+                throw SimCtlException("Failed to decode JSON: ${e.message}.\nOriginal JSON string:\n${result.stdOut}\n=================\n", e)
+            }
         } else {
             throw SimCtlException("Failed to list device types: ${result.stdErr}")
         }
     }
 
     fun listDevices(): Map<String, List<Simulator>> {
+        val runtimes = listRuntimes()
         val result = commandExecutor.exec(SIMCTL_LIST_DEVICES_JSON.split(" "))
         if (result.isSuccess) {
-            val devicesByRuntimeIdentifier: Map<String, List<Simulator>> = jsonParser.decodeFromString<Map<String, Map<String, List<Simulator>>>>(result.stdOut).values.first()
+            val devicesByRuntimeIdentifier: Map<String, List<Simulator>> = try {
+                jsonParser.decodeFromString<Map<String, Map<String, List<Simulator>>>>(result.stdOut).values.first()
+            } catch (e: kotlinx.serialization.SerializationException) {
+                throw SimCtlException("Failed to decode JSON: ${e.message}.\nOriginal JSON string:\n${result.stdOut}\n=================\n", e)
+            }
             return devicesByRuntimeIdentifier.map { (runtimeIdentifier, simulators) ->
-                simulators.forEach { it.runtimeIdentifier = runtimeIdentifier }
+                simulators.forEach { simulator ->
+                    simulator.runtimeIdentifier = runtimeIdentifier
+                    runtimes.find { runtime -> runtime.runtimeIdentifier == runtimeIdentifier }?.version?.let { version ->
+                        simulator.osVersion = version
+                    }
+                }
                 runtimeIdentifier to simulators
             }.toMap()
         } else {
