@@ -146,10 +146,10 @@ class Simulator(
 
     var simulatorBootExecutor: ExecutorService? = null
 
-    override fun bootAndPrepareSimulator(concurrentBootsSemaphore: Semaphore, isBaseSimulator: Boolean) {
+    override fun bootAndPrepareSimulator(concurrentBootsSemaphore: Semaphore, isSimulatorClone: Boolean) {
         val startTime = System.nanoTime()
         executeCriticalWithLock {
-            val simulatorType = if (isBaseSimulator) "Base" else "Cloned"
+            val simulatorType = if (isSimulatorClone) "Cloned" else "Base"
             if (deviceState == DeviceState.CREATING) {
                 throw java.lang.IllegalStateException("$simulatorType Simulator $udid is already in state $deviceState")
             }
@@ -163,20 +163,20 @@ class Simulator(
 
             scheduleUseSoftwareKeyboard(bootExecutor)
 
-            if (isBaseSimulator) {
+            if (!isSimulatorClone) {
                 scheduleCopyTrustStore(bootExecutor)
             }
 
             scheduleBootSimulator(bootExecutor, concurrentBootsSemaphore)
             scheduleDismissTutorials(bootExecutor)
 
-            if (isBaseSimulator) {
+            if (!isSimulatorClone) {
                 scheduleCopyMediaAssets(bootExecutor)
                 scheduleLaunchMobileSafari(bootExecutor)
                 scheduleWaitForCoreMigrations(bootExecutor)
             }
 
-            if (useWda && !isBaseSimulator) {
+            if (useWda && isSimulatorClone) {
                 scheduleSequentialExecution(
                     bootExecutor,
                     { logTiming("starting $instrumentationAgent") { startWdaWithRetry() } },
@@ -184,7 +184,7 @@ class Simulator(
                 )
             }
 
-            if (!isBaseSimulator) {
+            if (isSimulatorClone) {
                 scheduleSequentialExecution(
                     bootExecutor,
                     { startPeriodicHealthCheck() },
@@ -222,7 +222,7 @@ class Simulator(
             val seconds = NANOSECONDS.toSeconds(nanos)
             val measurement = mutableMapOf(
                 "action_name" to "bootAndPrepareSimulator",
-                "is_base_simulator" to isBaseSimulator,
+                "is_base_simulator" to !isSimulatorClone,
                 "duration" to seconds,
                 "is_success" to isBootFinishedGracefully,
                 "is_interrupted" to isBootInterrupted,

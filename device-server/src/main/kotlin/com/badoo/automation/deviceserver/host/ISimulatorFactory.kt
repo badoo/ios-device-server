@@ -16,6 +16,13 @@ interface ISimulatorFactory {
         wdaSimulatorBundles: WdaSimulatorBundles,
         useWda: Boolean
     ): ISimulator {
-        return Simulator(ref, remote, DeviceInfo(simulatorModel), ports, wdaSimulatorBundles, useWda)
+        return Simulator(
+            deviceRef = ref,
+            remote = remote,
+            deviceInfo = DeviceInfo(simulatorModel),
+            allocatedPorts = ports,
+            wdaSimulatorBundles = wdaSimulatorBundles,
+            useWda = useWda
+        )
     }
 }

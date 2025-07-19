@@ -70,7 +70,6 @@ interface IDeviceNode {
     fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO
     fun totalCapacity(desiredCaps: DesiredCapabilities): Int
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
-    fun createBaseSimulator(desiredCaps: DesiredCapabilities): DeviceDTO
     fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
     fun reboot()

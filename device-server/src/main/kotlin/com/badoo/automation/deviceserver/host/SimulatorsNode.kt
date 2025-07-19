@@ -56,16 +56,12 @@ class SimulatorsNode(
         HOSTNAME to remote.publicHostName
     ))
 
-    // region: Simulator Clone operations: Create, Delete
-    override fun createBaseSimulator(desiredCaps: DesiredCapabilities): DeviceDTO {
-        return createSimulatorForTests(desiredCaps, isBaseSimulator = true)
-    }
-
+    // region: Simulator operations: Create, Delete
     override fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
-        return createSimulatorForTests(desiredCaps, isBaseSimulator = false)
+        return createSimulatorForTests(desiredCaps, isSimulatorClone = desiredCaps.isSimulatorClone)
     }
 
-    private fun createSimulatorForTests(desiredCaps: DesiredCapabilities, isBaseSimulator: Boolean): DeviceDTO {
+    private fun createSimulatorForTests(desiredCaps: DesiredCapabilities, isSimulatorClone: Boolean): DeviceDTO {
         synchronized(this) {
             if (createdSimulators.size >= simulatorLimit) {
                 val message = "$this was asked for a newSimulator, but is already at capacity $simulatorLimit"
@@ -73,12 +69,14 @@ class SimulatorsNode(
                 throw OverCapacityException(message)
             }
 
+            logger.info(logMarker, "Will create simulator for desired capabilities: $desiredCaps")
+
             val usedUdids = createdSimulators.map { it.value.udid }.toSet()
 
-            val simulatorModel: Simulator = if (isBaseSimulator) {
-                simulatorProvider.createBaseSimulator(desiredCaps)
-            } else {
+            val simulatorModel: Simulator = if (isSimulatorClone) {
                 simulatorProvider.createSimulatorClone(desiredCaps, usedUdids)
+            } else {
+                simulatorProvider.createBaseSimulator(desiredCaps)
             }
 
             val ref = deviceRefFromUDID(simulatorModel.udid, remote.publicHostName)
@@ -104,7 +102,7 @@ class SimulatorsNode(
 
             createdSimulators[ref] = simulator
             prepareTasks[ref] = simulatorsBootExecutorService.submit {
-                simulator.bootAndPrepareSimulator(concurrentBootsSemaphore, isBaseSimulator)
+                simulator.bootAndPrepareSimulator(concurrentBootsSemaphore, isSimulatorClone)
             }
 
             logger.debug(simLogMarker, "Created simulator $ref")
@@ -121,7 +119,11 @@ class SimulatorsNode(
 
         cancelPrepareSimulatorTask(deviceRef, "deleteReleaseDeviceForTests")
 
-        simulatorProvider.deleteSimulator(simulator.udid)
+        // only delete the simulator if it is not a base simulator
+        simulatorProvider.listSimulators().clonedSimulators.find { it.udid == simulator.udid }?.let {
+            simulatorProvider.deleteSimulator(simulator.udid)
+        }
+
         createdSimulators.remove(deviceRef)
 
         allocatedPorts[deviceRef]?.let {

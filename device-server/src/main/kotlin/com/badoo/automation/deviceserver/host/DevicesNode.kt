@@ -217,10 +217,6 @@ class DevicesNode(
         TODO("not implemented")
     }
 
-    override fun createBaseSimulator(desiredCaps: DesiredCapabilities): DeviceDTO {
-        TODO("not implemented")
-    }
-
     override fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
         lateinit var slot: DeviceSlot
 
