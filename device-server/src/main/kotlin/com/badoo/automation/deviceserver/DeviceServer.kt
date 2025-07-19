@@ -17,7 +17,6 @@ import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.engine.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.defaultheaders.*
@@ -352,7 +351,11 @@ fun Application.module() {
                     get {
                         val ref = param(call, "ref")
                         val logFile = devicesController.instrumentationAgentLog(ref)
-                        call.respondFile(logFile)
+                        if (logFile.exists()) {
+                            call.respondFile(logFile)
+                        } else {
+                            call.respond("No instrumentation agent log found for device $ref")
+                        }
                     }
                     delete {
                         val ref = param(call, "ref")
@@ -470,7 +473,10 @@ fun Application.module() {
                 )
             )
 
-            logger.error(marker, "HTTP_API: $path | Error: ${cause.message}", cause)
+            if (cause !is OverCapacityException) {
+                logger.error(marker, "HTTP_API: $path | Error: ${cause.message}", cause)
+            }
+
             call.respond(
                 statusCode, hashMapOf(
                     "error" to cause.toDto()

@@ -119,8 +119,8 @@ class FFMPEGVideoRecorder(
         "-preset", "ultrafast",
         "-tune", "animation",
         "-pix_fmt", "yuv420p",
-        "-metadata", "comment=\"${videoFile.absolutePath}\"",
         "-y",
+        videoFile.absolutePath,
     )
 
     private fun gracefullyStopFfmpeg(pid: Int): Boolean {

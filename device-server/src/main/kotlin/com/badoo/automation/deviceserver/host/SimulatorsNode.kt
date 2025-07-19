@@ -452,7 +452,12 @@ class SimulatorsNode(
 
     override fun deleteInstrumentationAgentLog(deviceRef: DeviceRef) {
         val logFile = getDeviceFor(deviceRef).instrumentationAgentLog
-        Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+
+        if (logFile.exists()) {
+            Files.write(logFile.toPath(), ByteArray(0), StandardOpenOption.TRUNCATE_EXISTING)
+        } else {
+            logFile.createNewFile()
+        }
     }
     // endregion
 
