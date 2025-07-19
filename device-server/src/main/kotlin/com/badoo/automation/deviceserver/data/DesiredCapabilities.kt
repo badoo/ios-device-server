@@ -12,6 +12,9 @@ data class DesiredCapabilities(
 
         @JsonProperty("use_wda")
         val useWda: Boolean,
+
+        @JsonProperty("simulator_clone")
+        val isSimulatorClone: Boolean = true
 ) {
         val osVersion: String? get() = os?.substringAfter("iOS")?.trim()
         val osMajorVersion: Int? get() = os?.substringAfter("iOS")?.trim()?.split(".")?.first()?.toInt()
