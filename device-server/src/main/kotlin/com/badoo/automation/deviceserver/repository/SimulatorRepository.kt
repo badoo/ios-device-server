@@ -72,6 +72,10 @@ class SimulatorRepository(
 
     fun createSimulator(deviceName: String, deviceType: DeviceType, deviceRuntime: SimulatorRuntime): Simulator? {
         return lock.withLock {
+            val simulator = findSimulatorByDeviceTypeAndRuntime(deviceType, deviceRuntime)
+            if (simulator != null) {
+                return simulator
+            }
             val udid = simCtlUtility.createSimulator(
                 name = deviceName,
                 deviceTypeId = deviceType.identifier,
