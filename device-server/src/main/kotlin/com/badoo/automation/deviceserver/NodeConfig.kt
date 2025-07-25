@@ -31,7 +31,10 @@ data class NodeConfig(
     val configuredDevices: Set<ConfiguredDevice> = emptySet(),
 
     @JsonProperty("shutdown_simulators")
-    val shutdownSimulators: Boolean = false
+    val shutdownSimulators: Boolean = false,
+
+    @JsonProperty("disabled_simulator_services")
+    val disabledSimulatorServices: List<String> = emptyList(),
 ) {
 
     enum class NodeType {

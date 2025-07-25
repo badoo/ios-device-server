@@ -70,7 +70,8 @@ class HostFactory(
                 hostChecker = hostChecker,
                 simulatorLimit = config.simulatorLimit,
                 concurrentBoots = config.concurrentBoots,
-                wdaSimulatorBundles = wdaSimulatorBundles
+                wdaSimulatorBundles = wdaSimulatorBundles,
+                disabledServices = config.disabledSimulatorServices
             )
         } else {
             DevicesNode(

@@ -43,7 +43,8 @@ class SimulatorsNode(
     ),
     private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, simulatorRepository, simulatorRegistry),
     private val portAllocator: PortAllocator = PortAllocator(remote),
-    private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {}
+    private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {},
+    private val disabledServices: List<String> = emptyList()
 ) : IDeviceNode {
     private val simulatorsBootExecutorService: ExecutorService = Executors.newFixedThreadPool(simulatorLimit)
     private val prepareTasks = ConcurrentHashMap<String, Future<*>>()
@@ -97,7 +98,8 @@ class SimulatorsNode(
                 simulatorModel = simulatorModel,
                 ports = ports,
                 wdaSimulatorBundles = wdaSimulatorBundles,
-                useWda = desiredCaps.useWda
+                useWda = desiredCaps.useWda,
+                disabledServices = disabledServices
             )
 
             createdSimulators[ref] = simulator
