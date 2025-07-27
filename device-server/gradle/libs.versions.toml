@@ -20,6 +20,7 @@ ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor-vers
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor-version" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor-version" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-version" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version = "8.1" }
 
 [plugins]
 graalvm-buildtools = { id = "org.graalvm.buildtools.native", version.ref = "graalvm-buildtools-version" }

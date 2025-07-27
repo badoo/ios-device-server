@@ -32,6 +32,7 @@ dependencies {
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.logback.classic)
+    implementation(libs.logstash.logback.encoder)
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
@@ -39,9 +40,6 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.1")
-
-    implementation("ch.qos.logback:logback-classic:1.5.18")
-    implementation("net.logstash.logback:logstash-logback-encoder:8.1")
 
     implementation("net.java.dev.jna:jna:5.17.0")
     implementation("com.zaxxer:nuprocess:2.0.6")

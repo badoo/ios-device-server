@@ -196,7 +196,8 @@ fun Application.module() {
             }
             route("{ref}") {
                 get {
-                    call.respond(devicesController.getDeviceContactDetails(param(call, "ref")))
+                    val device: DeviceDTO = devicesController.getDeviceContactDetails(param(call, "ref"))
+                    call.respond(device)
                 }
                 post {
                     call.respond(devicesController.controlDevice(param(call, "ref"), jsonContent(call)))
