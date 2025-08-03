@@ -59,7 +59,8 @@ class SubProcess private constructor(
                 }
             } catch (e: IOException) {
                 e.message?.let {
-                    if (!it.contains("Stream closed")) {
+                    val isStreamClosed = it.contains("Stream", ignoreCase = true) && it.contains("Closed", ignoreCase = true)
+                    if (!isStreamClosed) {
                         logger.error(logMarker, "Got IOException while reading from stream. Error: ${e.javaClass} ${e.message}", e)
                     }
                 }
