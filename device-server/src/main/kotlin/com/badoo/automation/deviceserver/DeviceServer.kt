@@ -474,7 +474,7 @@ fun Application.module() {
                 )
             )
 
-            if (cause !is OverCapacityException) {
+            if (cause !is OverCapacityException && cause !is FileNotFoundException) {
                 logger.error(marker, "HTTP_API: $path | Error: ${cause.message}", cause)
             }
 
