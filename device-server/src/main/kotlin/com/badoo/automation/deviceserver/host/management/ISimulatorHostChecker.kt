@@ -88,47 +88,6 @@ class SimulatorHostChecker(
             cleanupSimulators()
             cleanupSimulatorServices()
         }
-
-        val tempFolder = ApplicationConfiguration().tempFolder.absolutePath
-
-        val caches = listOf(
-                "${tempFolder}/fbsimctl-*",
-                "${tempFolder}/videoRecording_*",
-                "${tempFolder}/derivedDataDir_*",
-                "${tempFolder}/xctestRunDir_*",
-                "${tempFolder}/device_agent_log_*",
-                "/private/var/tmp/test-session-systemlogs-*.logarchive",
-        )
-
-        caches.forEach { path ->
-            removeOldFiles(path, 1)
-        }
-
-        val cleanUpRunnable = Runnable {
-            caches.forEach { path ->
-                removeOldFiles(path, 120)
-            }
-        }
-
-        cleanUpTask = periodicTasksPool.scheduleWithFixedDelay(
-                cleanUpRunnable,
-                0,
-                diskCleanupInterval.toMinutes(),
-                TimeUnit.MINUTES)
-    }
-
-    private fun removeOldFiles(path: String, minutes: Int) {
-        try {
-            val r = remote.shell(
-                "find $path -maxdepth 0 -mmin +$minutes -exec rm -rf {} \\;",
-                returnOnFailure = true
-            ) // find returns non zero if nothing found
-            if (!r.isSuccess && r.exitCode != 1 && (r.stdErr.trim().isNotEmpty() || r.stdOut.trim().isNotEmpty())) {
-                logger.debug(logMarker, "[disc cleaner] @ ${remote.publicHostName} returned non-empty. Result: $r")
-            }
-        } catch (e: RuntimeException) {
-            logger.debug(logMarker, "[disc cleaner] $this got exception while cleaning caches: ${e.message}", e)
-        }
     }
 
     private fun cleanupSimulators() {

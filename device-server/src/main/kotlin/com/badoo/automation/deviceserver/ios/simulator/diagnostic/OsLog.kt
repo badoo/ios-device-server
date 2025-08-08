@@ -1,5 +1,6 @@
 package com.badoo.automation.deviceserver.ios.simulator.diagnostic
 
+import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.ShellCommand
 import com.badoo.automation.deviceserver.data.SysLogCaptureOptions
@@ -20,8 +21,8 @@ import java.util.concurrent.Future
 class OsLog(
     private val remote: IRemote,
     private val udid: UDID,
-    override val osLogFile: File = File.createTempFile("iOS_SysLog_${udid}_", ".log"),
-    override val osLogStderr: File = File.createTempFile("iOS_SysLog_${udid}_", ".err.log")
+    override val osLogFile: File = File(ApplicationConfiguration().tempFolder, "iOS_SysLog_${udid}.log"),
+    override val osLogStderr: File = File(ApplicationConfiguration().tempFolder, "iOS_SysLog_${udid}.err.log")
 ) : ISysLog {
     private var outWritingTask: Future<*>? = null
     private var errWritingTask: Future<*>? = null
