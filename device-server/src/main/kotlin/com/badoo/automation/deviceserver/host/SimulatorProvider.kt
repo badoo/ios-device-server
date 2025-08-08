@@ -13,9 +13,36 @@ import java.lang.RuntimeException
 class SimulatorProvider(
     val remote: IRemote, private val simulatorRepository: SimulatorRepository, private val simulatorRegistry: SimulatorRegistry
 ) {
+    fun syncSimulatorsWithRegistry() {
+        val simulators = listSimulators()
+        simulators.baseSimulators.forEach { baseSimulator: Simulator ->
+            val simulator = simulatorRepository.findSimulatorByUdid(baseSimulator.udid)
+            if (simulator == null) {
+                simulatorRegistry.removeSimulator(baseSimulator.udid)
+            }
+        }
+
+        simulators.clonedSimulators.forEach { clonedSimulator: Simulator ->
+            val simulator = simulatorRepository.findSimulatorByUdid(clonedSimulator.udid)
+            if (simulator == null) {
+                simulatorRegistry.removeSimulator(clonedSimulator.udid)
+            }
+        }
+    }
+
     fun createBaseSimulator(desiredCaps: DesiredCapabilities): Simulator {
         val deviceType: DeviceType = desiredCaps.toDeviceType(simulatorRepository)
         val runtime = desiredCaps.toRuntime(simulatorRepository)
+
+        // check if exists
+        simulatorRegistry.getBaseSimulators().find { baseSimulator: Simulator ->
+            baseSimulator.runtimeIdentifier == runtime.runtimeIdentifier && baseSimulator.deviceTypeIdentifier == deviceType.identifier
+        }?.let { registryRecord ->
+            simulatorRepository.findSimulatorByUdid(registryRecord.udid)?.let { foundSimulator ->
+                return foundSimulator
+            }
+        }
+
         val simulator = simulatorRepository.createSimulator(deviceType.name, deviceType, runtime)
             ?: throw RuntimeException("Failed to create base simulator with deviceName: ${desiredCaps.model!!}, deviceType: ${deviceType}, runtime: $runtime")
         simulatorRegistry.addBaseSimulator(simulator)
