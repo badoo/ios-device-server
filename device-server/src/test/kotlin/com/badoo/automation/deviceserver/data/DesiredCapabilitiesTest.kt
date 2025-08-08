@@ -15,7 +15,7 @@ class DesiredCapabilitiesTest {
         val json = "{}"
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(null, null, null), actual)
+        assertEquals(DesiredCapabilities(null, null, null, "arch", true, true), actual)
     }
 
     @Test
@@ -23,7 +23,7 @@ class DesiredCapabilitiesTest {
         val json = """{"model":"iPhone 6", "os": "iOS 11.0"}"""
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(null, "iPhone 6", "iOS 11.0"), actual)
+        assertEquals(DesiredCapabilities(null, "iPhone 6", "iOS 11.0", "arch", true, true), actual)
     }
 
     @Test
@@ -32,7 +32,7 @@ class DesiredCapabilitiesTest {
         val json = """{"udid":"$udid"}"""
         val actual = fromJson(json)
 
-        assertEquals(DesiredCapabilities(udid, null, null), actual)
+        assertEquals(DesiredCapabilities(udid, null, null, "arch", true, true), actual)
     }
 
     @Test

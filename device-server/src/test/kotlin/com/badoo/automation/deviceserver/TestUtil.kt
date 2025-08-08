@@ -31,6 +31,7 @@ fun deviceDTOStub(ref: DeviceRef): DeviceDTO {
     return DeviceDTO(
         ref, DeviceState.NONE,
         URI("http://wda/endpoint/for/testing"),
+        URI("http://wda/endpoint/for/testing"),
         0,
         URI("http://calabash/endpoint/for/testing"),
         1,

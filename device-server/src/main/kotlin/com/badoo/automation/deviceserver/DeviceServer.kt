@@ -94,11 +94,9 @@ fun Application.module() {
         remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile, appConfiguration = ApplicationConfiguration()
     )
     val deviceManager = DeviceManager(config, hostFactory)
-    deviceManager.cleanupTemporaryFiles()
     if (appConfiguration.useTestHelperApp) {
         deviceManager.extractTestApp()
     }
-    deviceManager.startPeriodicFileCleanup()
     deviceManager.startAutoRegisteringDevices()
     deviceManager.launchZombieReaper()
 
