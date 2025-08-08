@@ -28,7 +28,11 @@ class ApplicationBundle(
     private val httpClient = CustomHttpClient.client
         .newBuilder()
         .followRedirects(true)
-        .callTimeout(Duration.ofMinutes(10)) // TODO: case when timed out
+        .followRedirects(true)
+        .connectTimeout(Duration.ofMinutes(1))
+        .readTimeout(Duration.ofMinutes(4))
+        .writeTimeout(Duration.ofMinutes(1))
+        .callTimeout(Duration.ofMinutes(6))
         .build()
 
     private var bundleZipSize: Long = -1
@@ -47,11 +51,21 @@ class ApplicationBundle(
     }
 
     fun downloadApp(logger: Logger, marker: MapEntriesAppendingMarker) {
-        try {
-            download(appUrl)
-        } catch (e: IOException) {
-            logger.error(marker, "Failed to download app from url [$appUrl]. Retrying...")
-            download(appUrl)
+        val attempts = 5
+        repeat(attempts) { attempt ->
+            try {
+                logger.info(marker, "Download app from url started (attempt ${attempt + 1}) URL: [$appUrl]")
+                performDownload(appUrl, logger, marker)
+                logger.info(marker, "Download app from url ended successfully (attempt ${attempt + 1}) URL: [$appUrl]")
+                return
+            } catch (e: IOException) {
+                if (attempt == (attempts - 1)) {
+                    logger.error(marker, "Failed to download app from url after $attempts attempts URL: [$appUrl]")
+                    throw e
+                }
+                logger.info(marker, "Failed to download app from url (attempt ${attempt + 1}). Will retry.... URL: [$appUrl]")
+            }
+            Thread.sleep(2000) // Wait before retrying
         }
     }
 
@@ -90,7 +104,7 @@ class ApplicationBundle(
         }
     }
 
-    private fun download(url: URL) {
+    private fun performDownload(url: URL, logger: Logger, marker: MapEntriesAppendingMarker) {
         val request: Request = Request.Builder()
             .get()
             .url(url)
@@ -102,7 +116,9 @@ class ApplicationBundle(
 
             httpCall.execute().use { response ->
                 if (response.code != 200) {
-                    throw RuntimeException("Unable to download binary from $url. Response code: ${response.code}. Headers: ${response.headers}. Body: ${response.peekBody(1024).string()}")
+                    val message = "Unable to download binary from $url. Response code: ${response.code}. Headers: ${response.headers}. Body: ${response.peekBody(1024).string()}"
+                    logger.error(marker, message)
+                    throw IOException(message)
                 }
 
                 val contentLength = response.headers.get("Content-Length")?.toInt() ?: -1
@@ -112,12 +128,16 @@ class ApplicationBundle(
 
                 val downloadLength = bundleZip.length()
                 if (contentLength > 0 && downloadLength != contentLength.toLong()) {
-                    throw IOException("Downloaded file size ($downloadLength) different from Content-Length ($contentLength)")
+                    val message = "Downloaded file size ($downloadLength) different from Content-Length ($contentLength)"
+                    logger.error(marker, message)
+                    throw IOException(message)
                 }
 
                 bundleZipSize = downloadLength
             }
         } catch (e: IOException) {
+            val message = "Failed to download binary from $url. Error: ${e.message}"
+            logger.error(marker, message, e)
             Files.deleteIfExists(bundleZip.toPath())
             throw e
         }
