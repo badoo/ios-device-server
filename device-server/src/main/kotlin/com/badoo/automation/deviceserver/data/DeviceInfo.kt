@@ -33,7 +33,7 @@ data class DeviceInfo (
 
             return udid == other.udid
         }
-
-    val osMajorVersion: Int = os.substringAfter("iOS").trim().split(".").first().toInt()
-    val isRemoteNotificationsSupported get() : Boolean = osMajorVersion > 15
 }
+
+fun DeviceInfo.osMajorVersion(): Int = os.substringAfter("iOS").trim().split(".").first().toInt()
+fun DeviceInfo.isRemoteNotificationsSupported() : Boolean = osMajorVersion() > 15

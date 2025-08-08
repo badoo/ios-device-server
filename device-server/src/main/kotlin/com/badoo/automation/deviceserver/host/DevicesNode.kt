@@ -384,6 +384,7 @@ class DevicesNode(
         return DeviceDTO(
             ref = device.ref,
             state = device.deviceState,
+            fbsimctl_endpoint = device.fbsimctlEndpoint,
             wda_endpoint = device.wdaEndpoint,
             calabash_port = device.calabashPort,
             calabash_endpoint = device.calabashEndpoint,

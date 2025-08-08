@@ -3,6 +3,7 @@ package com.badoo.automation.deviceserver.ios.proc
 import com.badoo.automation.deviceserver.command.SubProcess
 import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.data.DeviceRef
+import com.badoo.automation.deviceserver.data.osMajorVersion
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.util.*
@@ -84,7 +85,7 @@ class XCTestInstrumentationAgent(
 
     private val xctestRunTemplate: String by lazy {
         if (isRealDevice) {
-            if (deviceInfo.osMajorVersion >= 17) {
+            if (deviceInfo.osMajorVersion() >= 17) {
                 xctestrunRealDeviceTemplateXcode15
             } else {
                 xctestrunRealDeviceTemplateXcode13

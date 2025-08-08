@@ -60,8 +60,6 @@ class HostFactory(
             val wdaSimulatorBundles = getWdaSimulatorBundles(appConfiguration)
             val hostChecker = SimulatorHostChecker(
                 remote,
-                wdaSimulatorBundles = wdaSimulatorBundles,
-                remoteTestHelperAppRoot = remoteTestHelperAppRoot,
                 shutdownSimulators = config.shutdownSimulators,
             )
             SimulatorsNode(

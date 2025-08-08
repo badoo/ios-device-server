@@ -11,7 +11,7 @@ data class DesiredCapabilities(
         val arch: String? = null,
 
         @JsonProperty("use_wda")
-        val useWda: Boolean,
+        val useWda: Boolean = false,
 
         @JsonProperty("simulator_clone")
         val isSimulatorClone: Boolean = true

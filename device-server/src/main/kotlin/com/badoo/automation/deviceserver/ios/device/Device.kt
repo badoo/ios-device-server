@@ -1,6 +1,5 @@
 package com.badoo.automation.deviceserver.ios.device
 
-import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.WaitTimeoutError
 import com.badoo.automation.deviceserver.data.*
@@ -62,6 +61,7 @@ class Device(
     )
 
     override val calabashEndpoint = URI("http://${remote.publicHostName}:${userPorts.calabashPort}")
+    override val fbsimctlEndpoint = URI("http://${remote.publicHostName}:${userPorts.fbsimctlPort}")
     override val wdaEndpoint = URI("http://${remote.publicHostName}:${wdaProxy.localPort}")
     override val calabashPort = calabashProxy.localPort
 

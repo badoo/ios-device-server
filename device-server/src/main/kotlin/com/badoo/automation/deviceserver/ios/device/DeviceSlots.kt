@@ -5,6 +5,7 @@ import com.badoo.automation.deviceserver.data.DesiredCapabilities
 import com.badoo.automation.deviceserver.data.DeviceInfo
 import com.badoo.automation.deviceserver.data.DeviceState
 import com.badoo.automation.deviceserver.data.UDID
+import com.badoo.automation.deviceserver.data.osMajorVersion
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
@@ -196,6 +197,6 @@ class DeviceSlots(
     private data class RemovedSlot(val udid: UDID)
 
     private fun DeviceInfo.matchesDesiredCapabilities(capabilities: DesiredCapabilities): Boolean {
-        return capabilities.udid == udid || capabilities.osMajorVersion == osMajorVersion
+        return capabilities.udid == udid || capabilities.osMajorVersion == osMajorVersion()
     }
 }
