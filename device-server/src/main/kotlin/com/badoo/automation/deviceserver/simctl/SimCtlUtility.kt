@@ -71,7 +71,14 @@ internal class SimCtlUtility(
     // endregion
 
     // region: List Simulators, Device Types, and Runtimes
-    fun listRuntimes(): Set<SimulatorRuntime> {
+
+    private val cachedRuntimes: Set<SimulatorRuntime> by lazy { performListRuntimes() }
+    private val cachedDeviceTypes: Set<DeviceType> by lazy { performListDeviceTypes() }
+
+    fun listRuntimes(): Set<SimulatorRuntime> = cachedRuntimes
+    fun listDeviceTypes(): Set<DeviceType> = cachedDeviceTypes
+
+    private fun performListRuntimes(): Set<SimulatorRuntime> {
         val result = commandExecutor.exec(SIMCTL_LIST_RUNTIMES_JSON.split(" "))
         if (result.isSuccess) {
             return try {
@@ -84,7 +91,7 @@ internal class SimCtlUtility(
         }
     }
 
-    fun listDeviceTypes(): Set<DeviceType> {
+    private fun performListDeviceTypes(): Set<DeviceType> {
         val result = commandExecutor.exec(SIMCTL_LIST_DEVICE_TYPES_JSON.split(" "))
         if (result.isSuccess) {
             return try {
