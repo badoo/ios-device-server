@@ -16,15 +16,12 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URI
 import java.net.URL
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.attribute.BasicFileAttributes
 import java.time.Duration
 import java.util.concurrent.*
 import kotlin.system.measureNanoTime
 
 private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
-private const val MAX_TEMP_FILE_AGE: Long = 3600L * 3 // MILLI SEC
 
 class DeviceManager(
         config: DeviceServerConfig,
@@ -50,15 +47,6 @@ class DeviceManager(
                 } else {
                     INFINITE_DEVICE_TIMEOUT
                 }
-    }
-
-    private val File.isTestArtifact get(): Boolean {
-        return name.contains(".app.zip.")
-                || name.contains("fbsimctl-")
-                || name.contains("videoRecording_")
-                || name.contains("iOS_SysLog_")
-                || name.contains("device_agent_log_")
-                || name.endsWith(".xctestrun")
     }
 
     private val shellExecutor = ShellCommand()
@@ -92,50 +80,6 @@ class DeviceManager(
         }
 
         logger.info("Successfully extracted TestHelper application $testHelperArchiveFileName to ${testHelperRoot.absolutePath}")
-    }
-
-    private fun File.isOlderThan(maxCreationTime: Long): Boolean {
-        val attributes = Files.readAttributes(toPath(), BasicFileAttributes::class.java)
-        return attributes.lastModifiedTime().toMillis() < maxCreationTime
-    }
-
-    fun cleanupTemporaryFiles() {
-        val maxCreationTime = System.currentTimeMillis() - MAX_TEMP_FILE_AGE
-
-        appConfig.tempFolder.listFiles()!!.forEach {
-            if (it.isTestArtifact && it.isFile && it.isOlderThan(maxCreationTime)) {
-                try {
-                    it.delete()
-                } catch (e: RuntimeException) {
-                    logger.error("Failed to cleanup file ${it.absolutePath}. Error: ${e.message}", e)
-                }
-            }
-        }
-
-        logger.debug("Cleanup complete.")
-    }
-
-    private lateinit var cleanUpTask: ScheduledFuture<*>
-
-    fun startPeriodicFileCleanup() {
-        val runnable = Runnable {
-            try {
-                cleanupTemporaryFiles()
-            } catch (t: Throwable) {
-                logger.error(
-                    "Cleanup failed. ${t.javaClass.name} ${t.message}\n${
-                        t.stackTrace.map { it.toString() }.joinToString { "\n" }
-                    }"
-                )
-            }
-        }
-        cleanUpTask = periodicTasksPool.scheduleWithFixedDelay(
-            runnable,
-            0,
-            60,
-            TimeUnit.MINUTES
-        )
-
     }
 
     fun startAutoRegisteringDevices() {
@@ -428,26 +372,12 @@ class DeviceManager(
         logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
 
         val nodeWrappers = nodeRegistry.getAll()
-        val executor = Executors.newFixedThreadPool(Math.min(nodeWrappers.size, 4))
-        val tasks = mutableListOf<Future<*>>()
         nodeWrappers.forEach { nodeWrapper ->
-            val task: Future<*> = executor.submit {
-                try {
-                    nodeWrapper.node.deployApplication(appBundle)
-                } catch (e: RuntimeException) {
-                    logger.error(marker, "Failed to deploy application ${dto.appUrl} to ${nodeWrapper.node.publicHostName}. Error: ${e.message}", e)
-                }
+            try {
+                nodeWrapper.node.deployApplication(appBundle)
+            } catch (e: RuntimeException) {
+                logger.error(marker, "Failed to deploy application ${dto.appUrl} to ${nodeWrapper.node.publicHostName}. Error: ${e.message}", e)
             }
-            tasks.add(task)
-        }
-        executor.shutdown()
-
-        tasks.forEach { it.get() }
-
-        try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
-        } catch (e: InterruptedException) {
-            println("Failed to awaitTermination while deploying application binary simulator hosts due to issue. ${e.javaClass.name}, ${e.message}")
         }
 
         logger.debug(marker, "Successfully deployed application ${dto.appUrl}")
