@@ -55,11 +55,22 @@ class Media(
         return remote.execIgnoringErrors(listCmd).stdOut.lines().filter(String::isNotBlank)
     }
 
+    fun listExistingMediaAssets() : List<MediaAsset> {
+        val listCmd = listOf("/usr/bin/find", "$mediaPath/DCIM/100APPLE", "-type", "f", "-exec", "/usr/bin/shasum", "-a", "1", "{}", ";")
+        val regex = Regex("\\s+")
+        val mediaPathString = mediaPath.toString()
+        val strings = remote.execIgnoringErrors(listCmd).stdOut.lines().filter(String::isNotBlank).filter { it.contains(mediaPathString) }
+        return strings.map { val parts = it.trim().split(regex); MediaAsset(parts[0].trim(), parts[1].trim()) }
+    }
+
     fun addMedia(media: List<File>) {
         withDefers(logger) {
-            val mediaPaths = media.joinToString(" ")
+            val command = mutableListOf("/usr/bin/xcrun", "simctl", "addmedia", udid)
+            media.forEach { file ->
+                command.add(file.absolutePath)
+            }
 
-            val result = remote.shell("/usr/bin/xcrun simctl addmedia $udid $mediaPaths")
+            val result = remote.exec(command, emptyMap(), returnFailure = true, timeOutSeconds = 120)
 
             if (!result.isSuccess) {
                 throw RuntimeException("Could not add Media to device: $result")
