@@ -468,21 +468,48 @@ class Simulator(
     private fun copyMediaAssets() {
         logger.debug(logMarker, "Copying assets to ${this@Simulator}")
 
-        val mediaFiles = File(assetsPath).walk().filter { it.isFile }.toList()
-        media.addMedia(mediaFiles)
+        val mediaFiles: MutableList<MediaAsset> = getMediaFilesToAdd()
 
-        val assets = media.list()
-        val recordedAssets = media.listPhotoData()
-
-        if (recordedAssets.size != recordedAssets.toSet().size) {
-            throw MediaInconsistentcyException("Recorded media contains wrong data. Assets: ${assets.joinToString(",")}. Recorded assets: ${recordedAssets.joinToString(",")}")
+        val existingMedia = media.listExistingMediaAssets().map { it.shaSum }
+        val newMediaFiles = mediaFiles.filter { !existingMedia.contains(it.shaSum) }.toSet()
+        if (newMediaFiles.isNotEmpty()) {
+            media.addMedia(newMediaFiles.map { File(it.path) })
         }
 
-        if (assets.size != recordedAssets.size) {
-            throw MediaInconsistentcyException("Actual media is in wrong state. Assets: ${assets.joinToString(",")}. Recorded assets: ${recordedAssets.joinToString(",")}")
+        val existingFiles = media.listExistingMediaAssets()
+        val recordedAssets = media.listPhotoData()
+
+        logger.info(logMarker, "Existing assets: ${recordedAssets.joinToString(",")}")
+
+        if (recordedAssets.size != recordedAssets.toSet().size) {
+            throw MediaInconsistentcyException("Recorded media contains wrong data. Assets: ${existingFiles.joinToString(",")}. Recorded assets: ${recordedAssets.joinToString(",")}")
+        }
+
+        if (existingFiles.size != recordedAssets.size) {
+            throw MediaInconsistentcyException("Actual media is in wrong state. Assets: ${existingFiles.joinToString(",")}. Recorded assets: ${recordedAssets.joinToString(",")}")
         }
 
         logger.info(logMarker, "Copied assets to ${this@Simulator}")
+    }
+
+    private fun getMediaFilesToAdd(): MutableList<MediaAsset> {
+        val mediaFilesToAdd: MutableList<MediaAsset> = mutableListOf()
+        val spaceRegex = Regex("\\s+")
+        val mediaFiles = File(assetsPath).walk().filter { it.isFile }.toSet()
+
+        mediaFiles.forEach { file ->
+            val command = listOf("/usr/bin/shasum", "-a", "1", file.absolutePath)
+            val result = remote.exec(command, emptyMap(), true, Duration.ofSeconds(60).toSeconds())
+            if (result.isSuccess) {
+                result.stdOut.trim().split(spaceRegex).let { parts ->
+                    mediaFilesToAdd.add(MediaAsset(parts[0], parts[1]))
+                }
+            } else {
+                logger.error(logMarker, "Failed to calculate SHA for file ${file.absolutePath}. Result: $result")
+            }
+        }
+
+        return mediaFilesToAdd
     }
 
     private fun isSimulatorShutdown(): Boolean {
