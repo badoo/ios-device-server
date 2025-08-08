@@ -163,7 +163,7 @@ class Device(
     }
 
     override fun endpointFor(port: Int): URL {
-        val ports = userPorts.toSet()
+        val ports = userPorts.toList()
         require(ports.contains(port)) { "Port $port is not in user ports range $ports" }
 
         return URI("http://${remote.publicHostName}:$port/").toURL()

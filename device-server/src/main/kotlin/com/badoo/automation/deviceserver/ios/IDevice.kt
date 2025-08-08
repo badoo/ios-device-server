@@ -17,6 +17,7 @@ interface IDevice {
     val mjpegServerPort: Int
     val wdaEndpoint: URI
     val calabashEndpoint: URI
+    val fbsimctlEndpoint: URI
     val udid: UDID
     val ref: DeviceRef
     val deviceState: DeviceState
