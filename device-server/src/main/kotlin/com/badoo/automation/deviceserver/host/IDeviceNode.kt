@@ -72,6 +72,7 @@ interface IDeviceNode {
     fun totalCapacity(desiredCaps: DesiredCapabilities): Int
     fun capacityRemaining(desiredCaps: DesiredCapabilities): Float
     fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO
+    fun prebootSimulatorForTests(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
     fun reboot()
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)

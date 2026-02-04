@@ -90,6 +90,31 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
         return dto
     }
 
+    fun prebootSimulatorForTests(desiredCapabilities: DesiredCapabilities, deviceTimeout: Duration, userId: String?): DeviceDTO {
+        if (getAll().isEmpty()) {
+            throw NoNodesRegisteredException("No nodes are registered to create a device")
+        }
+
+        val node: IDeviceNode = getAlive()
+                .map { wrapper -> wrapper.node }
+                .shuffled()
+                .maxBy { node -> node.capacityRemaining(desiredCapabilities) }
+                ?: throw NoAliveNodesException("No alive nodes are available to create device at the moment")
+
+        val dto = node.prebootSimulatorForTests(desiredCapabilities)
+        logger.info("Create device dto $dto ")
+
+        val logMarker: Marker = MapEntriesAppendingMarker(mutableMapOf(
+                LogMarkers.DEVICE_REF to dto.ref,
+                LogMarkers.UDID to dto.info.udid
+        ))
+        logger.info(logMarker, "Create device started, register with timeout ${deviceTimeout.seconds} secs")
+
+        activeDevices.registerDevice(dto.ref, node, userId)
+
+        return dto
+    }
+
     fun dispose() {
         //FIXME: Do proper clean up on server exit
         nodeWrappers.parallelStream().forEach {

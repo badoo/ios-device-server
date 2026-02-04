@@ -236,6 +236,16 @@ class DeviceManager(
         }
     }
 
+    fun prebootSimulatorForTests(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
+        try {
+            return nodeRegistry.prebootSimulatorForTests(desiredCaps, deviceTimeoutInSecs, userId)
+        } catch (e: NoNodesRegisteredException) {
+            val erredNodes = autoRegistrar.nodeWrappers.filter { n -> n.lastError != null }
+            val errors = erredNodes.joinToString { n -> "${n.node.publicHostName} -> ${n.lastError?.localizedMessage}" }
+            throw(NoNodesRegisteredException(e.message + "\n$errors"))
+        }
+    }
+
     fun deleteReleaseDevice(ref: DeviceRef, reason: String) {
         nodeRegistry.deleteReleaseDevice(ref, reason)
     }

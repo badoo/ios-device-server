@@ -21,6 +21,7 @@ import com.badoo.automation.deviceserver.util.pollFor
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.net.URI
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
@@ -28,6 +29,9 @@ import java.nio.file.StandardOpenOption
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.*
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.collections.set
+import kotlin.concurrent.withLock
 
 class SimulatorsNode(
     val remote: IRemote,
@@ -37,7 +41,7 @@ class SimulatorsNode(
     concurrentBoots: Int,
     private val wdaSimulatorBundles: WdaSimulatorBundles,
     private val concurrentBootsSemaphore: Semaphore = Semaphore(concurrentBoots, true),
-    simulatorRepository: SimulatorRepository = SimulatorRepository(remote.commandExecutor),
+    private val simulatorRepository: SimulatorRepository = SimulatorRepository(remote.commandExecutor),
     simulatorRegistry: SimulatorRegistry = SimulatorRegistry(
         registryFile = File(System.getProperty("user.home"), ".iosctl/simulator_registry_$publicHostName.json")
     ),
@@ -53,24 +57,73 @@ class SimulatorsNode(
     private val allocatedPorts = HashMap<DeviceRef, DeviceAllocatedPorts>()
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val logMarker = MapEntriesAppendingMarker(mapOf(
-        HOSTNAME to remote.publicHostName
-    ))
+    private val logMarker = MapEntriesAppendingMarker(
+        mapOf(
+            HOSTNAME to remote.publicHostName
+        )
+    )
 
     // region: Simulator operations: Create, Delete
     override fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
-        return createSimulatorForTests(desiredCaps, isSimulatorClone = desiredCaps.isSimulatorClone)
+        return createSimulatorForTests(desiredCaps, isSimulatorClone = desiredCaps.isSimulatorClone, shouldPrebootSimulators = false)
     }
 
-    private fun createSimulatorForTests(desiredCaps: DesiredCapabilities, isSimulatorClone: Boolean): DeviceDTO {
-        synchronized(this) {
+    override fun prebootSimulatorForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
+        logger.info(logMarker, "Prebooting simulator for desired capabilities: $desiredCaps. ${Thread.currentThread().threadId()}")
+//        return createSimulatorForTests(desiredCaps, isSimulatorClone = desiredCaps.isSimulatorClone, shouldPrebootSimulators = false)
+        return DeviceDTO(
+            ref = "asdfghjkl",
+            state = DeviceState.CREATED,
+            fbsimctl_endpoint = URI("http://localhost:1234"),
+            wda_endpoint = URI("http://localhost:1234"),
+            calabash_port = 1234,
+            calabash_endpoint = URI("http://localhost:1234"),
+            mjpeg_server_port = 1234,
+            info = DeviceInfo(
+                udid = "1234567890abcdef1234567890abcdef12345678",
+                model = "iPhone14,2",
+                os = "iPhone14,2",
+                name = "iPhone 14",
+                arch = "16.0",
+            ),
+            last_error = null,
+            capabilities = ActualCapabilities(
+                setLocation = true,
+                terminateApp = true,
+                remoteNotifications = true,
+                videoCapture = true)
+        )
+    }
+
+    private val preBootedClonedVacantSimulators = ConcurrentHashMap<DeviceRef, DeviceDTO>()
+    private val createSimulatorForTestsLock = ReentrantLock(true)
+
+    private fun createSimulatorForTests(desiredCaps: DesiredCapabilities, isSimulatorClone: Boolean, shouldPrebootSimulators: Boolean): DeviceDTO {
+        createSimulatorForTestsLock.withLock {
+            if (shouldPrebootSimulators && isSimulatorClone) {
+                logger.info(logMarker, "Will create simulator for desired capabilities: $desiredCaps with prebooting enabled. ${Thread.currentThread().threadId()}")
+                val cachedSimulator: MutableMap.MutableEntry<DeviceRef, DeviceDTO>? = preBootedClonedVacantSimulators.entries.firstOrNull()
+
+                if (cachedSimulator != null) {
+                    val createdSimulator = createdSimulators[cachedSimulator.key]
+                    if (createdSimulator != null && createdSimulator.deviceState == DeviceState.CREATED) {
+//                    if (createdSimulator != null) {
+                        preBootedClonedVacantSimulators.remove(cachedSimulator.key)
+                        logger.info(logMarker, "Using prebooted simulator: ${cachedSimulator.key} for desired capabilities: $desiredCaps. ${Thread.currentThread().threadId()}")
+                        return cachedSimulator.value
+                    }
+                } else {
+                    logger.info(logMarker, "No prebooted simulator found for desired capabilities: $desiredCaps, will create a new one. ${Thread.currentThread().threadId()}")
+                }
+            }
+
             if (createdSimulators.size >= simulatorLimit) {
                 val message = "$this was asked for a newSimulator, but is already at capacity $simulatorLimit"
                 logger.error(logMarker, message)
                 throw OverCapacityException(message)
             }
 
-            logger.info(logMarker, "Will create simulator for desired capabilities: $desiredCaps")
+            logger.info(logMarker, "Will create simulator for desired capabilities: $desiredCaps . ${Thread.currentThread().threadId()}")
 
             val usedUdids = createdSimulators.map { it.value.udid }.toSet()
 
@@ -81,11 +134,13 @@ class SimulatorsNode(
             }
 
             val ref = deviceRefFromUDID(simulatorModel.udid, remote.publicHostName)
-            val simLogMarker = MapEntriesAppendingMarker(mapOf(
-                HOSTNAME to remote.hostName,
-                UDID to simulatorModel.udid,
-                DEVICE_REF to ref
-            ))
+            val simLogMarker = MapEntriesAppendingMarker(
+                mapOf(
+                    HOSTNAME to remote.hostName,
+                    UDID to simulatorModel.udid,
+                    DEVICE_REF to ref
+                )
+            )
 
             logger.debug(simLogMarker, "Will create simulator $ref")
 
@@ -109,7 +164,14 @@ class SimulatorsNode(
 
             logger.debug(simLogMarker, "Created simulator $ref")
 
-            return DeviceDTO(simulator)
+            val deviceDTO = DeviceDTO(simulator)
+
+            if (shouldPrebootSimulators && isSimulatorClone) {
+                preBootedClonedVacantSimulators[ref] = deviceDTO
+                logger.info(logMarker, "Added simulator $ref to prebootedClonedVacantSimulators. ${Thread.currentThread().threadId()}")
+            }
+
+            return deviceDTO
         }
     }
 
@@ -119,6 +181,11 @@ class SimulatorsNode(
     override fun deleteSimulatorWithForce(deviceRef: DeviceRef, reason: String) {
         val simulator = createdSimulators[deviceRef]
             ?: return
+
+        createSimulatorForTestsLock.withLock {
+            preBootedClonedVacantSimulators.remove(deviceRef)
+            logger.info(logMarker, "Removed simulator $deviceRef from prebootedClonedVacantSimulators due to deleteSimulatorWithForce. ${Thread.currentThread().threadId()}")
+        }
 
         val udid = simulator.udid
         simulator.release("deleteReleaseDeviceForTests $reason $deviceRef")
@@ -137,6 +204,11 @@ class SimulatorsNode(
     override fun deleteReleaseDeviceForTests(deviceRef: DeviceRef, reason: String): Boolean {
         val simulator = createdSimulators[deviceRef]
             ?: return false
+
+        createSimulatorForTestsLock.withLock {
+            preBootedClonedVacantSimulators.remove(deviceRef)
+            logger.info(logMarker, "Removed simulator $deviceRef from prebootedClonedVacantSimulators due to deleteReleaseDeviceForTests. ${Thread.currentThread().threadId()}")
+        }
 
         simulator.release("deleteReleaseDeviceForTests $reason $deviceRef")
 

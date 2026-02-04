@@ -176,6 +176,14 @@ fun Application.module() {
                 val deviceDto: DeviceDTO = devicesController.createDevice(jsonContent<DesiredCapabilities>(call), user)
                 call.respond(deviceDto)
             }
+            post("preboot_simulator") {
+                // This route is used for prebooting simulator for tests
+                // It is not used in production, but can be used in tests to speed up simulator boot time
+//                val user = call.principal<UserIdPrincipal>()
+                val user = defaultUser
+                val deviceDto: DeviceDTO = devicesController.prebootSimulatorForTests(jsonContent<DesiredCapabilities>(call), user)
+                call.respond(deviceDto)
+            }
             delete {
 //                val user = call.principal<UserIdPrincipal>()
                 val user = defaultUser

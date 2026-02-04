@@ -21,6 +21,10 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.createDeviceAsync(desiredCapabilities, user?.name)
     }
 
+    fun prebootSimulatorForTests(desiredCapabilities: DesiredCapabilities, user: UserIdPrincipal?): DeviceDTO {
+        return deviceManager.prebootSimulatorForTests(desiredCapabilities, user?.name)
+    }
+
     fun getDeviceContactDetails(ref: DeviceRef): DeviceDTO {
         return deviceManager.getGetDeviceDTO(ref)
     }
