@@ -122,7 +122,9 @@ class ApplicationBundle(
                 }
 
                 val contentLength = response.headers.get("Content-Length")?.toInt() ?: -1
-                response.body!!.byteStream().use { inputStream ->
+                val responseBody = response.body
+                    ?: throw IOException("Response body is null for $url")
+                responseBody.byteStream().use { inputStream ->
                     Files.copy(inputStream, outPath, StandardCopyOption.REPLACE_EXISTING)
                 }
 

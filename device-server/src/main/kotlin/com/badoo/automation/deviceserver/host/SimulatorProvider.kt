@@ -44,7 +44,7 @@ class SimulatorProvider(
         }
 
         val simulator = simulatorRepository.createSimulator(deviceType.name, deviceType, runtime)
-            ?: throw RuntimeException("Failed to create base simulator with deviceName: ${desiredCaps.model!!}, deviceType: ${deviceType}, runtime: $runtime")
+            ?: throw RuntimeException("Failed to create base simulator with deviceName: ${desiredCaps.model ?: "null"}, deviceType: ${deviceType}, runtime: $runtime")
         simulatorRegistry.addBaseSimulator(simulator)
         return simulator
     }

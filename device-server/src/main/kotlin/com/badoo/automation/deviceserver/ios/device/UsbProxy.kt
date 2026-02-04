@@ -60,15 +60,15 @@ class UsbProxy(
     }
 
     fun stop() {
-        if (iproxy != null) {
-            logger.debug(logMarker, "$this — Killing child process $iproxy")
-            iproxy!!.kill()
+        iproxy?.let {
+            logger.debug(logMarker, "$this — Killing child process $it")
+            it.kill()
             iproxy = null
         }
 
-        if (socat !=null) {
-            logger.debug(logMarker, "$this — Killing child process $socat")
-            socat!!.kill()
+        socat?.let {
+            logger.debug(logMarker, "$this — Killing child process $it")
+            it.kill()
             socat = null
         }
     }

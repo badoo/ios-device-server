@@ -12,7 +12,7 @@ class JsonMapper {
         .configure(JsonParser.Feature.ALLOW_NUMERIC_LEADING_ZEROS, true)
         .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
         .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
-        .configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true)!!
+        .configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true)
 
     fun <T> fromJson(string: String, clazz: Class<T>): T {
         return mapper.readValue(string, clazz)

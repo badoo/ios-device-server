@@ -8,9 +8,11 @@ data class XcodeVersion(val major: Int, val minor: Int):Comparable<XcodeVersion>
             val versionLine = output.lines().first { it.startsWith("Xcode ") }
             val match: MatchResult? = regex.matchEntire(versionLine)
 
-            match?.destructured?.let {
-                val major = match.groups[1]!!.value.toInt()
-                val minor = match.groups[2]!!.value.toInt()
+            match?.let {
+                val major = it.groups[1]?.value?.toIntOrNull()
+                    ?: throw IllegalArgumentException("Could not parse major version from $versionLine")
+                val minor = it.groups[2]?.value?.toIntOrNull()
+                    ?: throw IllegalArgumentException("Could not parse minor version from $versionLine")
 
                 return XcodeVersion(major, minor)
             } ?: throw IllegalArgumentException("Could not parse Xcode version $versionLine")

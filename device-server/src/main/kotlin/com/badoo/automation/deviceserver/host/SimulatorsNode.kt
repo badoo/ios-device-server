@@ -277,7 +277,8 @@ class SimulatorsNode(
     }
 
     override fun getDeviceFor(ref: DeviceRef): ISimulator {
-        return createdSimulators[ref]!! //FIXME: replace with explicit unwrapping
+        return createdSimulators[ref]
+            ?: throw com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException("Simulator not found: $ref")
     }
     // endregion
 
@@ -428,7 +429,8 @@ class SimulatorsNode(
     }
 
     override fun deployApplication(appBundle: ApplicationBundle) {
-        val appDirectory: File = appBundle.appDirectory!!
+        val appDirectory: File = appBundle.appDirectory
+            ?: throw IllegalStateException("Application bundle not unpacked: ${appBundle.appUrl}")
         val key = appBundle.appUrl.toExternalForm()
         appBinariesCache[key] = appDirectory
     }

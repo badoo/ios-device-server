@@ -25,10 +25,7 @@ fun <T> executeWithTimeout(timeout: Duration, name: String, action: () -> T): T 
         future.cancel(true)
         throw TimeoutException("$name timed out after ${timeout.seconds} seconds")
     } catch (e: ExecutionException) {
-        when {
-            e.cause == null -> throw e
-            else -> throw e.cause!!
-        }
+        throw e.cause ?: e
     }
 }
 

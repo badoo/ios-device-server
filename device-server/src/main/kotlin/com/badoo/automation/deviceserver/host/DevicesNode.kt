@@ -46,7 +46,8 @@ class DevicesNode(
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
 
     override fun deployApplication(appBundle: ApplicationBundle) {
-        val appDirectory = appBundle.appDirectory!!
+        val appDirectory = appBundle.appDirectory
+            ?: throw IllegalStateException("Application bundle not unpacked: ${appBundle.appUrl}")
         val key = appBundle.appUrl.toExternalForm()
         appBinariesCache[key] = appDirectory
     }
