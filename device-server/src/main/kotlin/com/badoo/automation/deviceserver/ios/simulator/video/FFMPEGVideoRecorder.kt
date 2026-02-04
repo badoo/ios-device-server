@@ -169,11 +169,11 @@ class FFMPEGVideoRecorder(
         }
     }
 
-    override fun getRecording(): ByteArray {
+    override fun getRecording(): File {
         logger.info(logMarker, "Getting video recording ${videoFile.name}")
 
         return if (videoFile.exists()) {
-            videoFile.readBytes()
+            videoFile
         } else {
             val errorMessage = "Failed to find video recording ${videoFile.absolutePath}. Log contents: ${getRecordingLog()}"
             logger.error(errorMessage)

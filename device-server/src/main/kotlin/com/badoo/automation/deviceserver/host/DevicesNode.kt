@@ -375,7 +375,7 @@ class DevicesNode(
         slotByExternalRef(deviceRef).device.videoRecorder.delete()
     }
 
-    override fun videoRecordingGet(deviceRef: DeviceRef): ByteArray {
+    override fun videoRecordingGet(deviceRef: DeviceRef): File {
         return slotByExternalRef(deviceRef).device.videoRecorder.getRecording()
     }
 

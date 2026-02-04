@@ -153,7 +153,7 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
-    fun getVideo(ref: DeviceRef): ByteArray {
+    fun getVideo(ref: DeviceRef): File {
         return deviceManager.getVideo(ref)
     }
 

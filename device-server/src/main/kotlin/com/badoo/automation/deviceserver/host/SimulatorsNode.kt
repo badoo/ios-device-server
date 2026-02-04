@@ -556,7 +556,7 @@ class SimulatorsNode(
         getDeviceFor(deviceRef).videoRecorder.delete()
     }
 
-    override fun videoRecordingGet(deviceRef: DeviceRef): ByteArray {
+    override fun videoRecordingGet(deviceRef: DeviceRef): File {
         return getDeviceFor(deviceRef).videoRecorder.getRecording()
     }
 

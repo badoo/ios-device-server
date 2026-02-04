@@ -402,9 +402,10 @@ fun Application.module() {
                 }
                 route("video") {
                     get {
-                        //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
-                        //FIXME: see [call.respondFile] basically - read from ssh proc listener's ByteBuffer
-                        call.respond(devicesController.getVideo(param(call, "ref")))
+                        val videoFile: File = devicesController.getVideo(param(call, "ref"))
+                        call.response.header(HttpHeaders.ContentType, ContentType.Video.MP4.toString())
+                        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"${videoFile.name}\"")
+                        call.respondFile(videoFile)
                     }
                     get("log") {
                         call.respond(devicesController.getVideoLog(param(call, "ref")))

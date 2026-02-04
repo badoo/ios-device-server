@@ -25,7 +25,7 @@ interface IDeviceNode {
     fun state(deviceRef: DeviceRef): SimulatorStatusDTO
 
     fun videoRecordingDelete(deviceRef: DeviceRef)
-    fun videoRecordingGet(deviceRef: DeviceRef): ByteArray
+    fun videoRecordingGet(deviceRef: DeviceRef): File
     fun videoRecordingStart(deviceRef: DeviceRef)
     fun videoRecordingStop(deviceRef: DeviceRef)
     fun videoRecordingLogGet(deviceRef: DeviceRef): String

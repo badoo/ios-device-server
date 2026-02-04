@@ -202,7 +202,7 @@ class DeviceManager(
         nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingStop(ref)
     }
 
-    fun getVideo(ref: DeviceRef): ByteArray {
+    fun getVideo(ref: DeviceRef): File {
         return nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingGet(ref)
     }
 
