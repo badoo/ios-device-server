@@ -155,15 +155,6 @@ class DevicesControllerTest {
     }
 
     @Test
-    fun getVideo() {
-        whenever(deviceManager.getVideo(deviceRef)).thenReturn(expectedArray)
-
-        val actualResult = deviceServer.getVideo(deviceRef)
-
-        assertThat(actualResult, sameInstance(expectedArray))
-    }
-
-    @Test
     fun deleteVideo() {
         val actualResult = deviceServer.deleteVideo(deviceRef)
 

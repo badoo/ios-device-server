@@ -234,11 +234,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return deviceManager.listFiles(ref, dataPath)
     }
 
-    fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
+    fun pullFile(ref: DeviceRef, dataPath: DataPath): File {
         return deviceManager.pullFile(ref, dataPath)
     }
 
-    fun pullFile(ref: DeviceRef, path: Path): ByteArray {
+    fun pullFile(ref: DeviceRef, path: Path): File {
         return deviceManager.pullFile(ref, path)
     }
 

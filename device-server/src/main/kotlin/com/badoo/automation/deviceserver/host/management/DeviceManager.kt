@@ -295,11 +295,11 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).listFiles(ref, dataPath)
     }
 
-    fun pullFile(ref: DeviceRef, dataPath: DataPath): ByteArray {
+    fun pullFile(ref: DeviceRef, dataPath: DataPath): File {
         return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
     }
 
-    fun pullFile(ref: DeviceRef, path: Path): ByteArray {
+    fun pullFile(ref: DeviceRef, path: Path): File {
         return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, path)
     }
 

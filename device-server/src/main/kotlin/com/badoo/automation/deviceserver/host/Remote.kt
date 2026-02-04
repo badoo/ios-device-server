@@ -66,12 +66,11 @@ class Remote(
         return commandExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
     }
 
-    //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel
-    override fun captureFile(file: File): ByteArray {
+    override fun captureFile(file: File): File {
         if (!file.exists()) {
             throw FileNotFoundException("File $file is not found.")
         }
-        return file.readBytes()
+        return file
     }
 
     private enum class Signal(val signal: Int) {

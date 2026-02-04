@@ -19,7 +19,7 @@ abstract class SimulatorFilesystemContainer(private val remote: IRemote) {
         logger.debug(logMarker, "Successfully wrote data to file ${file.absolutePath}")
     }
 
-    fun readFile(path: String): ByteArray {
+    fun readFile(path: String): File {
         try {
             return remote.captureFile(File(path))
         } catch (e: RuntimeException) {

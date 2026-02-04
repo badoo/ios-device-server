@@ -31,8 +31,8 @@ interface IDeviceNode {
     fun videoRecordingLogGet(deviceRef: DeviceRef): String
 
     fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String>
-    fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray
-    fun pullFile(deviceRef: DeviceRef, path: Path): ByteArray
+    fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): File
+    fun pullFile(deviceRef: DeviceRef, path: Path): File
 
     fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray)
     fun syslog(deviceRef: DeviceRef): File

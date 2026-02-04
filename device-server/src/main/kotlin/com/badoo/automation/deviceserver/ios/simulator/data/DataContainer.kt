@@ -26,7 +26,7 @@ class DataContainer(
         return Files.list(expandedPath).toList().map { it.absolutePathString() }
     }
 
-    fun readFile(path: Path): ByteArray {
+    fun readFile(path: Path): File {
         val expandedPath = expandPath(path, basePath).toString()
 
         return super.readFile(expandedPath)

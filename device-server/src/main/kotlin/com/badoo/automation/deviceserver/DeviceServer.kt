@@ -263,14 +263,20 @@ fun Application.module() {
                         // API(/devices/{ref}/shared_resources?path={file_path}") to get the file from shared resource directory.
                         val deviceRef = param(call, "ref")
                         val path = param(call, "path")
-                        call.respond(devicesController.pullFile(deviceRef, File(path).toPath()))
+                        val file: File = devicesController.pullFile(deviceRef, File(path).toPath())
+                        call.response.header(HttpHeaders.ContentType, ContentType.Application.OctetStream.toString())
+                        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"${file.name}\"")
+                        call.respondFile(file)
                     }
                 }
                 route("data") {
                     post("pull_file") {
                         val ref = param(call, "ref")
                         val dataPath = jsonContent<DataPath>(call)
-                        call.respond(devicesController.pullFile(ref, dataPath))
+                        val file: File = devicesController.pullFile(ref, dataPath)
+                        call.response.header(HttpHeaders.ContentType, ContentType.Application.OctetStream.toString())
+                        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"${file.name}\"")
+                        call.respondFile(file)
                     }
                     post("push_file") {
                         val ref = param(call, "ref")

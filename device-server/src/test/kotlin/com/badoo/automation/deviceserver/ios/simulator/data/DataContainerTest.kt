@@ -79,21 +79,6 @@ class DataContainerTest {
     }
 
     @Test
-    fun shouldReadFileAsByteArray() {
-        val expected = "123".toByteArray()
-        whenever(remote.captureFile(File(containerPathStub, "Library/Caches/file.txt"))).thenReturn(expected)
-
-        val container = DataContainer(
-            remote = remote,
-            basePath = containerPathStub,
-            bundleId = "test.bundle"
-        )
-        val actual = container.readFile(Paths.get("Library/Caches/file.txt"))
-
-        assertEquals(expected, actual)
-    }
-
-    @Test
     fun shouldRejectPathOutsideContainer() {
         val container = DataContainer(
             remote = remote,

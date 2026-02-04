@@ -578,11 +578,11 @@ class SimulatorsNode(
         return getDeviceFor(deviceRef).dataContainer(dataPath.bundleId).listFiles(dataPath.path)
     }
 
-    override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): ByteArray {
+    override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): File {
         return getDeviceFor(deviceRef).dataContainer(dataPath.bundleId).readFile(dataPath.path)
     }
 
-    override fun pullFile(deviceRef: DeviceRef, path: Path): ByteArray {
+    override fun pullFile(deviceRef: DeviceRef, path: Path): File {
         return getDeviceFor(deviceRef).sharedContainer().readFile(path)
     }
 

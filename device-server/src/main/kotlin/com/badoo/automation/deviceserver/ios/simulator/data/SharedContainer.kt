@@ -19,7 +19,7 @@ class SharedContainer(
         super.writeFile(dataContainerFile, data)
     }
 
-    fun readFile(path: Path): ByteArray {
+    fun readFile(path: Path): File {
         val expandedPath = expandPath(path, basePath).toString()
 
         return super.readFile(expandedPath)

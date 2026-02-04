@@ -27,7 +27,7 @@ interface IRemote {
      * Returns [CommandResult] file contents
      * //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigate ByteReadChannel
      */
-    fun captureFile(file: File): ByteArray
+    fun captureFile(file: File): File
 
     fun pkill(matchString: String, force: Boolean): CommandResult
 
