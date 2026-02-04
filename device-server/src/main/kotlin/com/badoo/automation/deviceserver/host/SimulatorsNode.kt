@@ -344,7 +344,10 @@ class SimulatorsNode(
         val wasRebooted = uptimeInfoAfterReboot.bootTime > uptimeInfoBeforeReboot.bootTime
 
         if (wasRebooted) {
-            logger.info(logMarker, "Node $publicHostName was rebooted successfully. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
+            logger.info(
+                logMarker,
+                "Node $publicHostName was rebooted successfully. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}"
+            )
         } else {
             logger.error(logMarker, "Node $publicHostName was not rebooted. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
         }
