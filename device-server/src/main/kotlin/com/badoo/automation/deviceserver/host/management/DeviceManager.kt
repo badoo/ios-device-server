@@ -421,8 +421,8 @@ class DeviceManager(
                 deleteRecursivelyIfExist(logger, marker)
                 ensureDirectoryExists(logger, marker)
             }
-        } catch (t: Throwable) {
-            logger.error(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} failed! Error: ${t.message}", t)
+        } catch (e: Exception) {
+            logger.error(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} failed! Error: ${e.message}", e)
         }
     }
 

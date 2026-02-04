@@ -216,7 +216,7 @@ class Device(
     private fun ignoringDisposeErrors(action: () -> Unit?) {
         try {
             action()
-        } catch (e: Throwable) { // FIXME: RuntimeError, SystemCallError in Ruby
+        } catch (e: Exception) {
             logger.warn(logMarker, "Ignoring $this release error: $e")
         }
     }

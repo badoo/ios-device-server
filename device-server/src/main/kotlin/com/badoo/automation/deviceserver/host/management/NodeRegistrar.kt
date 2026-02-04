@@ -67,7 +67,7 @@ class NodeRegistrar(
         results.forEach { result ->
             try {
                 result.get()
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 logger.error("Error while starting node", e)
             }
         }
@@ -88,8 +88,8 @@ class NodeRegistrar(
                             shouldReboot,
                             forceReboot
                     )
-                } catch (t: Throwable) {
-                    logger.error("Failed to reboot all simulator hosts due to issue. ${t.javaClass.name}, ${t.message}", t)
+                } catch (e: Exception) {
+                    logger.error("Failed to reboot all simulator hosts due to issue. ${e.javaClass.name}, ${e.message}", e)
                 }
             }
             executor.shutdown()

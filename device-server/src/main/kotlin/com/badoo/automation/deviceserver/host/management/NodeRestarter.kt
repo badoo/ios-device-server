@@ -32,8 +32,8 @@ class NodeRestarter(
                 val task: Future<*> = executor.submit {
                     try {
                         rebootSimulatorHost(nodeWrapper, forceReboot, shouldReboot)
-                    } catch (t: Throwable) {
-                        logger.error("Failed to reboot simulator host ${nodeWrapper.node.publicHostName} due to issue. ${t.javaClass.name}, ${t.message}", t)
+                    } catch (e: Exception) {
+                        logger.error("Failed to reboot simulator host ${nodeWrapper.node.publicHostName} due to issue. ${e.javaClass.name}, ${e.message}", e)
                     }
                 }
                 tasks.add(task)
@@ -52,8 +52,8 @@ class NodeRestarter(
             nodes.forEach { nodeWrapper ->
                 try {
                     rebootSimulatorHost(nodeWrapper, forceReboot, shouldReboot)
-                } catch (t: Throwable) {
-                    logger.error("Failed to reboot simulator host ${nodeWrapper.node.publicHostName} due to issue. ${t.javaClass.name}, ${t.message}", t)
+                } catch (e: Exception) {
+                    logger.error("Failed to reboot simulator host ${nodeWrapper.node.publicHostName} due to issue. ${e.javaClass.name}, ${e.message}", e)
                 }
             }
         }

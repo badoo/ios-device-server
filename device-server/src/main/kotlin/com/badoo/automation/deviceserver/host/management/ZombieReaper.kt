@@ -55,8 +55,8 @@ class ZombieReaper {
             val wExitStatus = LibC.WEXITSTATUS(status)
             val cleanExit = waitpidRC == pid && LibC.WIFEXITED(status) && wExitStatus == 0
             logger.trace(MapEntriesAppendingMarker(mapOf("zombiePID" to pid)), "Reaped zombie process $pid. Exit status: $wExitStatus. Exit status is clean: $cleanExit.")
-        } catch (t: Throwable) {
-            logger.error("Failed to reap zombie process $pid. Error: ${t.javaClass}, ${t.message}", t)
+        } catch (e: Exception) {
+            logger.error("Failed to reap zombie process $pid. Error: ${e.javaClass}, ${e.message}", e)
         }
     }
 
@@ -85,8 +85,8 @@ class ZombieReaper {
             )
 
             childrenZombiesPids
-        } catch (t: Throwable) {
-            logger.error("Failed to find zombie processes. Error: ${t.javaClass}, ${t.message}", t)
+        } catch (e: Exception) {
+            logger.error("Failed to find zombie processes. Error: ${e.javaClass}, ${e.message}", e)
             emptyList()
         }
     }

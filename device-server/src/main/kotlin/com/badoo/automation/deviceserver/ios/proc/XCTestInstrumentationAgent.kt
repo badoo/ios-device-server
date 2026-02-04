@@ -162,7 +162,7 @@ class XCTestInstrumentationAgent(
             ) {
                 wdaRunnerStarted
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             wdaRunnerStarted = false
             logger.error(logMarker, "$this — $instrumentationBundle on: $wdaEndpoint with bundle id: ${instrumentationBundle.bundleId} failed to start. Detailed log follows:")
             deviceAgentLog.readLines().forEach { logger.error("WDA OUT: $it") }
