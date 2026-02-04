@@ -134,7 +134,7 @@ class DeviceManager(
         try {
             executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
         } catch (e: InterruptedException) {
-            println("Failed to awaitTermination while retrieving NodeInfo due to issue. ${e.javaClass.name}, ${e.message}")
+            logger.error("Failed to awaitTermination while retrieving NodeInfo due to issue. ${e.javaClass.name}, ${e.message}", e)
         }
         return aliveNodesInfo
     }

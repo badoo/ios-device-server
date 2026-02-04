@@ -121,7 +121,7 @@ class ActiveDevices(
         try {
             executor.awaitTermination(120, TimeUnit.SECONDS)
         } catch (e: InterruptedException) {
-            println("Failed to awaitTermination while releasing devices due to issue. ${e.javaClass.name}, ${e.message}")
+            logger.error("Failed to awaitTermination while releasing devices due to issue. ${e.javaClass.name}, ${e.message}", e)
             Thread.currentThread().interrupt()
         }
     }
