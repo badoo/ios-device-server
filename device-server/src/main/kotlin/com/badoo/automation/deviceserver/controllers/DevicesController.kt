@@ -40,6 +40,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
+    fun deleteReleaseDeviceWitForce(ref: DeviceRef): EmptyMap {
+        deviceManager.deleteReleaseDeviceWitForce(ref, "httpRequest")
+        return happy
+    }
+
     fun releaseDevices(user: UserIdPrincipal) {
         deviceManager.releaseUserDevices(user.name, "httpRequest")
     }

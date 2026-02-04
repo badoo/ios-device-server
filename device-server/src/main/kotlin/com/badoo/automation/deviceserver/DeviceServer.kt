@@ -203,6 +203,9 @@ fun Application.module() {
                 delete {
                     call.respond(devicesController.deleteReleaseDevice(param(call, "ref")))
                 }
+                delete("force") {
+                    call.respond(devicesController.deleteReleaseDeviceWitForce(param(call, "ref")))
+                }
                 post("push_notification") {
                     val notification = jsonContent<PushNotificationDto>(call)
                     call.respond(devicesController.sendPushNotification(param(call, "ref"), notification.bundleId, notification.notificationContent))

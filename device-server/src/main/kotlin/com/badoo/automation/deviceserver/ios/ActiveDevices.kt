@@ -82,6 +82,13 @@ class ActiveDevices(
         devices.remove(ref)
     }
 
+    fun deleteSimulatorWithForce(ref: DeviceRef, reason: String) {
+        logger.debug("Deleting a device due to reason: $reason")
+        val session = sessionByRef(ref)
+        session.node.deleteSimulatorWithForce(ref, reason)
+        unregisterDeleteDevice(session.ref)
+    }
+
     fun releaseDevice(ref: DeviceRef, reason: String) {
         logger.debug("Releasing a device due to reason: $reason")
         val session = sessionByRef(ref)

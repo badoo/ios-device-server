@@ -66,6 +66,7 @@ interface IDeviceNode {
     fun prepareNode()
     fun list(): List<DeviceDTO>
     fun listAllSimulators(): SimulatorsDto
+    fun deleteSimulatorWithForce(deviceRef: DeviceRef, reason: String)
     fun deleteReleaseDeviceForTests(deviceRef: DeviceRef, reason: String): Boolean
     fun getDeviceDTO(deviceRef: DeviceRef): DeviceDTO
     fun totalCapacity(desiredCaps: DesiredCapabilities): Int

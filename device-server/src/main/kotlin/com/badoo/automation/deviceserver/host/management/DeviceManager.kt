@@ -240,6 +240,10 @@ class DeviceManager(
         nodeRegistry.deleteReleaseDevice(ref, reason)
     }
 
+    fun deleteReleaseDeviceWitForce(ref: DeviceRef, reason: String) {
+        nodeRegistry.deleteReleaseDeviceWitForce(ref, reason)
+    }
+
     fun getDeviceRefs(): List<DeviceDTO> {
         return nodeRegistry.activeDevices.deviceList()
     }

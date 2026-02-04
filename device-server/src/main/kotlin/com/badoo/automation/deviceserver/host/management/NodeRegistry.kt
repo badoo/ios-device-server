@@ -106,4 +106,13 @@ class NodeRegistry(val activeDevices: ActiveDevices = ActiveDevices()) {
             return
         }
     }
+
+    fun deleteReleaseDeviceWitForce(ref: DeviceRef, reason: String) {
+        try { // using try-catch here not to expose tryGetNodeFor
+            activeDevices.deleteSimulatorWithForce(ref, reason)
+        } catch (e: DeviceNotFoundException) {
+            logger.warn("Skipping $ref release because no node knows about it")
+            return
+        }
+    }
 }

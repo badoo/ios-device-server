@@ -113,6 +113,27 @@ class SimulatorsNode(
         }
     }
 
+    // TODO: Remove simulator completely
+    // Maybe ignore that it is not in the list of createdSimulators
+    // This should be exposed and used not by tests but by infra code
+    override fun deleteSimulatorWithForce(deviceRef: DeviceRef, reason: String) {
+        val simulator = createdSimulators[deviceRef]
+            ?: return
+
+        val udid = simulator.udid
+        simulator.release("deleteReleaseDeviceForTests $reason $deviceRef")
+
+        cancelPrepareSimulatorTask(deviceRef, "deleteReleaseDeviceForTests")
+
+        simulatorProvider.deleteSimulator(udid)
+
+        createdSimulators.remove(deviceRef)
+
+        allocatedPorts[deviceRef]?.let {
+            portAllocator.deallocateDAP(it)
+        }
+    }
+
     override fun deleteReleaseDeviceForTests(deviceRef: DeviceRef, reason: String): Boolean {
         val simulator = createdSimulators[deviceRef]
             ?: return false

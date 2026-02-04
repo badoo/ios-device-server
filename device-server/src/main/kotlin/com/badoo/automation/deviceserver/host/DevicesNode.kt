@@ -179,6 +179,10 @@ class DevicesNode(
         return remote.isReachable()
     }
 
+    override fun deleteSimulatorWithForce(deviceRef: DeviceRef, reason: String) {
+
+    }
+
     override fun deleteReleaseDeviceForTests(deviceRef: DeviceRef, reason: String): Boolean {
         synchronized(this) {
             slotByExternalRef(deviceRef).release()
