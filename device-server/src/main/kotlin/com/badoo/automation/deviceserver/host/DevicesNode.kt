@@ -51,6 +51,15 @@ class DevicesNode(
         appBinariesCache[key] = appDirectory
     }
 
+    override fun isApplicationDeployed(appBundle: ApplicationBundle): Boolean {
+        val key = appBundle.appUrl.toExternalForm()
+        return appBinariesCache[key] != null
+    }
+
+    override fun resetAppBundleCache() {
+        appBinariesCache.clear()
+    }
+
     override fun installApplication(deviceRef: DeviceRef, appBundleDto: AppBundleDto) {
         var appBinaryPath: File = appBinariesCache[appBundleDto.appUrl]
             ?: throw RuntimeException("Unable to find requested binary. Deploy binary first from url ${appBundleDto.appUrl}")

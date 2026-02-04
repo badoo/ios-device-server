@@ -369,22 +369,29 @@ class DeviceManager(
         return nodeRegistry.activeDevices.getNodeFor(ref).appInstallationStatus(ref)
     }
 
+    private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
+
+    @Synchronized
     fun deployApplication(dto: AppBundleDeployDto) {
+        if (isApplicationDeployed(dto)) {
+            logger.debug("Application ${dto.appUrl} is already deployed on all nodes. Skipping deployment.")
+            return
+        }
         val marker = MapEntriesAppendingMarker(mapOf("operation" to "app_deploy"))
         val appBundle = acquireBundle(dto, marker)
 
         logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
 
-        val nodeWrappers = nodeRegistry.getAll()
-        nodeWrappers.forEach { nodeWrapper ->
-            try {
-                nodeWrapper.node.deployApplication(appBundle)
-            } catch (e: RuntimeException) {
-                logger.error(marker, "Failed to deploy application ${dto.appUrl} to ${nodeWrapper.node.publicHostName}. Error: ${e.message}", e)
-            }
+        nodeRegistry.getAll().forEach {
+            it.node.deployApplication(appBundle)
         }
 
         logger.debug(marker, "Successfully deployed application ${dto.appUrl}")
+    }
+
+    private fun isApplicationDeployed(dto: AppBundleDeployDto): Boolean {
+        val appBundle = ApplicationBundle(URI(dto.appUrl).toURL())
+        return nodeRegistry.getAll().all { it.node.isApplicationDeployed(appBundle) }
     }
 
     private fun acquireBundle(dto: AppBundleDeployDto, marker: MapEntriesAppendingMarker): ApplicationBundle {
@@ -394,18 +401,25 @@ class DeviceManager(
         return appBundle
     }
 
+    fun resetAppBundleCache() {
+        val marker = MapEntriesAppendingMarker(mapOf("operation" to "app_cleanup"))
+        nodeRegistry.getAll().forEach {
+            it.node.resetAppBundleCache()
+        }
+        try {
+            with(appConfig.appBundleCachePath) {
+                deleteRecursivelyIfExist(logger, marker)
+                ensureDirectoryExists(logger, marker)
+            }
+        } catch (t: Throwable) {
+            logger.error(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} failed! Error: ${t.message}", t)
+        }
+    }
+
     private fun downloadApplicationBinary(marker: MapEntriesAppendingMarker, appBundle: ApplicationBundle) {
         var size: Long = 0
         val nanos = measureNanoTime {
             logger.debug(marker, "Downloading app bundle to cache ${appBundle.appUrl}. Url: ${appBundle.appUrl}")
-            try {
-                with(appConfig.appBundleCachePath) {
-                    deleteRecursivelyIfExist(logger, marker)
-                    ensureDirectoryExists(logger, marker)
-                }
-            } catch (t: Throwable) {
-                logger.error(marker, "Cleaning out local application cache at ${appConfig.appBundleCachePath.absolutePath} failed! Error: ${t.message}", t)
-            }
             appBundle.downloadApp(logger, marker)
             size = appBundle.bundleZip.length()
         }

@@ -86,6 +86,8 @@ interface IDeviceNode {
     fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO)
     val publicHostName: String
     fun deployApplication(appBundle: ApplicationBundle)
+    fun isApplicationDeployed(appBundle: ApplicationBundle): Boolean
+    fun resetAppBundleCache()
     fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo>
     fun locationListScenarios(deviceRef: DeviceRef): List<String>
     fun locationClear(deviceRef: DeviceRef)

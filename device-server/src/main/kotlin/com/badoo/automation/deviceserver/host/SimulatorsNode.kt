@@ -358,6 +358,15 @@ class SimulatorsNode(
         appBinariesCache[key] = appDirectory
     }
 
+    override fun isApplicationDeployed(appBundle: ApplicationBundle): Boolean {
+        val key = appBundle.appUrl.toExternalForm()
+        return appBinariesCache[key] != null
+    }
+
+    override fun resetAppBundleCache() {
+        appBinariesCache.clear()
+    }
+
     override fun deleteAppData(deviceRef: DeviceRef, bundleId: String) {
         return getDeviceFor(deviceRef).dataContainer(bundleId).delete()
     }

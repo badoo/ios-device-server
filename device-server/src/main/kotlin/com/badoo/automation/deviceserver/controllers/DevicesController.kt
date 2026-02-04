@@ -281,6 +281,11 @@ class DevicesController(private val deviceManager: DeviceManager) {
         return happy
     }
 
+    fun resetAppBundleCache(): EmptyMap {
+        deviceManager.resetAppBundleCache()
+        return happy
+    }
+
     fun installApplication(ref: String, appBundleDto: AppBundleDto): EmptyMap {
         deviceManager.installApplication(ref, appBundleDto)
         return happy

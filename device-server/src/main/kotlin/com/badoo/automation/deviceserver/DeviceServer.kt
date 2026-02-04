@@ -189,6 +189,9 @@ fun Application.module() {
                 val appBundle = jsonContent<AppBundleDeployDto>(call)
                 call.respond(devicesController.deployApplication(appBundle))
             }
+            post("reset_app_bundle_cache") {
+                call.respond(devicesController.resetAppBundleCache())
+            }
             post("-/capacity") {
                 call.respond(devicesController.getTotalCapacity(jsonContent<DesiredCapabilities>(call)))
             }
