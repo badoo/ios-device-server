@@ -273,7 +273,7 @@ class Simulator(
         scheduleSequentialExecution(
             simulatorBootExecutor,
             {
-                Thread.sleep(Duration.ofSeconds(180)) // TODO: replace with proper check for core migrations. Downloading Assets can take a while, so we need to wait for them to finish.
+                Thread.sleep(Duration.ofSeconds(90)) // TODO: replace with proper check for core migrations. Downloading Assets can take a while, so we need to wait for them to finish.
             },
             { "Failed to wait for core migrations on simulator $udid" },
         )
