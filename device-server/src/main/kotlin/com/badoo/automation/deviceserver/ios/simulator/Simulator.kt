@@ -258,6 +258,17 @@ class Simulator(
         )
     }
 
+    private fun scheduleLaunchApp(simulatorBootExecutor: ExecutorService, bundleId: String) {
+        scheduleSequentialExecution(
+            simulatorBootExecutor,
+            {
+                remote.commandExecutor.exec(listOf("/usr/bin/xcrun", "simctl", "launch", udid, bundleId))
+                Thread.sleep(Duration.ofSeconds(3)) // give an app some time to launch
+            },
+            { "Failed to launch app $bundleId on simulator $udid" },
+        )
+    }
+
     private fun scheduleWaitForCoreMigrations(simulatorBootExecutor: ExecutorService) {
         scheduleSequentialExecution(
             simulatorBootExecutor,
@@ -653,9 +664,9 @@ class Simulator(
         var isWdaReady = false
 
         if (deviceState == DeviceState.CREATED) {
-            isWdaReady = (if (useWda) {
+            isWdaReady = if (useWda) {
                 instrumentationAgent.isHealthy()
-            } else true)
+            } else true
         }
 
         val isSimulatorReady = deviceState == DeviceState.CREATED && isWdaReady
@@ -670,7 +681,7 @@ class Simulator(
     //endregion
 
     override fun endpointFor(port: Int): URL {
-        val ports = allocatedPorts.toSet()
+        val ports = allocatedPorts.toList()
         require(ports.contains(port)) { "Port $port is not in user ports range $ports" }
 
         return URI("http://${remote.publicHostName}:$port/").toURL()
