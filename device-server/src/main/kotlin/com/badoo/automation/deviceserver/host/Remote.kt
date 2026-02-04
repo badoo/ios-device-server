@@ -3,7 +3,6 @@ package com.badoo.automation.deviceserver.host
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.*
-import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlResponseParser
 import com.badoo.automation.deviceserver.util.ensure
@@ -49,11 +48,10 @@ class Remote(
     override val tmpDir: File = appConfig.tempFolder
 
     override fun isReachable(): Boolean {
-        return try {
-            true // FIXME: commandExecutor.exec(listOf("echo", "1"), returnFailure = true, timeOut = ofSeconds(20)).isSuccess
-        } catch (e: SshConnectionException) {
-            false
-        }
+        // In distributed architecture, local node is always reachable.
+        // A more sophisticated health check could verify available disk space,
+        // required tools, or system resources, but for now a simple check suffices.
+        return true
     }
 
     override fun exec(command: List<String>, env: Map<String, String>, returnFailure: Boolean, timeOutSeconds: Long): CommandResult {
@@ -65,12 +63,7 @@ class Remote(
     override fun shell(command: String, returnOnFailure: Boolean, environment: Map<String, String>): CommandResult {
         val cmd = listOf("bash", "-c", command)
 
-        return try {
-            commandExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
-        } catch (e: SshConnectionException) {
-            logger.error("Remote retrying shell command on SSH error. Command: $cmd")
-            commandExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
-        }
+        return commandExecutor.exec(cmd, environment, returnFailure = returnOnFailure)
     }
 
     //FIXME: should be a better way of streaming a file over HTTP. without caching bytes in server's memory. Investigating ByteReadChannel

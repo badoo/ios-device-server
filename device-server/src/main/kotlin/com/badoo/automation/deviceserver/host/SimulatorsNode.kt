@@ -70,29 +70,10 @@ class SimulatorsNode(
 
     override fun prebootSimulatorForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
         logger.info(logMarker, "Prebooting simulator for desired capabilities: $desiredCaps. ${Thread.currentThread().threadId()}")
-//        return createSimulatorForTests(desiredCaps, isSimulatorClone = desiredCaps.isSimulatorClone, shouldPrebootSimulators = false)
-        return DeviceDTO(
-            ref = "asdfghjkl",
-            state = DeviceState.CREATED,
-            fbsimctl_endpoint = URI("http://localhost:1234"),
-            wda_endpoint = URI("http://localhost:1234"),
-            calabash_port = 1234,
-            calabash_endpoint = URI("http://localhost:1234"),
-            mjpeg_server_port = 1234,
-            info = DeviceInfo(
-                udid = "1234567890abcdef1234567890abcdef12345678",
-                model = "iPhone14,2",
-                os = "iPhone14,2",
-                name = "iPhone 14",
-                arch = "16.0",
-            ),
-            last_error = null,
-            capabilities = ActualCapabilities(
-                setLocation = true,
-                terminateApp = true,
-                remoteNotifications = true,
-                videoCapture = true)
-        )
+        // TODO: Implement pre-boot simulator pool feature
+        // The pre-boot infrastructure exists (preBootedClonedVacantSimulators) but is not fully implemented yet.
+        // For now, fall back to regular simulator creation.
+        return createSimulatorForTests(desiredCaps, isSimulatorClone = desiredCaps.isSimulatorClone, shouldPrebootSimulators = false)
     }
 
     private val preBootedClonedVacantSimulators = ConcurrentHashMap<DeviceRef, DeviceDTO>()
