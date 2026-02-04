@@ -5,14 +5,13 @@ import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.host.management.XcodeVersion.Companion.REQUIRED_XCODE_VERSION
-import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
-import com.badoo.automation.deviceserver.util.WdaSimulatorBundles
+import com.badoo.automation.deviceserver.simctl.SimCtlUtility.Companion.SIMCTL_LIST_DEVICES_JSON
+import com.badoo.automation.deviceserver.simctl.SimCtlUtility.Companion.SIMCTL_LIST_DEVICE_TYPES_JSON
+import com.badoo.automation.deviceserver.simctl.SimCtlUtility.Companion.SIMCTL_LIST_RUNTIMES_JSON
 import com.badoo.automation.deviceserver.util.deleteRecursivelyIfExist
 import com.badoo.automation.deviceserver.util.ensureDirectoryExists
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.time.Duration
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
@@ -25,16 +24,15 @@ interface ISimulatorHostChecker {
 }
 
 class SimulatorHostChecker(
-        val remote: IRemote,
-        private val diskCleanupInterval: Duration = Duration.ofMinutes(15),
-        private val wdaSimulatorBundles: WdaSimulatorBundles,
-        private val remoteTestHelperAppRoot: File,
-        private val shutdownSimulators: Boolean
+    val remote: IRemote,
+    private val shutdownSimulators: Boolean
 ) : ISimulatorHostChecker {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val logMarker = MapEntriesAppendingMarker(mapOf(
+    private val logMarker = MapEntriesAppendingMarker(
+        mapOf(
             LogMarkers.HOSTNAME to remote.hostName
-    ))
+        )
+    )
 
     private lateinit var cleanUpTask: ScheduledFuture<*>
     private val applicationConfiguration = ApplicationConfiguration()
@@ -53,12 +51,20 @@ class SimulatorHostChecker(
     }
 
     override fun checkPrerequisites() {
-        val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
-        logger.info(logMarker, "Using default Xcode version: ${xcodeOutput.stdOut.trim().replace("\n", " ")}")
-        val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
+        logger.info(logMarker, "Checking default Xcode version:")
+        val xcodeOutput = remote.exec(listOf("/usr/bin/xcodebuild", "-version"), mapOf(), true, 180)
 
-        if (xcodeVersion < REQUIRED_XCODE_VERSION) {
-            logger.error(logMarker, "Expecting Xcode $REQUIRED_XCODE_VERSION or higher, but it is $xcodeVersion")
+        if (xcodeOutput.isSuccess) {
+            logger.info(logMarker, "Using default Xcode version: ${xcodeOutput.stdOut.trim().replace("\n", " ")}")
+
+            val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
+
+            if (xcodeVersion < REQUIRED_XCODE_VERSION) {
+                logger.error(logMarker, "Expecting Xcode $REQUIRED_XCODE_VERSION or higher, but it is $xcodeVersion")
+            }
+        } else {
+            logger.error(logMarker, "Failed to get Xcode version: ${xcodeOutput.stdErr.trim() + xcodeOutput.stdOut.trim()}")
+            throw IllegalStateException("Failed to get Xcode version: ${xcodeOutput.stdErr.trim() + xcodeOutput.stdOut.trim()}")
         }
     }
 
@@ -91,8 +97,8 @@ class SimulatorHostChecker(
     }
 
     private fun cleanupSimulators() {
+        remote.exec(listOf("/usr/bin/xcrun", "simctl", "shutdown", "all"), mapOf(), true, 60)
         remote.pkill("Simulator.app", false) // Simulator UI application
-        remote.pkill("launchd_sim", false) // main process for running simulator
     }
 
     private fun cleanupSimulatorServices() {
@@ -102,14 +108,32 @@ class SimulatorHostChecker(
         }
     }
 
-    override fun setupHost() {
-        val runtimesResult: CommandResult = remote.exec("/usr/bin/xcrun simctl runtime list".split(" "), mapOf(), true, 600)
+    private fun ensureXodeSimulatorRuntimesWork() {
+        listOf(
+            SIMCTL_LIST_RUNTIMES_JSON,
+            SIMCTL_LIST_DEVICE_TYPES_JSON,
+            SIMCTL_LIST_DEVICES_JSON
+        ).forEach { commandString ->
+            val simplifiedCommand = commandString.replace("--json", "").trim()
+            logger.info(logMarker, "Executing command \"$simplifiedCommand\" to ensure Xcode simulator runtimes work. This may take significant time.")
+            val startTime = System.nanoTime()
+            val command = simplifiedCommand.split(" ").map { it.trim() }
+            val result: CommandResult = remote.exec(command, mapOf(), true, 600) // huge timeout to allow for Xcode to start up and list runtimes
+            val elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
 
-        if (runtimesResult.isSuccess) {
-            logger.info(logMarker, "iOS Simulator Runtimes available: ${runtimesResult.stdErr.trim() + runtimesResult.stdOut.trim()}")
-        } else {
-            logger.error(logMarker, "Failed to get iOS Simulator Runtimes runtimes: ${runtimesResult.stdErr.trim() + runtimesResult.stdOut.trim()}")
+            if (result.isSuccess) {
+                logger.info(logMarker, "Xcode command \"${simplifiedCommand}\" executed successfully:\n${result.stdErr.trim() + result.stdOut.trim()}")
+            } else {
+                logger.error(
+                    logMarker,
+                    "Xcode command \"${simplifiedCommand}\" failed. Exit code: ${result.exitCode}:\nSTDERR:\n${result.stdErr.trim()}\nSTDOUT:\n${result.stdOut.trim()}"
+                )
+            }
         }
+    }
+
+    override fun setupHost() {
+        ensureXodeSimulatorRuntimesWork()
 
         // disable node hardware keyboard, i.e. use on-screen one
         remote.execIgnoringErrors("/usr/bin/defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false".split(" "))
