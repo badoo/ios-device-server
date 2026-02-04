@@ -97,6 +97,6 @@ class NodeRestarter(
 
     private fun clearActiveSessions(node: IDeviceNode) {
         val sessions = activeSessions(node).map { it.ref }
-        return nodeRegistry.activeDevices.releaseDevices(sessions.toList(), "Reboot of all simulator hosts")
+        nodeRegistry.activeDevices.releaseDevices(sessions.toList(), "Reboot of all simulator hosts")
     }
 }

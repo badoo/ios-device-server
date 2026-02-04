@@ -48,6 +48,14 @@ class DevicesNode(
 
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
 
+    /**
+     * Helper method to throw NotImplementedError for features not supported on physical devices.
+     * Reduces code duplication across unsupported operations.
+     */
+    private fun unsupportedOnPhysicalDevice(feature: String): Nothing {
+        throw NotImplementedError("$feature is not supported by physical devices")
+    }
+
     override fun deployApplication(appBundle: ApplicationBundle) {
         val appDirectory = appBundle.appDirectory
             ?: throw IllegalStateException("Application bundle not unpacked: ${appBundle.appUrl}")
@@ -80,19 +88,19 @@ class DevicesNode(
     private val deviceRegistrationInterval = Duration.ofMinutes(1)
 
     override fun resetMedia(deviceRef: DeviceRef) {
-        throw(NotImplementedError("Resetting media is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Resetting media")
     }
 
     override fun listMedia(deviceRef: DeviceRef) : List<String> {
-        throw(NotImplementedError("Listing media is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Listing media")
     }
 
     override fun listPhotoData(deviceRef: DeviceRef) : List<String> {
-        throw(NotImplementedError("Listing PhotoData is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Listing PhotoData")
     }
 
     override fun addMedia(deviceRef: DeviceRef, fileName: String, data: ByteArray) {
-        throw(NotImplementedError("Adding media is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Adding media")
     }
 
     override fun instrumentationAgentLog(deviceRef: DeviceRef): File {
@@ -127,15 +135,15 @@ class DevicesNode(
     override fun getDeviceFor(deviceRef: DeviceRef): Device = slotByExternalRef(deviceRef).device
 
     override fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
-        throw(NotImplementedError("Push files is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Push files")
     }
 
     override fun pushFile(ref: DeviceRef, data: ByteArray, path: Path) {
-        throw(NotImplementedError("Push files is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Push files")
     }
 
     override fun deleteFile(ref: DeviceRef, path: Path) {
-        throw(NotImplementedError("Delete file is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Delete file")
     }
 
     private val deviceInfoProvider = DeviceInfoProvider(remote)
@@ -156,27 +164,27 @@ class DevicesNode(
     }
 
     override fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray) {
-        throw(NotImplementedError("Simulating push notifications is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Simulating push notifications")
     }
 
     override fun sendPasteboard(deviceRef: DeviceRef, payload: ByteArray) {
-        throw(NotImplementedError("Set pasteboard is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Set pasteboard")
     }
 
     override fun setPermissions(deviceRef: DeviceRef, appPermissions: AppPermissionsDto) {
-        throw(NotImplementedError("Set Permissions is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Set Permissions")
     }
 
     override fun clearSafariCookies(deviceRef: DeviceRef) {
-        throw(NotImplementedError("Clear Safari Cookies is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Clear Safari Cookies")
     }
 
     override fun shake(deviceRef: DeviceRef) {
-        throw(NotImplementedError("Shake gesture is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Shake gesture")
     }
 
     override fun openUrl(deviceRef: DeviceRef, url: String) {
-        throw(NotImplementedError("Opening URL is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Opening URL")
     }
 
     override fun endpointFor(deviceRef: DeviceRef, port: Int): URL {
@@ -329,19 +337,19 @@ class DevicesNode(
     override fun listApps(deviceRef: DeviceRef): List<FBSimctlAppInfo> = slotByExternalRef(deviceRef).device.listApps()
 
     override fun locationListScenarios(deviceRef: DeviceRef): List<String> {
-        throw(NotImplementedError("Location commands are not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Location commands")
     }
 
     override fun locationClear(deviceRef: DeviceRef) {
-        throw(NotImplementedError("Location commands are not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Location commands")
     }
 
     override fun locationSet(deviceRef: DeviceRef, latitude: Double, longitude: Double) {
-        throw(NotImplementedError("Location commands are not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Location commands")
     }
 
     override fun locationRunScenario(deviceRef: DeviceRef, scenarioName: String) {
-        throw(NotImplementedError("Location commands are not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Location commands")
     }
 
     override fun getNodeInfo(): NodeInfo {
@@ -355,7 +363,7 @@ class DevicesNode(
         interval: Int,
         waypoints: List<LocationDto>
     ) {
-        throw(NotImplementedError("Location commands are not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Location commands")
     }
 
     override fun crashLogs(deviceRef: DeviceRef, pastMinutes: Long?): List<CrashLog> {
@@ -391,11 +399,11 @@ class DevicesNode(
         slotByExternalRef(deviceRef).device.videoRecorder.stop()
     }
 
-    override fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String> = throw(NotImplementedError())
+    override fun listFiles(deviceRef: DeviceRef, dataPath: DataPath): List<String> = throw NotImplementedError()
 
-    override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): File = throw(NotImplementedError())
+    override fun pullFile(deviceRef: DeviceRef, dataPath: DataPath): File = throw NotImplementedError()
 
-    override fun pullFile(deviceRef: DeviceRef, path: Path): File = throw(NotImplementedError())
+    override fun pullFile(deviceRef: DeviceRef, path: Path): File = throw NotImplementedError()
 
     // endregion
 
@@ -406,7 +414,7 @@ class DevicesNode(
         device.uninstallApplication(bundleId, appInstaller)
     }
 
-    override fun deleteAppData(deviceRef: DeviceRef, bundleId: String) = throw(NotImplementedError())
+    override fun deleteAppData(deviceRef: DeviceRef, bundleId: String) = throw NotImplementedError()
 
     private fun deviceToDto(device: Device): DeviceDTO {
         return DeviceDTO(
@@ -464,11 +472,11 @@ class DevicesNode(
     }
 
     override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
-        throw(NotImplementedError("Setting environment variables is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Setting environment variables")
     }
 
     override fun getEnvironmentVariable(deviceRef: DeviceRef, variableName: String): String {
-        throw(NotImplementedError("Getting environment variables is not supported by physical devices"))
+        unsupportedOnPhysicalDevice("Getting environment variables")
     }
 
     override fun equals(other: Any?): Boolean {
