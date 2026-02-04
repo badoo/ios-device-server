@@ -295,11 +295,7 @@ class SimulatorsNode(
         val uptimeInfoBeforeReboot = getNodeInfo()
         logger.info(logMarker, "Scheduling node for reboot $publicHostName. Current uptime: [${uptimeInfoBeforeReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
 
-        try {
-            remote.commandExecutor.exec(listOf("/usr/bin/sudo", "/sbin/reboot"), returnFailure = true)
-        } catch (e: SshConnectionException) {
-            // ignore
-        }
+        remote.commandExecutor.exec(listOf("/usr/bin/sudo", "/sbin/reboot"), returnFailure = true)
 
         Thread.sleep(Duration.ofSeconds(60).toMillis())
 

@@ -12,7 +12,7 @@ interface IShellCommand {
      *
      * Example: exec("/usr/local/bin/fbsimctl", listOf("--json", "list"))
      *
-     * Will throw [SshConnectionException] if remote host is unreachable
+     * May throw exceptions if command execution fails
      */
     fun exec(
         command: List<String>,
