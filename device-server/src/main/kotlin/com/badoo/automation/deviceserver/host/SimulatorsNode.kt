@@ -3,7 +3,6 @@ package com.badoo.automation.deviceserver.host
 import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
-import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker

@@ -33,7 +33,10 @@ class DevicesNode(
     wdaDeviceBundles: List<WdaDeviceBundle>,
 ) : IDeviceNode {
     override fun updateApplicationPlist(ref: DeviceRef, plistEntry: PlistEntryDTO) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        throw UnsupportedOperationException(
+            "Updating application plist is not supported for physical devices. " +
+            "Accessing app containers on non-jailbroken devices requires special entitlements."
+        )
     }
 
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
@@ -102,7 +105,8 @@ class DevicesNode(
     }
 
     override fun syslog(deviceRef: DeviceRef): File {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val device = slotByExternalRef(deviceRef).device
+        return device.osLog.osLogFile
     }
 
     override fun syslogStart(deviceRef: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
@@ -228,11 +232,17 @@ class DevicesNode(
     }
 
     override fun listAllSimulators(): SimulatorsDto {
-        TODO("not implemented")
+        throw UnsupportedOperationException(
+            "Listing simulators is not applicable for physical devices node. " +
+            "Use SimulatorsNode for simulator operations."
+        )
     }
 
     override fun prebootSimulatorForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
-        TODO("not implemented")
+        throw UnsupportedOperationException(
+            "Pre-booting simulators is not applicable for physical devices. " +
+            "Use SimulatorsNode for simulator operations."
+        )
     }
 
     override fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO {
