@@ -33,6 +33,10 @@ data class DeviceInfo (
 
             return udid == other.udid
         }
+
+        override fun hashCode(): Int {
+            return udid.hashCode()
+        }
 }
 
 fun DeviceInfo.osMajorVersion(): Int = os.substringAfter("iOS").trim().split(".").first().toInt()

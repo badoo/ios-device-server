@@ -30,6 +30,7 @@ data class DesiredCapabilities(
                 if (os != other.os) return false
                 if (arch != other.arch) return false
                 if (useWda != other.useWda) return false
+                if (isSimulatorClone != other.isSimulatorClone) return false
 
                 return true
         }
@@ -40,6 +41,7 @@ data class DesiredCapabilities(
                 result = 31 * result + (os?.hashCode() ?: 0)
                 result = 31 * result + (arch?.hashCode() ?: 0)
                 result = 31 * result + useWda.hashCode()
+                result = 31 * result + isSimulatorClone.hashCode()
                 return result
         }
 }
