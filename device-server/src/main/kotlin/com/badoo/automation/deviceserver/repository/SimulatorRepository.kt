@@ -20,8 +20,10 @@ class SimulatorRepository(
 
     fun findSimulatorByUdid(sourceUdid: UDID): Simulator? {
         val devices = simCtlUtility.listDevices()
-        val simulator = devices.values.flatten().firstOrNull { it.udid == sourceUdid } ?: throw SimCtlException("Simulator with UDID '$sourceUdid' not found.")
-        setModel(simulator, sourceUdid)
+        val simulator = devices.values.flatten().firstOrNull { it.udid == sourceUdid }
+        simulator?.let {
+            setModel(simulator, sourceUdid)
+        }
         return simulator
     }
 
@@ -35,7 +37,7 @@ class SimulatorRepository(
     }
 
     private fun setModel(simulator: Simulator, sourceUdid: UDID) {
-        val deviceTypes = simCtlUtility.listDeviceTypes()
+        val deviceTypes = listDeviceTypes()
         val model = deviceTypes.find { it.identifier == simulator.deviceTypeIdentifier }?.name
             ?: throw SimCtlException("Device type for UDID '$sourceUdid' not found. $simulator : $deviceTypes")
         simulator.model = model
@@ -50,13 +52,13 @@ class SimulatorRepository(
     }
 
     fun deviceTypeNameToId(deviceTypeName: String): String {
-        val deviceTypes = simCtlUtility.listDeviceTypes()
+        val deviceTypes = listDeviceTypes()
         return deviceTypes.firstOrNull { it.name == deviceTypeName }?.identifier
             ?: throw SimCtlException("Device type '$deviceTypeName' is not valid. Available types: ${deviceTypes.joinToString(", ") { it.name }}")
     }
 
     fun runtimeNameToId(osVersion: String, platformIdentifier: String): String {
-        val runtimes = simCtlUtility.listRuntimes()
+        val runtimes = listRuntimes()
         return runtimes.filter { it.platformIdentifier == platformIdentifier }.firstOrNull { it.version == osVersion }?.runtimeIdentifier
             ?: throw SimCtlException("Runtime '$osVersion' is not valid. Available runtimes: ${runtimes.joinToString(", ") { it.version }}")
     }
