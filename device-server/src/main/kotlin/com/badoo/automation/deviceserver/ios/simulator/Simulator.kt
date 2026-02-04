@@ -312,7 +312,7 @@ class Simulator(
 
                         simCtlUtility.bootStatusSimulator(udid, Duration.ofSeconds(180), logMarker)
                     }
-                    val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatoBootTime" to NANOSECONDS.toSeconds(nanos)))
+                    val timingMarker = MapEntriesAppendingMarker(commonLogMarkerDetails + mapOf("simulatorBootTime" to NANOSECONDS.toSeconds(nanos)))
                     logger.info(timingMarker, "Device ${this@Simulator} is sufficiently booted")
                 }
             },
@@ -567,7 +567,7 @@ class Simulator(
         listOf(
             { ignoringErrors({ cancelBootSequence() }) },
             { ignoringErrors({ stopPeriodicHealthCheck() }) },
-            { ignoringErrors({ cancellInstallTask() }) },
+            { ignoringErrors({ cancelInstallTask() }) },
             { ignoringErrors({ videoRecorder.dispose() }) },
             { ignoringErrors({ instrumentationAgent.kill() }) },
         ).forEach {
@@ -604,7 +604,7 @@ class Simulator(
         logger.info(logMarker, "Successfully shut down ${this@Simulator} in $elapsedSeconds seconds")
     }
 
-    private fun cancellInstallTask() {
+    private fun cancelInstallTask() {
         installTask?.let {
             cancelTask(it, "installTask")
         }
