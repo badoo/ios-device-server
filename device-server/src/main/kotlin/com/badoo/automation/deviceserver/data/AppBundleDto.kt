@@ -40,7 +40,7 @@ data class AppBundleDeployDto(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as AppBundleDto
+        other as AppBundleDeployDto
 
         return appUrl == other.appUrl
     }
