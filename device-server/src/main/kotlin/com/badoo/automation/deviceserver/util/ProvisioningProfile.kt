@@ -18,9 +18,10 @@ class ProvisioningProfile(file: File) {
             "Failed to read Provisioning Profile. ${result.stdOut}, ${result.stdErr}"
         }
 
-        val input = BufferedReader(StringReader(result.stdOut))
         config = XMLPropertyListConfiguration()
-        config.read(input)
+        BufferedReader(StringReader(result.stdOut)).use { input ->
+            config.read(input)
+        }
     }
 
     fun provisionedDevices(): List<String> = config.getList("ProvisionedDevices") as List<String>

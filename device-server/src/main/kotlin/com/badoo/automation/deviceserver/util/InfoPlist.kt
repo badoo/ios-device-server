@@ -12,9 +12,10 @@ class InfoPlist(file: File) {
     private val config: XMLPropertyListConfiguration
 
     init {
-        val input = BufferedReader(FileReader(file))
         config = XMLPropertyListConfiguration()
-        config.read(input)
+        BufferedReader(FileReader(file)).use { input ->
+            config.read(input)
+        }
     }
 
     fun bundleIdentifier(): String = config.getString("CFBundleIdentifier")
