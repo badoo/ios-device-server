@@ -196,6 +196,11 @@ class SimulatorsNode(
         hostChecker.cleanup()
         hostChecker.setupHost()
         portAllocator.refreshPortAvailability()
+        simulatorRepository.dyldSharedCacheUpdate()
+        simulatorProvider.syncSimulatorsWithRegistry()
+        simulatorProvider.listSimulators()
+        simulatorRepository.listRuntimes()
+        simulatorRepository.listDeviceTypes()
     }
 
     override fun dispose() {

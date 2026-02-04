@@ -18,6 +18,7 @@ internal class SimCtlUtility(
         const val SIMCTL_LIST_DEVICES_JSON = "/usr/bin/xcrun simctl list devices --json"
         const val SIMCTL_LIST_DEVICE_TYPES_JSON = "/usr/bin/xcrun simctl list devicetypes --json"
         const val SIMCTL_LIST_RUNTIMES_JSON = "/usr/bin/xcrun simctl runtime list --json"
+        const val SIMCTL_DYLD_SHARED_CACHE_UPDATE = "/usr/bin/xcrun simctl runtime dyld_shared_cache update --all"
     }
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -88,6 +89,18 @@ internal class SimCtlUtility(
             }
         } else {
             throw SimCtlException("Failed to list device types: ${result.stdErr}")
+        }
+    }
+
+    // Update the shared cache after installing a new runtime.
+    // https://developer.apple.com/documentation/xcode-release-notes/xcode-26_1-release-notes
+    // Simulators may fail to boot during the first build after upgrading macOS. (152328794)
+    fun dyldSharedCacheUpdate() {
+        val result = commandExecutor.exec(SIMCTL_DYLD_SHARED_CACHE_UPDATE.split(" "))
+        if (result.isSuccess) {
+
+        } else {
+            throw SimCtlException("Failed to update cache: ${result.stdErr}")
         }
     }
 

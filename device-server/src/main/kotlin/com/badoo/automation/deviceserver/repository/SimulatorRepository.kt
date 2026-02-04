@@ -100,6 +100,8 @@ class SimulatorRepository(
     }
 
     fun listDevices() = simCtlUtility.listDevices()
-    fun listDeviceTypes() = simCtlUtility.listDeviceTypes()
-    fun listRuntimes() = simCtlUtility.listRuntimes()
+
+    fun listDeviceTypes(): Set<DeviceType> = simCtlUtility.listDeviceTypes()
+    fun listRuntimes(): Set<SimulatorRuntime> = simCtlUtility.listRuntimes()
+    fun dyldSharedCacheUpdate() = simCtlUtility.dyldSharedCacheUpdate()
 }
