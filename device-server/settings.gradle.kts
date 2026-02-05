@@ -1,7 +1,8 @@
-//plugins {
-//    // Apply the foojay-resolver plugin to allow automatic download of JDKs
-//    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.9.0'
-//}
-//
+pluginManagement {
+    plugins {
+        id("com.gradleup.shadow") version "8.3.5"
+    }
+}
+
 rootProject.name = "device-server"
 
