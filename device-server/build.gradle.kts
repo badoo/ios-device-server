@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktor)
     alias(libs.plugins.graalvm.buildtools)
-    id("com.github.ben-manes.versions") version "0.52.0"
+    id("com.github.ben-manes.versions") version "0.53.0"
 }
 
 group = "com.badoo.automation"
@@ -34,14 +34,14 @@ dependencies {
     implementation(libs.logback.classic)
     implementation(libs.logstash.logback.encoder)
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
-    implementation("org.apache.commons:commons-configuration2:2.12.0")
+    implementation("org.apache.commons:commons-configuration2:2.13.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.1")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.0")
 
-    implementation("net.java.dev.jna:jna:5.17.0")
+    implementation("net.java.dev.jna:jna:5.18.1")
     implementation("com.zaxxer:nuprocess:2.0.6")
 
 
