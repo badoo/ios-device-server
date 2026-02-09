@@ -49,9 +49,8 @@ dependencies {
     testImplementation(libs.ktor.server.test.host)
 
     testImplementation("org.mockito:mockito-core:5.21.0")
-    testImplementation("org.mockito:mockito-inline:5.2.0")
 
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:6.0.0")
     testImplementation("org.hamcrest:hamcrest-junit:2.0.0.0")
 }
 
