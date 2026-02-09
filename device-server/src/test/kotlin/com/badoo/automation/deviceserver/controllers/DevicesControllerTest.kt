@@ -5,8 +5,8 @@ import com.badoo.automation.deviceserver.deviceDTOStub
 import com.badoo.automation.deviceserver.host.management.DeviceManager
 import com.badoo.automation.deviceserver.json
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.doNothing
-import com.nhaarman.mockito_kotlin.whenever
+import org.mockito.kotlin.doNothing
+import org.mockito.kotlin.whenever
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.sameInstance
 import org.hamcrest.MatcherAssert.assertThat

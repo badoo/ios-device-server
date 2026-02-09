@@ -37,21 +37,21 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
     implementation("org.apache.commons:commons-configuration2:2.13.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.3.2")
 
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.0")
 
     implementation("net.java.dev.jna:jna:5.18.1")
-    implementation("com.zaxxer:nuprocess:2.0.6")
+    implementation("com.zaxxer:nuprocess:3.0.0")
 
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)
 
-    testImplementation("org.mockito:mockito-core:2.18.0")
-    testImplementation("org.mockito:mockito-inline:2.18.0")
+    testImplementation("org.mockito:mockito-core:5.21.0")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
 
-    testImplementation("com.nhaarman:mockito-kotlin:1.6.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testImplementation("org.hamcrest:hamcrest-junit:2.0.0.0")
 }
 

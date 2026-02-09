@@ -4,7 +4,7 @@ import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctl
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.whenever
+import org.mockito.kotlin.whenever
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test

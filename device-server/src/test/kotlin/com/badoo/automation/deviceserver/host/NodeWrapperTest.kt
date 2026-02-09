@@ -5,7 +5,7 @@ import com.badoo.automation.deviceserver.host.management.IHostFactory
 import com.badoo.automation.deviceserver.host.management.NodeRegistry
 import com.badoo.automation.deviceserver.host.management.NodeWrapper
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.*
+import org.mockito.kotlin.*
 import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito

@@ -1,7 +1,7 @@
 package com.badoo.automation.deviceserver.data
 
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.whenever
+import org.mockito.kotlin.whenever
 import org.junit.Assert
 import org.junit.Ignore
 import org.junit.Test

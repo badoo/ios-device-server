@@ -4,7 +4,7 @@ import com.badoo.automation.deviceserver.deviceDTOStub
 import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.whenever
+import org.mockito.kotlin.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Ignore
 import org.junit.Test

@@ -4,8 +4,8 @@ import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.whenever
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test

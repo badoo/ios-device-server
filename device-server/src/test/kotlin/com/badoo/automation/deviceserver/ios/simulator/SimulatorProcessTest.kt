@@ -5,7 +5,7 @@ import com.badoo.automation.deviceserver.data.DeviceRef
 import com.badoo.automation.deviceserver.data.UDID
 import com.badoo.automation.deviceserver.host.IRemote
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.*
+import org.mockito.kotlin.*
 import org.junit.Assert.assertEquals
 import org.junit.Ignore
 import org.junit.Test

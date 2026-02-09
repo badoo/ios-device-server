@@ -7,10 +7,10 @@ import com.badoo.automation.deviceserver.host.management.NodeWrapper
 import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.atLeast
-import com.nhaarman.mockito_kotlin.verify
-import com.nhaarman.mockito_kotlin.whenever
+import org.mockito.kotlin.any
+import org.mockito.kotlin.atLeast
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Assert.assertEquals

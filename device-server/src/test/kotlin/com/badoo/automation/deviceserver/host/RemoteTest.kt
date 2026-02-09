@@ -6,7 +6,7 @@ import com.badoo.automation.deviceserver.command.CommandResult
 import com.badoo.automation.deviceserver.command.IShellCommand
 import com.badoo.automation.deviceserver.command.SshConnectionException
 import com.badoo.automation.deviceserver.mockThis
-import com.nhaarman.mockito_kotlin.whenever
+import org.mockito.kotlin.whenever
 import org.junit.Test
 
 import org.junit.Assert.*
