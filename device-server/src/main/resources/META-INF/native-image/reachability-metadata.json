@@ -263,7 +263,13 @@
       "type": "io.ktor.http.content.TextContent"
     },
     {
-      "type": "io.ktor.network.selector.InterestSuspensionsMap"
+      "type": "io.ktor.network.selector.InterestSuspensionsMap",
+      "fields": [
+        { "name": "readHandlerReference" },
+        { "name": "writeHandlerReference" },
+        { "name": "connectHandlerReference" },
+        { "name": "acceptHandlerReference" }
+      ]
     },
     {
       "type": "io.ktor.network.selector.LockFreeMPSCQueue"
@@ -275,7 +281,8 @@
       "type": "io.ktor.network.selector.SelectInterest[]"
     },
     {
-      "type": "io.ktor.network.selector.SelectableBase"
+      "type": "io.ktor.network.selector.SelectableBase",
+      "allDeclaredFields": true
     },
     {
       "type": "io.ktor.network.sockets.SocketBase"
