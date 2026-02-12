@@ -1,21 +1,23 @@
 package com.badoo.automation.deviceserver.util
 
 import org.apache.commons.configuration2.plist.XMLPropertyListConfiguration
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.io.File
 
-/**
- * Info.plist
- */
-class InfoPlist(file: File) {
-    private val config: XMLPropertyListConfiguration = XMLPropertyListConfiguration().apply {
-        // Read file and remove DOCTYPE declaration that causes DTD fetch
-        val xmlContent = file.readText()
-        val cleanedXml = xmlContent.replace(Regex("""<!DOCTYPE[^>]*>"""), "")
+class InfoPlist(val file: File) {
+    val logger: Logger = LoggerFactory.getLogger(javaClass.simpleName)
 
-        // Parse the cleaned XML (no external DTD fetch)
-        read(java.io.StringReader(cleanedXml))
+    private val cachedConfig: XMLPropertyListConfiguration by lazy {
+        logger.info("Reading Info.plist from: ${file.absolutePath}")
+
+        XMLPropertyListConfiguration().apply {
+            file.bufferedReader().use { reader ->
+                read(reader)
+            }
+        }
     }
 
-    fun bundleIdentifier(): String = config.getString("CFBundleIdentifier")
-    fun bundleName(): String = config.getString("CFBundleName")
+    fun bundleIdentifier(): String = cachedConfig.getString("CFBundleIdentifier")
+    fun bundleName(): String = cachedConfig.getString("CFBundleName")
 }
