@@ -89,7 +89,13 @@ graalvmNative {
                 "-H:IncludeResources=.*\\.properties",
                 "-H:IncludeResources=.*\\.yml",
                 "-H:IncludeResources=.*\\.yaml",
-                "--initialize-at-run-time=io.netty"
+                "-H:+AddAllCharsets",
+                "--enable-url-protocols=http,https",
+                "--initialize-at-run-time=io.netty",
+                "--initialize-at-run-time=io.ktor.network.selector.InterestSuspensionsMap",
+                "--initialize-at-run-time=io.ktor.network.selector.SelectableBase",
+                "-H:+AllowVMInspection",
+                "-H:+ReportUnsupportedElementsAtRuntime"
             )
         }
     }
