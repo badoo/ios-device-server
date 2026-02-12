@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -8,6 +10,19 @@ plugins {
 
 group = "com.badoo.automation"
 version = "2.0-SNAPSHOT-" + System.currentTimeMillis().toString()
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_25)
+        freeCompilerArgs.addAll("-Xjsr305=strict")
+    }
+}
 
 application {
     mainClass = "com.badoo.automation.deviceserver.ProgramKt"
