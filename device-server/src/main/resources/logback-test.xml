@@ -1,5 +1,4 @@
 <configuration debug="false" packagingData="true">
-    <conversionRule conversionWord="highlight" converterClass="deviceserver.LogHighlighter" />
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>

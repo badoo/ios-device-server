@@ -75,6 +75,26 @@ tasks.jar {
     }
 }
 
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName = "device-server"
+            mainClass = "com.badoo.automation.deviceserver.ProgramKt"
+
+            buildArgs.addAll(
+                "--verbose",
+                "--no-fallback",
+                "-H:+ReportExceptionStackTraces",
+                "-H:IncludeResources=logback.*\\.xml",
+                "-H:IncludeResources=.*\\.properties",
+                "-H:IncludeResources=.*\\.yml",
+                "-H:IncludeResources=.*\\.yaml",
+                "--initialize-at-run-time=io.netty"
+            )
+        }
+    }
+}
+
 ///**
 // * For tests only
 // */
