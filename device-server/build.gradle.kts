@@ -26,9 +26,6 @@ kotlin {
 
 application {
     mainClass = "com.badoo.automation.deviceserver.ProgramKt"
-
-    val isDevelopment: Boolean = project.ext.has("development")
-    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
 repositories {
@@ -100,17 +97,3 @@ graalvmNative {
         }
     }
 }
-
-///**
-// * For tests only
-// */
-//run {
-//    systemProperty 'wda.bundle.path', '../ios/facebook/simulators/WebDriverAgentRunner-Runner.app'
-//    systemProperty 'wda.device.bundle.path', '../ios/facebook/devices/WebDriverAgentRunner-Runner.app'
-//    systemProperty 'device.server.config.path', ''
-//    systemProperty 'logback.configurationFile', 'logback-test.xml'
-//}
-//
-//test {
-//    maxParallelForks = 4
-//}
