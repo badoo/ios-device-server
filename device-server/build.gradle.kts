@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.ktor)
     alias(libs.plugins.graalvm.buildtools)
     id("com.github.ben-manes.versions") version "0.53.0"
+    id("com.badoo.graalvm.metadata-generator")
 }
 
 group = "com.badoo.automation"
@@ -55,7 +56,6 @@ dependencies {
 
     implementation("net.java.dev.jna:jna:5.18.1")
     implementation("com.zaxxer:nuprocess:3.0.0")
-
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)
