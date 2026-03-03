@@ -62,7 +62,6 @@ interface IDeviceNode {
         }
     }
 
-    fun isReachable(): Boolean
     fun prepareNode()
     fun list(): List<DeviceDTO>
     fun listAllSimulators(): SimulatorsDto
@@ -74,7 +73,6 @@ interface IDeviceNode {
     fun createDeviceForTests(desiredCaps: DesiredCapabilities): DeviceDTO
     fun prebootSimulatorForTests(desiredCaps: DesiredCapabilities): DeviceDTO
     fun dispose()
-    fun reboot()
     fun uninstallApplication(deviceRef: DeviceRef, bundleId: String)
     fun deleteAppData(deviceRef: DeviceRef, bundleId: String)
     fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>)
