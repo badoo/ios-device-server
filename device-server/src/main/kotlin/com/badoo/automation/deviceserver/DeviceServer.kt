@@ -134,22 +134,6 @@ fun Application.module() {
             }
         }
 
-        route("nodes") {
-            post("restart_gracefully") {
-                val params = jsonContent(call)
-                val isParallelRestart = params["parallel"]?.asBoolean() ?: false
-                val shouldReboot = params["reboot"]?.asBoolean() ?: false
-                val forceReboot = params["force_reboot"]?.asBoolean() ?: false
-                val restartScheduled = deviceManager.restartNodesGracefully(isParallelRestart, shouldReboot, forceReboot)
-
-                if (restartScheduled) {
-                    call.respond(HttpStatusCode.Accepted, mapOf("status" to "Scheduled graceful restart of nodes"))
-                } else {
-                    call.respond(HttpStatusCode.TooManyRequests, mapOf("status" to "Nodes restart is already in progress"))
-                }
-            }
-        }
-
         route("devices") {
             get {
                 call.respond(devicesController.getDeviceRefs())
