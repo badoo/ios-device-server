@@ -2,7 +2,6 @@ package com.badoo.automation.deviceserver.ios
 
 import com.badoo.automation.deviceserver.data.DeviceDTO
 import com.badoo.automation.deviceserver.data.DeviceRef
-import com.badoo.automation.deviceserver.data.NodeRef
 import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import org.slf4j.LoggerFactory
@@ -134,7 +133,4 @@ class ActiveDevices(
         return devices[ref] ?: throw DeviceNotFoundException("Device [$ref] not found in active devices")
     }
 
-    fun activeDevicesByNode(ref: NodeRef): Map<DeviceRef, SessionEntry> {
-        return devices.filter { it.value.node.publicHostName == ref }
-    }
 }
