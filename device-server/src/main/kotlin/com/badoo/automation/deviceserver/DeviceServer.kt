@@ -54,19 +54,11 @@ private fun paramInt(call: ApplicationCall, s: String): Int {
 
 private val appConfiguration = ApplicationConfiguration()
 
-private fun getDefaultNodeConfig(): NodeConfig {
-    val publicHostName = NetworkUtils.getAddresses().first().ip
-    return NodeConfig(
-        host = publicHostName,
-        publicHost = publicHostName,
-    )
-}
-
 private fun serverConfig(): DeviceServerConfig {
     if (appConfiguration.deviceServerConfigPath.isEmpty()) {
-        val defaultNodeConfig = getDefaultNodeConfig()
-        logger.info("Using default config: $defaultNodeConfig")
-        return DeviceServerConfig(nodes = setOf(defaultNodeConfig), timeouts = emptyMap())
+        val defaultConfig = DeviceServerConfig(simulators = SimulatorsConfig())
+        logger.info("Using default config: $defaultConfig")
+        return defaultConfig
     }
 
     val configFile = File(appConfiguration.deviceServerConfigPath)
@@ -90,16 +82,8 @@ fun Application.module() {
     val config = serverConfig()
     val startTime = System.nanoTime()
 
-    val hostFactory = HostFactory(
-        remoteTestHelperAppRoot = File(appConfiguration.remoteTestHelperAppBundleRoot).canonicalFile, appConfiguration = ApplicationConfiguration()
-    )
+    val hostFactory = HostFactory(appConfiguration = ApplicationConfiguration())
     val deviceManager = DeviceManager(config, hostFactory)
-    if (appConfiguration.useTestHelperApp) {
-        deviceManager.extractTestApp()
-    }
-    deviceManager.startAutoRegisteringDevices()
-    deviceManager.launchZombieReaper()
-
     val devicesController = DevicesController(deviceManager)
     val statusController = StatusController(deviceManager)
 
