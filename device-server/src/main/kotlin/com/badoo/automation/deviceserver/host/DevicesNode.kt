@@ -2,6 +2,7 @@ package com.badoo.automation.deviceserver.host
 
 import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
+import com.badoo.automation.deviceserver.data.DeviceType
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.XcodeVersion
@@ -160,7 +161,8 @@ class DevicesNode(
     }
 
     override fun supports(desiredCaps: DesiredCapabilities): Boolean {
-        return desiredCaps.arch == null || supportedArchitectures.contains(desiredCaps.arch)
+        // TODO: Check support for desiredCaps.os && desiredCaps.model
+        return desiredCaps.deviceType == DeviceType.Device
     }
 
     override fun sendPushNotification(deviceRef: DeviceRef, bundleId: String, notificationContent: ByteArray) {
@@ -195,10 +197,6 @@ class DevicesNode(
     override fun state(deviceRef: DeviceRef): SimulatorStatusDTO {
         val device = slotByExternalRef(deviceRef).device
         return device.status()
-    }
-
-    override fun isReachable(): Boolean {
-        return remote.isReachable()
     }
 
     override fun deleteSimulatorWithForce(deviceRef: DeviceRef, reason: String) {
@@ -300,10 +298,6 @@ class DevicesNode(
         }
 
         logger.info(logMarker, "Finalized node $this")
-    }
-
-    override fun reboot() {
-        return // Not intended to reboot Real Device nodes
     }
 
     override fun list(): List<DeviceDTO> {

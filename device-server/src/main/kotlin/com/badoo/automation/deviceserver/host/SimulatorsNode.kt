@@ -4,6 +4,7 @@ import com.badoo.automation.deviceserver.LogMarkers.Companion.DEVICE_REF
 import com.badoo.automation.deviceserver.LogMarkers.Companion.HOSTNAME
 import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
 import com.badoo.automation.deviceserver.data.*
+import com.badoo.automation.deviceserver.data.DeviceType
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
 import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
@@ -289,53 +290,12 @@ class SimulatorsNode(
 
         logger.info(logMarker, "Finalised simulator pool for ${remote.hostName}")
     }
-
-    override fun reboot() {
-        val uptimeInfoBeforeReboot = getNodeInfo()
-        logger.info(logMarker, "Scheduling node for reboot $publicHostName. Current uptime: [${uptimeInfoBeforeReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
-
-        remote.commandExecutor.exec(listOf("/usr/bin/sudo", "/sbin/reboot"), returnFailure = true)
-
-        Thread.sleep(Duration.ofSeconds(60).toMillis())
-
-        var isReachable = false
-
-        pollFor(
-            Duration.ofSeconds(300),
-            "Waiting to be reachable after reboot",
-            true,
-            Duration.ofSeconds(10),
-            logger,
-            logMarker
-        ) {
-            isReachable = isReachable()
-            isReachable
-        }
-
-        if (!isReachable) {
-            logger.error(logMarker, "Node $publicHostName node is not reachable after reboot")
-            return
-        }
-
-        val uptimeInfoAfterReboot = getNodeInfo()
-        val wasRebooted = uptimeInfoAfterReboot.bootTime > uptimeInfoBeforeReboot.bootTime
-
-        if (wasRebooted) {
-            logger.info(
-                logMarker,
-                "Node $publicHostName was rebooted successfully. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}"
-            )
-        } else {
-            logger.error(logMarker, "Node $publicHostName was not rebooted. Current uptime: [${uptimeInfoAfterReboot.uptime}]. Boot time: ${uptimeInfoBeforeReboot.bootTime}")
-        }
-    }
     // endregion
 
     // region: Node capabilities & capacity operations
-    override fun isReachable(): Boolean = remote.isReachable()
-
     override fun supports(desiredCaps: DesiredCapabilities): Boolean {
-        return desiredCaps.arch == null || listOf("x86_64").contains(desiredCaps.arch)
+        // TODO: Check support for desiredCaps.os && desiredCaps.model
+        return desiredCaps.deviceType == DeviceType.Simulator
     }
 
     override fun capacityRemaining(desiredCaps: DesiredCapabilities): Float {

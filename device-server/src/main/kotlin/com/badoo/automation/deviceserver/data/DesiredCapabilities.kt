@@ -3,6 +3,11 @@ package com.badoo.automation.deviceserver.data
 import com.fasterxml.jackson.annotation.JsonProperty
 import kotlinx.serialization.Serializable
 
+enum class DeviceType {
+    @JsonProperty("simulator") Simulator,
+    @JsonProperty("device")    Device
+}
+
 @Serializable
 data class DesiredCapabilities(
         val udid: String?,
@@ -14,7 +19,10 @@ data class DesiredCapabilities(
         val useWda: Boolean = false,
 
         @JsonProperty("simulator_clone")
-        val isSimulatorClone: Boolean = true
+        val isSimulatorClone: Boolean = true,
+
+        @JsonProperty("device_type")
+        val deviceType: DeviceType
 ) {
         val osVersion: String? get() = os?.substringAfter("iOS")?.trim()
         val osMajorVersion: Int? get() = os?.substringAfter("iOS")?.trim()?.split(".")?.first()?.toInt()
@@ -31,6 +39,7 @@ data class DesiredCapabilities(
                 if (arch != other.arch) return false
                 if (useWda != other.useWda) return false
                 if (isSimulatorClone != other.isSimulatorClone) return false
+                if (deviceType != other.deviceType) return false
 
                 return true
         }
@@ -42,6 +51,7 @@ data class DesiredCapabilities(
                 result = 31 * result + (arch?.hashCode() ?: 0)
                 result = 31 * result + useWda.hashCode()
                 result = 31 * result + isSimulatorClone.hashCode()
+                result = 31 * result + deviceType.hashCode()
                 return result
         }
 }
