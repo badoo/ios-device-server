@@ -23,7 +23,6 @@ class ApplicationConfiguration {
 
     val remoteWdaSimulatorBundleRoot: String = System.getProperty("remote.wda.simulator.bundle.path", "/usr/local/opt/web_driver_agent_simulator")
     val remoteWdaDeviceBundleRoot: String = System.getProperty("remote.wda.device.bundle.path", "/usr/local/opt/web_driver_agent_device")
-    val remoteTestHelperAppBundleRoot: String = System.getProperty("remote.test.helper.app.bundle.path", "/usr/local/opt/ios-device-server/test_helper_app")
     val useTestHelperApp = Boolean.getBoolean("useTestHelperApp")
     val trustStorePath: String = System.getProperty("trust.store.path", "")
     val assetsPath: String = System.getProperty("media.assets.path", "")

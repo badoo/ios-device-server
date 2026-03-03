@@ -49,52 +49,7 @@ class DeviceManager(
                 }
     }
 
-    private val shellExecutor = ShellCommand()
-
-    fun extractTestApp() {
-        val testHelperArchiveFileName = "TestHelper.app.tar.bz2"
-        val testHelperRoot = File(appConfig.remoteTestHelperAppBundleRoot)
-        val testHelperArchive = File(testHelperRoot, testHelperArchiveFileName)
-
-        logger.info("Start to extract TestHelper application $testHelperArchiveFileName to ${testHelperRoot.absolutePath}")
-
-        testHelperRoot.deleteRecursively()
-        testHelperRoot.mkdirs()
-
-        val testHelperStream = DeviceManager::class.java.classLoader.getResourceAsStream(testHelperArchiveFileName)
-
-        if (testHelperStream == null) {
-            logger.error("Failed to find test helper file $testHelperArchiveFileName in resources")
-            return
-        }
-
-        testHelperStream.use { inputStream ->
-            testHelperArchive.outputStream().use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-        }
-
-        val result = shellExecutor.exec(listOf("tar", "--directory=$testHelperRoot", "-jxvf", testHelperArchive.absolutePath))
-        check(result.isSuccess) {
-            "Failed to unpack test helper app. STDOUT: ${result.stdOut}, STDERR ${result.stdErr}"
-        }
-
-        logger.info("Successfully extracted TestHelper application $testHelperArchiveFileName to ${testHelperRoot.absolutePath}")
-    }
-
-    fun startAutoRegisteringDevices() {
-        autoRegistrar.startAutoRegistering()
-    }
-
-    fun restartNodesGracefully(isParallelRestart: Boolean, shouldReboot: Boolean, forceReboot: Boolean): Boolean {
-        return autoRegistrar.restartNodesGracefully(isParallelRestart, shouldReboot, forceReboot)
-    }
-
-    private val zombieReaper = ZombieReaper()
-
-    fun launchZombieReaper() {
-        zombieReaper.launchReapingZombies()
-    }
+    fun isReady(): Boolean = ready
 
     fun getStatus(): Map<String, Any> {
         val nodeWrappers = nodeRegistry.getAlive()
