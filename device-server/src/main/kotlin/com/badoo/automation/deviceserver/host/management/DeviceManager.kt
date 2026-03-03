@@ -2,13 +2,13 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
-import com.badoo.automation.deviceserver.command.ShellCommand
 import com.badoo.automation.deviceserver.data.*
+import com.badoo.automation.deviceserver.host.HostFactory
+import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.NodeInfo
-import com.badoo.automation.deviceserver.host.management.errors.NoNodesRegisteredException
+import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
-import com.badoo.automation.deviceserver.ios.simulator.periodicTasksPool
 import com.badoo.automation.deviceserver.util.deleteRecursivelyIfExist
 import com.badoo.automation.deviceserver.util.ensureDirectoryExists
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -24,314 +24,322 @@ import kotlin.system.measureNanoTime
 private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
 
 class DeviceManager(
-        config: DeviceServerConfig,
-        nodeFactory: IHostFactory,
-        activeDevices: ActiveDevices = ActiveDevices()
+    config: DeviceServerConfig,
+    private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
+    hostFactory: HostFactory = HostFactory(appConfiguration = appConfig),
+    private val activeDevices: ActiveDevices = ActiveDevices()
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val deviceTimeoutInSecs: Duration
-    private val nodeRegistry = NodeRegistry(activeDevices)
-    private val autoRegistrar = NodeRegistrar(
-            nodesConfig = config.nodes,
-            nodeFactory = nodeFactory,
-            nodeRegistry = nodeRegistry
-    )
-    private val appConfig = ApplicationConfiguration()
+    private val nodes: List<IDeviceNode>
+    @Volatile private var ready = false
 
     init {
         val timeoutFromConfig: Long? = config.timeouts["device"]?.toLong()
+        deviceTimeoutInSecs = if (timeoutFromConfig != null && timeoutFromConfig > 0) {
+            Duration.ofSeconds(timeoutFromConfig)
+        } else {
+            INFINITE_DEVICE_TIMEOUT
+        }
 
-        deviceTimeoutInSecs =
-                if (timeoutFromConfig != null && timeoutFromConfig > 0) {
-                    Duration.ofSeconds(timeoutFromConfig)
-                } else {
-                    INFINITE_DEVICE_TIMEOUT
-                }
+        nodes = hostFactory.createNodes(config)
+
+        if (nodes.isNotEmpty()) {
+            val executor = Executors.newFixedThreadPool(nodes.size)
+            nodes.map { node -> executor.submit { node.prepareNode() } }.forEach { it.get() }
+            executor.shutdown()
+        }
+
+        ready = true
     }
 
     fun isReady(): Boolean = ready
 
     fun getStatus(): Map<String, Any> {
-        val nodeWrappers = nodeRegistry.getAlive()
-
-        val aliveNodesInfo: List<Pair<String, NodeInfo>> = getNodesInfo(nodeWrappers)
-
-        val allNodes = nodeRegistry.getAll().map { it.node.publicHostName }.sorted()
+        val aliveNodesInfo: List<Pair<String, NodeInfo>> = if (nodes.isEmpty()) {
+            listOf()
+        } else {
+            val executor = Executors.newFixedThreadPool(nodes.size)
+            val tasks = nodes.map { node ->
+                executor.submit(Callable { Pair(node.publicHostName, node.getNodeInfo()) })
+            }
+            executor.shutdown()
+            val result = tasks.map { it.get() }
+            try {
+                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
+            } catch (e: InterruptedException) {
+                logger.error("Failed to awaitTermination while retrieving NodeInfo: ${e.message}", e)
+            }
+            result
+        }
 
         return mapOf(
-            "initialized" to nodeRegistry.getInitialRegistrationComplete(),
+            "initialized" to ready,
             "alive_nodes" to aliveNodesInfo,
-            "all_nodes" to allNodes,
-            "sessions" to listOf(nodeRegistry.activeDevices.getStatus()).toString()
+            "all_nodes" to nodes.map { it.publicHostName }.sorted(),
+            "sessions" to listOf(activeDevices.getStatus()).toString()
         )
     }
 
-    private fun getNodesInfo(nodeWrappers: Set<NodeWrapper>): List<Pair<String, NodeInfo>> {
-        if (nodeWrappers.isEmpty()) {
-            logger.debug("Unable to get NodeInfo for empty list of nodes")
-            return listOf()
-        }
-
-        val executor = Executors.newFixedThreadPool(nodeWrappers.size)
-        val tasks = mutableListOf<Future<Pair<String, NodeInfo>>>()
-
-        nodeWrappers.forEach { nodeWrapper ->
-            val task: Future<Pair<String, NodeInfo>> = executor.submit(Callable {
-                return@Callable Pair(nodeWrapper.node.publicHostName, nodeWrapper.node.getNodeInfo())
-            })
-            tasks.add(task)
-        }
-
-        executor.shutdown()
-
-        val aliveNodesInfo: List<Pair<String, NodeInfo>> = tasks.map { it.get() }
-
-        try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
-        } catch (e: InterruptedException) {
-            logger.error("Failed to awaitTermination while retrieving NodeInfo due to issue. ${e.javaClass.name}, ${e.message}", e)
-        }
-        return aliveNodesInfo
-    }
-
     fun getTotalCapacity(desiredCaps: DesiredCapabilities): Map<String, Int> {
-        return nodeRegistry.capacitiesTotal(desiredCaps)
+        val total = nodes.sumOf { it.totalCapacity(desiredCaps) }
+        return mapOf("total" to total)
     }
 
     fun getGetDeviceDTO(ref: DeviceRef): DeviceDTO {
-        return nodeRegistry.activeDevices.getNodeFor(ref).getDeviceDTO(ref)
+        return activeDevices.getNodeFor(ref).getDeviceDTO(ref)
     }
 
     fun clearSafariCookies(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).clearSafariCookies(ref)
+        activeDevices.getNodeFor(ref).clearSafariCookies(ref)
     }
 
     fun sendPushNotification(ref: DeviceRef, bundleId: String, notificationContent: ByteArray) {
-        nodeRegistry.activeDevices.getNodeFor(ref).sendPushNotification(ref, bundleId, notificationContent)
+        activeDevices.getNodeFor(ref).sendPushNotification(ref, bundleId, notificationContent)
     }
 
     fun sendPasteboard(ref: DeviceRef, payload: ByteArray) {
-        nodeRegistry.activeDevices.getNodeFor(ref).sendPasteboard(ref, payload)
+        activeDevices.getNodeFor(ref).sendPasteboard(ref, payload)
     }
 
     fun setPermissions(ref: DeviceRef, permissions: AppPermissionsDto) {
-        nodeRegistry.activeDevices.getNodeFor(ref).setPermissions(ref, permissions)
+        activeDevices.getNodeFor(ref).setPermissions(ref, permissions)
     }
 
     fun getEndpointFor(ref: DeviceRef, port: Int): URL {
-        return nodeRegistry.activeDevices.getNodeFor(ref).endpointFor(ref, port)
+        return activeDevices.getNodeFor(ref).endpointFor(ref, port)
     }
 
     fun crashLogs(ref: DeviceRef, pastMinutes: Long?): List<CrashLog> {
-        return nodeRegistry.activeDevices.getNodeFor(ref).crashLogs(ref, pastMinutes)
+        return activeDevices.getNodeFor(ref).crashLogs(ref, pastMinutes)
     }
 
     fun crashLogs(ref: DeviceRef, appName: String?): List<CrashLog> {
-        val node = nodeRegistry.activeDevices.getNodeFor(ref)
-        return node.crashLogs(ref, appName)
+        return activeDevices.getNodeFor(ref).crashLogs(ref, appName)
     }
 
     fun deleteCrashLogs(ref: DeviceRef): Boolean {
-        return nodeRegistry.activeDevices.getNodeFor(ref).deleteCrashLogs(ref)
+        return activeDevices.getNodeFor(ref).deleteCrashLogs(ref)
     }
 
     fun getLastCrashLog(ref: DeviceRef): CrashLog {
-        return nodeRegistry.activeDevices.getNodeFor(ref).lastCrashLog(ref)
+        return activeDevices.getNodeFor(ref).lastCrashLog(ref)
     }
 
-    fun listApps(ref: DeviceRef): List<FBSimctlAppInfo> = nodeRegistry.activeDevices.getNodeFor(ref).listApps(ref)
+    fun listApps(ref: DeviceRef): List<FBSimctlAppInfo> = activeDevices.getNodeFor(ref).listApps(ref)
 
     fun shake(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).shake(ref)
+        activeDevices.getNodeFor(ref).shake(ref)
     }
 
     fun openUrl(ref: DeviceRef, url: String) {
-        nodeRegistry.activeDevices.getNodeFor(ref).openUrl(ref, url)
+        activeDevices.getNodeFor(ref).openUrl(ref, url)
     }
 
     fun startVideo(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingStart(ref)
+        activeDevices.getNodeFor(ref).videoRecordingStart(ref)
     }
 
     fun stopVideo(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingStop(ref)
+        activeDevices.getNodeFor(ref).videoRecordingStop(ref)
     }
 
     fun getVideo(ref: DeviceRef): File {
-        return nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingGet(ref)
+        return activeDevices.getNodeFor(ref).videoRecordingGet(ref)
     }
 
     fun getVideoLog(ref: DeviceRef): String {
-        return nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingLogGet(ref)
+        return activeDevices.getNodeFor(ref).videoRecordingLogGet(ref)
     }
 
     fun deleteVideo(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).videoRecordingDelete(ref)
+        activeDevices.getNodeFor(ref).videoRecordingDelete(ref)
     }
 
     fun uninstallApplication(ref: DeviceRef, bundleId: String) {
-        nodeRegistry.activeDevices.getNodeFor(ref).uninstallApplication(ref, bundleId)
+        activeDevices.getNodeFor(ref).uninstallApplication(ref, bundleId)
     }
 
     fun deleteAppData(ref: DeviceRef, bundleId: String) {
-        nodeRegistry.activeDevices.getNodeFor(ref).deleteAppData(ref, bundleId)
+        activeDevices.getNodeFor(ref).deleteAppData(ref, bundleId)
     }
 
     fun getDeviceState(ref: DeviceRef): SimulatorStatusDTO {
-        return nodeRegistry.activeDevices.getNodeFor(ref).state(ref)
+        return activeDevices.getNodeFor(ref).state(ref)
     }
 
     fun createDeviceAsync(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
-        try {
-            return nodeRegistry.createDeviceAsync(desiredCaps, deviceTimeoutInSecs, userId)
-        } catch (e: NoNodesRegisteredException) {
-            val erredNodes = autoRegistrar.nodeWrappers.filter { n -> n.lastError != null }
-            val errors = erredNodes.joinToString { n -> "${n.node.publicHostName} -> ${n.lastError?.localizedMessage}" }
-            throw(NoNodesRegisteredException(e.message + "\n$errors"))
-        }
+        val node = nodes.filter { it.supports(desiredCaps) }
+            .maxByOrNull { it.capacityRemaining(desiredCaps) }
+            ?: throw NoAliveNodesException("No node supports $desiredCaps")
+
+        val dto = node.createDeviceForTests(desiredCaps)
+        logger.info("Create device dto $dto")
+
+        val logMarker = MapEntriesAppendingMarker(mutableMapOf(
+            com.badoo.automation.deviceserver.LogMarkers.DEVICE_REF to dto.ref,
+            com.badoo.automation.deviceserver.LogMarkers.UDID to dto.info.udid
+        ))
+        logger.info(logMarker, "Create device started, register with timeout ${deviceTimeoutInSecs.seconds} secs")
+
+        activeDevices.registerDevice(dto.ref, node, userId)
+        return dto
     }
 
     fun prebootSimulatorForTests(desiredCaps: DesiredCapabilities, userId: String?): DeviceDTO {
-        try {
-            return nodeRegistry.prebootSimulatorForTests(desiredCaps, deviceTimeoutInSecs, userId)
-        } catch (e: NoNodesRegisteredException) {
-            val erredNodes = autoRegistrar.nodeWrappers.filter { n -> n.lastError != null }
-            val errors = erredNodes.joinToString { n -> "${n.node.publicHostName} -> ${n.lastError?.localizedMessage}" }
-            throw(NoNodesRegisteredException(e.message + "\n$errors"))
-        }
+        val node = nodes.filter { it.supports(desiredCaps) }
+            .maxByOrNull { it.capacityRemaining(desiredCaps) }
+            ?: throw NoAliveNodesException("No node supports $desiredCaps")
+
+        val dto = node.prebootSimulatorForTests(desiredCaps)
+        logger.info("Preboot device dto $dto")
+
+        val logMarker = MapEntriesAppendingMarker(mutableMapOf(
+            com.badoo.automation.deviceserver.LogMarkers.DEVICE_REF to dto.ref,
+            com.badoo.automation.deviceserver.LogMarkers.UDID to dto.info.udid
+        ))
+        logger.info(logMarker, "Preboot device started, register with timeout ${deviceTimeoutInSecs.seconds} secs")
+
+        activeDevices.registerDevice(dto.ref, node, userId)
+        return dto
     }
 
     fun deleteReleaseDevice(ref: DeviceRef, reason: String) {
-        nodeRegistry.deleteReleaseDevice(ref, reason)
+        try {
+            activeDevices.releaseDevice(ref, reason)
+        } catch (e: com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException) {
+            logger.warn("Skipping $ref release because no node knows about it")
+        }
     }
 
     fun deleteReleaseDeviceWitForce(ref: DeviceRef, reason: String) {
-        nodeRegistry.deleteReleaseDeviceWitForce(ref, reason)
+        try {
+            activeDevices.deleteSimulatorWithForce(ref, reason)
+        } catch (e: com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException) {
+            logger.warn("Skipping $ref release because no node knows about it")
+        }
     }
 
     fun getDeviceRefs(): List<DeviceDTO> {
-        return nodeRegistry.activeDevices.deviceList()
+        return activeDevices.deviceList()
     }
 
     fun releaseUserDevices(userId: String, reason: String) {
-        val devices = nodeRegistry.activeDevices.getUserDeviceRefs(userId)
-        nodeRegistry.activeDevices.releaseDevices(devices, reason)
+        val devices = activeDevices.getUserDeviceRefs(userId)
+        activeDevices.releaseDevices(devices, reason)
     }
+
     fun releaseAllDevices(reason: String) {
-        val devices = nodeRegistry.activeDevices.deviceRefs().toList()
-        nodeRegistry.activeDevices.releaseDevices(devices, reason)
+        val devices = activeDevices.deviceRefs().toList()
+        activeDevices.releaseDevices(devices, reason)
     }
 
     fun locationListScenarios(ref: DeviceRef): List<String> {
-        return nodeRegistry.activeDevices.getNodeFor(ref).locationListScenarios(ref)
+        return activeDevices.getNodeFor(ref).locationListScenarios(ref)
     }
 
     fun locationClear(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).locationClear(ref)
+        activeDevices.getNodeFor(ref).locationClear(ref)
     }
 
     fun locationSet(ref: DeviceRef, latitude: Double, longitude: Double) {
-        nodeRegistry.activeDevices.getNodeFor(ref).locationSet(ref, latitude, longitude)
+        activeDevices.getNodeFor(ref).locationSet(ref, latitude, longitude)
     }
 
     fun locationRunScenario(ref: DeviceRef, scenarioName: String) {
-        nodeRegistry.activeDevices.getNodeFor(ref).locationRunScenario(ref, scenarioName)
+        activeDevices.getNodeFor(ref).locationRunScenario(ref, scenarioName)
     }
 
     fun locationStartLocationSequence(ref: DeviceRef, speed: Int, distance: Int, interval: Int, waypoints: List<LocationDto>) {
-        nodeRegistry.activeDevices.getNodeFor(ref).locationStartLocationSequence(ref, speed, distance, interval, waypoints)
-    }
-
-    fun isReady(): Boolean {
-        return nodeRegistry.getInitialRegistrationComplete()
+        activeDevices.getNodeFor(ref).locationStartLocationSequence(ref, speed, distance, interval, waypoints)
     }
 
     fun listFiles(ref: DeviceRef, dataPath: DataPath): List<String> {
-        return nodeRegistry.activeDevices.getNodeFor(ref).listFiles(ref, dataPath)
+        return activeDevices.getNodeFor(ref).listFiles(ref, dataPath)
     }
 
     fun pullFile(ref: DeviceRef, dataPath: DataPath): File {
-        return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
+        return activeDevices.getNodeFor(ref).pullFile(ref, dataPath)
     }
 
     fun pullFile(ref: DeviceRef, path: Path): File {
-        return nodeRegistry.activeDevices.getNodeFor(ref).pullFile(ref, path)
+        return activeDevices.getNodeFor(ref).pullFile(ref, path)
     }
 
     fun pushFile(ref: DeviceRef, fileName: String, data: ByteArray, bundleId: String) {
-        nodeRegistry.activeDevices.getNodeFor(ref).pushFile(ref, fileName, data, bundleId)
+        activeDevices.getNodeFor(ref).pushFile(ref, fileName, data, bundleId)
     }
 
     fun pushFile(ref: DeviceRef, data: ByteArray, path: Path) {
-        nodeRegistry.activeDevices.getNodeFor(ref).pushFile(ref, data, path)
+        activeDevices.getNodeFor(ref).pushFile(ref, data, path)
     }
 
     fun deleteFile(ref: DeviceRef, path: Path) {
-        nodeRegistry.activeDevices.getNodeFor(ref).deleteFile(ref, path)
+        activeDevices.getNodeFor(ref).deleteFile(ref, path)
     }
 
     fun setEnvironmentVariables(ref: DeviceRef, envs: Map<String, String>) {
-        nodeRegistry.activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
+        activeDevices.getNodeFor(ref).setEnvironmentVariables(ref, envs)
     }
 
     fun getEnvironmentVariable(ref: DeviceRef, variableName: String): String {
-        return nodeRegistry.activeDevices.getNodeFor(ref).getEnvironmentVariable(ref, variableName)
+        return activeDevices.getNodeFor(ref).getEnvironmentVariable(ref, variableName)
     }
 
     fun resetMedia(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).resetMedia(ref)
+        activeDevices.getNodeFor(ref).resetMedia(ref)
     }
 
     fun listMedia(ref: DeviceRef): List<String> {
-        return nodeRegistry.activeDevices.getNodeFor(ref).listMedia(ref)
+        return activeDevices.getNodeFor(ref).listMedia(ref)
     }
 
     fun listPhotoData(ref: DeviceRef): List<String> {
-        return nodeRegistry.activeDevices.getNodeFor(ref).listPhotoData(ref)
+        return activeDevices.getNodeFor(ref).listPhotoData(ref)
     }
 
     fun addMedia(ref: DeviceRef, fileName: String, data: ByteArray) {
-        nodeRegistry.activeDevices.getNodeFor(ref).addMedia(ref, fileName, data)
+        activeDevices.getNodeFor(ref).addMedia(ref, fileName, data)
     }
 
     fun syslog(ref: DeviceRef): File {
-        return nodeRegistry.activeDevices.getNodeFor(ref).syslog(ref)
+        return activeDevices.getNodeFor(ref).syslog(ref)
     }
 
     fun instrumentationAgentLog(ref: DeviceRef): File {
-        return nodeRegistry.activeDevices.getNodeFor(ref).instrumentationAgentLog(ref)
+        return activeDevices.getNodeFor(ref).instrumentationAgentLog(ref)
     }
 
     fun deleteInstrumentationAgentLog(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).deleteInstrumentationAgentLog(ref)
+        activeDevices.getNodeFor(ref).deleteInstrumentationAgentLog(ref)
     }
 
     fun syslogDelete(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).syslogDelete(ref)
+        activeDevices.getNodeFor(ref).syslogDelete(ref)
     }
 
     fun syslogStart(ref: DeviceRef, sysLogCaptureOptions: SysLogCaptureOptions) {
-        nodeRegistry.activeDevices.getNodeFor(ref).syslogStart(ref, sysLogCaptureOptions)
+        activeDevices.getNodeFor(ref).syslogStart(ref, sysLogCaptureOptions)
     }
 
     fun syslogStop(ref: DeviceRef) {
-        nodeRegistry.activeDevices.getNodeFor(ref).syslogStop(ref)
+        activeDevices.getNodeFor(ref).syslogStop(ref)
     }
 
     fun getDiagnostic(ref: DeviceRef, type: DiagnosticType, query: DiagnosticQuery): Diagnostic {
-        return nodeRegistry.activeDevices.getNodeFor(ref).getDiagnostic(ref, type, query)
+        return activeDevices.getNodeFor(ref).getDiagnostic(ref, type, query)
     }
 
     fun resetDiagnostic(ref: DeviceRef, type: DiagnosticType) {
-        nodeRegistry.activeDevices.getNodeFor(ref).resetDiagnostic(ref, type)
+        activeDevices.getNodeFor(ref).resetDiagnostic(ref, type)
     }
 
     fun installApplication(ref: String, dto: AppBundleDto) {
-        nodeRegistry.activeDevices.getNodeFor(ref).installApplication(ref, dto)
+        activeDevices.getNodeFor(ref).installApplication(ref, dto)
     }
 
     fun appInstallationStatus(ref: String): Map<String, Any> {
-        return nodeRegistry.activeDevices.getNodeFor(ref).appInstallationStatus(ref)
+        return activeDevices.getNodeFor(ref).appInstallationStatus(ref)
     }
 
     private val appBinariesCache: MutableMap<String, File> = ConcurrentHashMap(200)
@@ -347,16 +355,14 @@ class DeviceManager(
 
         logger.debug(marker, "Starting to deploy application ${dto.appUrl}")
 
-        nodeRegistry.getAll().forEach {
-            it.node.deployApplication(appBundle)
-        }
+        nodes.forEach { it.deployApplication(appBundle) }
 
         logger.debug(marker, "Successfully deployed application ${dto.appUrl}")
     }
 
     private fun isApplicationDeployed(dto: AppBundleDeployDto): Boolean {
         val appBundle = ApplicationBundle(URI(dto.appUrl).toURL())
-        return nodeRegistry.getAll().all { it.node.isApplicationDeployed(appBundle) }
+        return nodes.all { it.isApplicationDeployed(appBundle) }
     }
 
     private fun acquireBundle(dto: AppBundleDeployDto, marker: MapEntriesAppendingMarker): ApplicationBundle {
@@ -368,9 +374,7 @@ class DeviceManager(
 
     fun resetAppBundleCache() {
         val marker = MapEntriesAppendingMarker(mapOf("operation" to "app_cleanup"))
-        nodeRegistry.getAll().forEach {
-            it.node.resetAppBundleCache()
-        }
+        nodes.forEach { it.resetAppBundleCache() }
         try {
             with(appConfig.appBundleCachePath) {
                 deleteRecursivelyIfExist(logger, marker)
@@ -398,6 +402,6 @@ class DeviceManager(
     }
 
     fun updateApplicationPlist(deviceRef: String, plistEntry: PlistEntryDTO) {
-        return nodeRegistry.activeDevices.getNodeFor(deviceRef).updateApplicationPlist(deviceRef, plistEntry)
+        return activeDevices.getNodeFor(deviceRef).updateApplicationPlist(deviceRef, plistEntry)
     }
 }
