@@ -82,8 +82,10 @@ fun Application.module() {
     val config = serverConfig()
     val startTime = System.nanoTime()
 
-    val hostFactory = HostFactory(appConfiguration = ApplicationConfiguration())
-    val deviceManager = DeviceManager(config, hostFactory)
+    val appConfiguration = ApplicationConfiguration()
+    val hostFactory = HostFactory(appConfiguration = appConfiguration)
+    val deviceManager = DeviceManager(config, appConfiguration, hostFactory)
+    deviceManager.setup()
     val devicesController = DevicesController(deviceManager)
     val statusController = StatusController(deviceManager)
 

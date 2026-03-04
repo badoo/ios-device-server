@@ -3,7 +3,6 @@ package com.badoo.automation.deviceserver.host
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
 import com.badoo.automation.deviceserver.host.management.PortAllocator
-import com.badoo.automation.deviceserver.host.management.SimulatorHostChecker
 import com.badoo.automation.deviceserver.util.NetworkUtils
 import com.badoo.automation.deviceserver.util.WdaDeviceBundle
 import com.badoo.automation.deviceserver.util.WdaDeviceBundlesProvider
@@ -24,6 +23,8 @@ class HostFactory(
         val publicHostName = config.publicHostName ?: NetworkUtils.getAddresses().first().ip
         val remote = remoteProvider(publicHostName, publicHostName)
         val sharedPortAllocator = PortAllocator(remote)
+        sharedPortAllocator.refreshPortAvailability()
+
         val nodes = mutableListOf<IDeviceNode>()
 
         config.simulators?.let { sim ->
@@ -31,7 +32,6 @@ class HostFactory(
             nodes += SimulatorsNode(
                 remote = remote,
                 publicHostName = publicHostName,
-                hostChecker = SimulatorHostChecker(remote, sim.shutdownSimulators),
                 simulatorLimit = sim.simulatorLimit,
                 concurrentBoots = sim.concurrentBoots,
                 wdaSimulatorBundles = getWdaSimulatorBundles(),

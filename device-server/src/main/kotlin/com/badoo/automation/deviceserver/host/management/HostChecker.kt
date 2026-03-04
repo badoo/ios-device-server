@@ -12,21 +12,15 @@ import com.badoo.automation.deviceserver.util.deleteRecursivelyIfExist
 import com.badoo.automation.deviceserver.util.ensureDirectoryExists
 import net.logstash.logback.marker.MapEntriesAppendingMarker
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
-interface ISimulatorHostChecker {
-    fun checkPrerequisites()
-    fun createDirectories()
-    fun cleanup()
-    fun setupHost()
-    fun killDiskCleanupThread()
-}
-
-class SimulatorHostChecker(
+class HostChecker(
     val remote: IRemote,
-    private val shutdownSimulators: Boolean
-) : ISimulatorHostChecker {
+    private val shutdownSimulators: Boolean,
+    private val applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
+) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
     private val logMarker = MapEntriesAppendingMarker(
         mapOf(
@@ -34,23 +28,14 @@ class SimulatorHostChecker(
         )
     )
 
-    private lateinit var cleanUpTask: ScheduledFuture<*>
-    private val applicationConfiguration = ApplicationConfiguration()
-
-    override fun createDirectories() {
+    fun createDirectories() {
         with(applicationConfiguration.appBundleCachePath) {
             deleteRecursivelyIfExist(logger, logMarker)
             ensureDirectoryExists(logger, logMarker)
         }
     }
 
-    override fun killDiskCleanupThread() {
-        if (::cleanUpTask.isInitialized) {
-            cleanUpTask.cancel(true)
-        }
-    }
-
-    override fun checkPrerequisites() {
+    fun checkPrerequisites() {
         logger.info(logMarker, "Checking default Xcode version:")
         val xcodeOutput = remote.exec(listOf("/usr/bin/xcodebuild", "-version"), mapOf(), true, 180)
 
@@ -66,9 +51,19 @@ class SimulatorHostChecker(
             logger.error(logMarker, "Failed to get Xcode version: ${xcodeOutput.stdErr.trim() + xcodeOutput.stdOut.trim()}")
             throw IllegalStateException("Failed to get Xcode version: ${xcodeOutput.stdErr.trim() + xcodeOutput.stdOut.trim()}")
         }
+
+        val iproxyResult = remote.execIgnoringErrors((listOf(File(remote.homeBrewPath, "iproxy").absolutePath, "--help")))
+        if (!iproxyResult.isSuccess) {
+            throw RuntimeException("Expecting iproxy to be installed. Exit code: ${iproxyResult.exitCode}\nStdErr: ${iproxyResult.stdErr}. StdOut: ${iproxyResult.stdOut}")
+        }
+
+        val socatResult = remote.execIgnoringErrors((listOf(File(remote.homeBrewPath, "socat").absolutePath, "-V")))
+        if (!socatResult.isSuccess) {
+            throw RuntimeException("Expecting socat to be installed. Exit code: ${socatResult.exitCode}\nStdErr: ${socatResult.stdErr}. StdOut: ${socatResult.stdOut}")
+        }
     }
 
-    override fun cleanup() {
+    fun cleanup() {
         try {
             logger.info(logMarker, "Will shutdown booted simulators")
             remote.fbsimctl.shutdownAllBooted()
@@ -132,7 +127,7 @@ class SimulatorHostChecker(
         }
     }
 
-    override fun setupHost() {
+    fun setupHost() {
         ensureXodeSimulatorRuntimesWork()
 
         // disable node hardware keyboard, i.e. use on-screen one

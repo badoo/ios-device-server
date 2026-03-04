@@ -2,13 +2,17 @@ package com.badoo.automation.deviceserver.host.management
 
 import com.badoo.automation.deviceserver.ApplicationConfiguration
 import com.badoo.automation.deviceserver.DeviceServerConfig
+import com.badoo.automation.deviceserver.LogMarkers
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.host.HostFactory
 import com.badoo.automation.deviceserver.host.IDeviceNode
 import com.badoo.automation.deviceserver.host.NodeInfo
+import com.badoo.automation.deviceserver.host.Remote
+import com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException
 import com.badoo.automation.deviceserver.host.management.errors.NoAliveNodesException
 import com.badoo.automation.deviceserver.ios.ActiveDevices
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
+import com.badoo.automation.deviceserver.util.NetworkUtils
 import com.badoo.automation.deviceserver.util.deleteRecursivelyIfExist
 import com.badoo.automation.deviceserver.util.ensureDirectoryExists
 import net.logstash.logback.marker.MapEntriesAppendingMarker
@@ -21,34 +25,31 @@ import java.time.Duration
 import java.util.concurrent.*
 import kotlin.system.measureNanoTime
 
-private val INFINITE_DEVICE_TIMEOUT: Duration = Duration.ofSeconds(Integer.MAX_VALUE.toLong())
-
 class DeviceManager(
-    config: DeviceServerConfig,
-    private val appConfig: ApplicationConfiguration = ApplicationConfiguration(),
-    hostFactory: HostFactory = HostFactory(appConfiguration = appConfig),
+    private val config: DeviceServerConfig,
+    private val appConfig: ApplicationConfiguration,
+    private val hostFactory: HostFactory = HostFactory(appConfiguration = appConfig),
     private val activeDevices: ActiveDevices = ActiveDevices()
 ) {
     private val logger = LoggerFactory.getLogger(javaClass.simpleName)
-    private val deviceTimeoutInSecs: Duration
-    private val nodes: List<IDeviceNode>
+    private val nodes: MutableList<IDeviceNode> = mutableListOf()
     @Volatile private var ready = false
 
-    init {
-        val timeoutFromConfig: Long? = config.timeouts["device"]?.toLong()
-        deviceTimeoutInSecs = if (timeoutFromConfig != null && timeoutFromConfig > 0) {
-            Duration.ofSeconds(timeoutFromConfig)
-        } else {
-            INFINITE_DEVICE_TIMEOUT
+    fun setup() {
+        val publicHostName = config.publicHostName ?: NetworkUtils.getAddresses().first().ip
+        val remote = Remote(publicHostName, publicHostName)
+
+        val hostChecker = HostChecker(remote, config.simulators?.shutdownSimulators ?: false)
+        hostChecker.checkPrerequisites()
+        hostChecker.createDirectories()
+        hostChecker.cleanup()
+        hostChecker.setupHost()
+
+        hostFactory.createNodes(config).apply {
+            nodes.addAll(this)
         }
 
-        nodes = hostFactory.createNodes(config)
-
-        if (nodes.isNotEmpty()) {
-            val executor = Executors.newFixedThreadPool(nodes.size)
-            nodes.map { node -> executor.submit { node.prepareNode() } }.forEach { it.get() }
-            executor.shutdown()
-        }
+        nodes.forEach { it.prepareNode() }
 
         ready = true
     }
@@ -177,10 +178,10 @@ class DeviceManager(
         logger.info("Create device dto $dto")
 
         val logMarker = MapEntriesAppendingMarker(mutableMapOf(
-            com.badoo.automation.deviceserver.LogMarkers.DEVICE_REF to dto.ref,
-            com.badoo.automation.deviceserver.LogMarkers.UDID to dto.info.udid
+            LogMarkers.DEVICE_REF to dto.ref,
+            LogMarkers.UDID to dto.info.udid
         ))
-        logger.info(logMarker, "Create device started, register with timeout ${deviceTimeoutInSecs.seconds} secs")
+        logger.info(logMarker, "Create device started")
 
         activeDevices.registerDevice(dto.ref, node, userId)
         return dto
@@ -195,10 +196,10 @@ class DeviceManager(
         logger.info("Preboot device dto $dto")
 
         val logMarker = MapEntriesAppendingMarker(mutableMapOf(
-            com.badoo.automation.deviceserver.LogMarkers.DEVICE_REF to dto.ref,
-            com.badoo.automation.deviceserver.LogMarkers.UDID to dto.info.udid
+            LogMarkers.DEVICE_REF to dto.ref,
+            LogMarkers.UDID to dto.info.udid
         ))
-        logger.info(logMarker, "Preboot device started, register with timeout ${deviceTimeoutInSecs.seconds} secs")
+        logger.info(logMarker, "Preboot device started")
 
         activeDevices.registerDevice(dto.ref, node, userId)
         return dto
@@ -207,7 +208,7 @@ class DeviceManager(
     fun deleteReleaseDevice(ref: DeviceRef, reason: String) {
         try {
             activeDevices.releaseDevice(ref, reason)
-        } catch (e: com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException) {
+        } catch (e: DeviceNotFoundException) {
             logger.warn("Skipping $ref release because no node knows about it")
         }
     }
@@ -215,7 +216,7 @@ class DeviceManager(
     fun deleteReleaseDeviceWitForce(ref: DeviceRef, reason: String) {
         try {
             activeDevices.deleteSimulatorWithForce(ref, reason)
-        } catch (e: com.badoo.automation.deviceserver.host.management.errors.DeviceNotFoundException) {
+        } catch (e: DeviceNotFoundException) {
             logger.warn("Skipping $ref release because no node knows about it")
         }
     }

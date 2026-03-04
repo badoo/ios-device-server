@@ -6,7 +6,6 @@ import com.badoo.automation.deviceserver.LogMarkers.Companion.UDID
 import com.badoo.automation.deviceserver.data.*
 import com.badoo.automation.deviceserver.data.DeviceType
 import com.badoo.automation.deviceserver.host.management.ApplicationBundle
-import com.badoo.automation.deviceserver.host.management.ISimulatorHostChecker
 import com.badoo.automation.deviceserver.host.management.PortAllocator
 import com.badoo.automation.deviceserver.host.management.errors.OverCapacityException
 import com.badoo.automation.deviceserver.ios.fbsimctl.FBSimctlAppInfo
@@ -36,7 +35,6 @@ import kotlin.concurrent.withLock
 class SimulatorsNode(
     val remote: IRemote,
     override val publicHostName: String,
-    private val hostChecker: ISimulatorHostChecker,
     private val simulatorLimit: Int,
     concurrentBoots: Int,
     private val wdaSimulatorBundles: WdaSimulatorBundles,
@@ -46,7 +44,7 @@ class SimulatorsNode(
         registryFile = File(System.getProperty("user.home"), ".iosctl/simulator_registry_$publicHostName.json")
     ),
     private val simulatorProvider: SimulatorProvider = SimulatorProvider(remote, simulatorRepository, simulatorRegistry),
-    private val portAllocator: PortAllocator = PortAllocator(remote),
+    private val portAllocator: PortAllocator,
     private val simulatorFactory: ISimulatorFactory = object : ISimulatorFactory {},
     private val disabledServices: List<String> = emptyList()
 ) : IDeviceNode {
@@ -266,11 +264,6 @@ class SimulatorsNode(
     // region: Node operations: Prepare & Reboot & Dispose
     override fun prepareNode() {
         logger.info(logMarker, "Preparing node ${remote.hostName}")
-        hostChecker.checkPrerequisites()
-        hostChecker.createDirectories()
-        hostChecker.cleanup()
-        hostChecker.setupHost()
-        portAllocator.refreshPortAvailability()
         simulatorRepository.dyldSharedCacheUpdate()
         simulatorProvider.syncSimulatorsWithRegistry()
         simulatorProvider.listSimulators()
@@ -285,8 +278,6 @@ class SimulatorsNode(
         simulatorsToDelete.parallelStream().forEach {
             deleteReleaseDeviceForTests(it, "Finalising pool for ${remote.hostName}")
         }
-
-        hostChecker.killDiskCleanupThread()
 
         logger.info(logMarker, "Finalised simulator pool for ${remote.hostName}")
     }

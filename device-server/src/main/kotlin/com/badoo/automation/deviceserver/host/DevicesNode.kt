@@ -27,7 +27,7 @@ import java.util.concurrent.*
 class DevicesNode(
     private val remote: IRemote,
     override val publicHostName: String,
-    portAllocator: PortAllocator = PortAllocator(remote),
+    portAllocator: PortAllocator,
     configuredDevices: Set<ConfiguredDevice>,
     private val whitelistedApps: Set<String>,
     private val uninstallApps: Boolean,
@@ -265,10 +265,6 @@ class DevicesNode(
 
     override fun prepareNode() {
         logger.info(logMarker, "Preparing node ${remote.hostName}")
-        checkPrerequisites()
-        cleanup()
-
-        // FIXME: We need to completely reset node state here due to changes in NodeWrapper logic
 
         slots.registerDevices()
 
@@ -434,35 +430,6 @@ class DevicesNode(
         val udid = activeRefs[deviceRef] ?: throw(DeviceNotFoundException("Device $deviceRef not found"))
 
         return slots.getSlot(udid)
-    }
-
-    private fun checkPrerequisites() {
-        val xcodeOutput = remote.execIgnoringErrors(listOf("xcodebuild", "-version"))
-        logger.info(logMarker, "Using default Xcode version: ${xcodeOutput.stdOut.trim().replace("\n", " ")}")
-        val xcodeVersion = XcodeVersion.fromXcodeBuildOutput(xcodeOutput.stdOut)
-
-        if (xcodeVersion < REQUIRED_XCODE_VERSION) {
-            logger.error(logMarker, "Expecting Xcode $REQUIRED_XCODE_VERSION or higher, but it is $xcodeVersion")
-        }
-
-        val iproxyResult = remote.execIgnoringErrors((listOf(File(remote.homeBrewPath, "iproxy").absolutePath, "--help")))
-        if (!iproxyResult.isSuccess) {
-           throw RuntimeException("Expecting iproxy to be installed. Exit code: ${iproxyResult.exitCode}\nStdErr: ${iproxyResult.stdErr}. StdOut: ${iproxyResult.stdOut}")
-        }
-
-        val socatResult = remote.execIgnoringErrors((listOf(File(remote.homeBrewPath, "socat").absolutePath, "-V")))
-        if (!socatResult.isSuccess) {
-            throw RuntimeException("Expecting socat to be installed. Exit code: ${socatResult.exitCode}\nStdErr: ${socatResult.stdErr}. StdOut: ${socatResult.stdOut}")
-        }
-    }
-
-    private fun cleanup() {
-        // single instance of server on node is implied, so we can kill all simulators and fbsimctl processes
-        remote.pkill(remote.fbsimctl.fbsimctlBinary, true)
-        remote.pkill("/usl/local/bin/iproxy", true)
-        remote.pkill("/opt/homebrew/bin/iproxy", true)
-        remote.pkill("/usr/local/bin/socat", true)
-        remote.pkill("/opt/homebrew/bin/socat", true)
     }
 
     override fun setEnvironmentVariables(deviceRef: DeviceRef, envs: Map<String, String>) {
