@@ -2532,7 +2532,39 @@
       "queryAllPublicMethods": true
     },
     {
-      "type": "deviceserver.LogHighlighter",
+      "type": "com.badoo.automation.deviceserver.DevicesConfig",
+      "allPublicConstructors": true,
+      "allPublicMethods": true,
+      "allPublicFields": true,
+      "queryAllPublicConstructors": true,
+      "queryAllPublicMethods": true
+    },
+    {
+      "type": "com.badoo.automation.deviceserver.SimulatorsConfig",
+      "allPublicConstructors": true,
+      "allPublicMethods": true,
+      "allPublicFields": true,
+      "queryAllPublicConstructors": true,
+      "queryAllPublicMethods": true
+    },
+    {
+      "type": "com.badoo.automation.deviceserver.data.DeviceType",
+      "allPublicConstructors": true,
+      "allPublicMethods": true,
+      "allPublicFields": true,
+      "queryAllPublicConstructors": true,
+      "queryAllPublicMethods": true
+    },
+    {
+      "type": "com.badoo.automation.deviceserver.data.DeviceType$Device",
+      "allPublicConstructors": true,
+      "allPublicMethods": true,
+      "allPublicFields": true,
+      "queryAllPublicConstructors": true,
+      "queryAllPublicMethods": true
+    },
+    {
+      "type": "com.badoo.automation.deviceserver.data.DeviceType$Simulator",
       "allPublicConstructors": true,
       "allPublicMethods": true,
       "allPublicFields": true,
