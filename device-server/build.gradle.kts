@@ -49,7 +49,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
-    implementation("org.apache.commons:commons-configuration2:2.13.0")
+    implementation("org.apache.commons:commons-configuration2:2.15.0")
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
 
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.0")
